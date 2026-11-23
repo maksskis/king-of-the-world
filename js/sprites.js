@@ -143,7 +143,15 @@
   DEF.r_gold = { w: 12, h: 12, draw(b) { b.disc(6, 6, 5, P.goldD); b.disc(5.6, 5.6, 4.2, P.gold); b.rect(5, 4, 2, 4, P.goldD); b.px(3, 4, P.goldL); b.px(4, 3, P.goldL); } };
   DEF.r_wood = { w: 12, h: 12, draw(b) { b.rect(1, 4, 8, 5, P.wood); b.rect(1, 5, 8, 1, P.woodD); b.rect(2, 7, 6, 1, P.woodD); b.ellipse(9, 6.5, 2.2, 2.6, P.woodL); b.px(9, 6, P.woodD); } };
   DEF.r_stone = { w: 12, h: 12, draw(b) { b.poly([[1, 10.5], [1.5, 6], [4, 2.5], [8, 1.5], [10.5, 5], [10.5, 10.5]], P.stone); b.rect(4, 3, 4, 1, P.stoneL); b.rect(3, 4, 2, 2, P.stoneL); b.rect(2, 9, 8, 1, P.stoneD); b.px(8, 6, P.stoneD); b.px(6, 7, P.stoneD); } };
-  DEF.r_iron = { w: 12, h: 12, draw(b) { b.poly([[1, 10.5], [3.5, 4], [8.5, 4], [11, 10.5]], P.iron); b.rect(3, 4, 6, 2, P.ironL); b.rect(1, 9, 10, 1, P.ironD); } };
+  // Железо — стальной брусок в три четверти с тёмным контуром, чтобы не путать с серым камнем
+  DEF.r_iron = { w: 12, h: 12, draw(b) {
+    b.poly([[1, 6.5], [4, 3.5], [11, 3.5], [8.5, 6.5]], '#b9cdee');
+    b.poly([[1, 6.5], [8.5, 6.5], [8.5, 10.5], [1, 10.5]], '#6a80a8');
+    b.poly([[8.5, 6.5], [11, 3.5], [11, 8], [8.5, 10.5]], '#3d4a6b');
+    b.px(3, 5, P.white); b.px(4, 5, P.white); b.rect(2, 9, 6, 1, '#55698f');
+    b.outline(P.k);
+  } };
+  DEF.i_stairs = { w: 12, h: 12, draw(b) { b.rect(1, 2, 10, 9, P.dark); b.rect(1, 9, 10, 2, P.stoneL); b.rect(3, 7, 8, 2, P.stoneM); b.rect(5, 5, 6, 2, P.stone); b.rect(7, 3, 4, 2, P.stoneD); } };
   DEF.r_mithril = { w: 12, h: 12, draw(b) { b.poly([[1, 10.5], [3.5, 4], [8.5, 4], [11, 10.5]], P.mith); b.rect(3, 4, 6, 2, P.mithL); b.rect(1, 9, 10, 1, P.mithD); b.px(8, 7, P.white); } };
   DEF.r_bone = { w: 12, h: 12, draw(b) { b.rect(3, 5, 6, 2, P.bone); b.disc(2.6, 4.6, 1.7, P.bone); b.disc(2.6, 7.4, 1.7, P.bone); b.disc(9.4, 4.6, 1.7, P.bone); b.disc(9.4, 7.4, 1.7, P.bone); b.rect(3, 6, 6, 1, P.boneD); } };
   DEF.r_crystal = { w: 12, h: 12, draw(b) { b.poly([[6, 1], [10.5, 5], [6, 11], [1.5, 5]], P.cry); b.poly([[6, 1], [6, 11], [1.5, 5]], P.cryD); b.px(7, 3, P.white); b.px(8, 4, P.white); } };

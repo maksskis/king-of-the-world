@@ -154,8 +154,8 @@
     for (const a of G.S.advs) {
       if (a.st === 'wounded') {
         const mx = T.stats(a).hp;
+        a.hp = Math.min(mx, a.hp + (mx - a.hp) * Math.min(1, dt / Math.max(dt, a.wt)));
         a.wt -= dt;
-        a.hp = Math.min(mx, a.hp + (mx * dt) / 90);
         if (a.wt <= 0) {
           a.st = 'idle';
           G.log('logRecovered', { name: a.name }, 'info');

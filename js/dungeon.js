@@ -3,10 +3,10 @@
 (function () {
   const X = (G.X = {});
   const D = G.D;
-  const ROUND = 1.2, MAX_ROUNDS = 40;
+  const ROUND = 0.8, MAX_ROUNDS = 40;
   X.maxParty = 4;
-  X.travelTime = (f) => 10 + 2 * f;
-  X.returnTime = (f) => 8 + 2 * f;
+  X.travelTime = (f) => Math.round(Math.min(12, 4 + 0.4 * f));
+  X.returnTime = (f) => Math.round(Math.min(15, 5 + 0.4 * f));
 
   // ---------- локации ----------
   X.loc = (id) => D.LOCS[id];
@@ -17,6 +17,17 @@
   };
   X.best = (id) => G.S.dng.best[id] || 0;
   X.floors = (id) => D.LOCS[id].floors || Infinity;
+  // Точки старта: 1-й этаж и каждый 5-й этаж, который отряд уже прошёл
+  X.startOptions = function (id) {
+    const top = Math.min(X.best(id), X.floors(id));
+    const o = [1];
+    for (let f = 5; f <= top; f += 5) o.push(f);
+    return o;
+  };
+  X.startFloor = function (id) {
+    const want = G.S.dng.start || 1;
+    return X.startOptions(id).filter((f) => f <= want).pop();
+  };
 
   X.enemy = function (locId, f) {
     const L = D.LOCS[locId];
@@ -137,21 +148,23 @@
   // Условия отхода задаются перед походом
   X.cond = () => {
     const d = G.S.dng;
+    if (d.hp <= 0) return { hp: 0, down: false, boss: false, avoid: 0, push: true };
     return { hp: d.hp, down: d.down, boss: d.boss, avoid: d.avoid };
   };
 
-  X.start = function (ids, loc, maxFloor) {
+  X.start = function (ids, loc, maxFloor, startFloor) {
     if (G.S.exp || !X.locOpen(loc)) return;
     const party = ids.map(G.T.get).filter((a) => a && a.st === 'idle' && a.hp > 0).slice(0, X.maxParty);
     if (!party.length) return;
     for (const a of party) a.st = 'dungeon';
-    const t = X.travelTime(1);
+    const f0 = X.startOptions(loc).includes(startFloor) ? startFloor : 1;
+    const t = X.travelTime(f0);
     G.S.exp = {
-      loc, party: party.map((a) => a.id), maxFloor: Math.min(maxFloor, X.floors(loc)), cond: X.cond(),
-      floor: 1, cleared: 0, phase: 'travel', t, tt: t, enemy: null, stance: null, ehp: 0, rt: 0, round: 0,
+      loc, party: party.map((a) => a.id), maxFloor: Math.max(f0, Math.min(maxFloor, X.floors(loc))), cond: X.cond(),
+      floor: f0, cleared: f0 - 1, start: f0, phase: 'travel', t, tt: t, enemy: null, stance: null, ehp: 0, rt: 0, round: 0,
       fell: [], flog: [], loot: {}, items: [], log: [], recall: false,
     };
-    xlog('xStart', { n: party.length, l: { k: 'loc_' + loc } });
+    xlog(f0 > 1 ? 'xStartAt' : 'xStart', { n: party.length, l: { k: 'loc_' + loc }, f: f0 });
     G.log('logExpStart', { n: party.length, l: { k: 'loc_' + loc } }, 'info');
     G.SFX.play('horn');
     G.UI.dirty();
@@ -165,7 +178,7 @@
     if (!e.items) e.items = [];
     if (e.phase === 'travel') {
       for (const a of X.members()) {
-        if (a.hp > 0) { const mx = G.T.stats(a).hp; a.hp = Math.min(mx, a.hp + mx * 0.004 * dt); }
+        if (a.hp > 0) { const mx = G.T.stats(a).hp; a.hp = Math.min(mx, a.hp + mx * 0.01 * dt); }
       }
       e.t -= dt;
       if (e.t <= 0) X.engage();
@@ -253,7 +266,7 @@
     const e = G.S.exp;
     const L = D.LOCS[e.loc];
     const fell = e.fell.map(G.T.get).filter(Boolean);
-    const dead = fell.filter(() => Math.random() < G.T.deathChance(win ? 0.15 : 0.5));
+    const dead = fell.filter(() => Math.random() < G.T.deathChance(win || e.cond.push ? 0.15 : 0.5));
     for (const a of dead) { xlog('xFallen', { name: a.name }, 'bad'); G.T.kill(a, true); }
     e.party = e.party.filter((id) => G.T.get(id));
     if (!win) {
@@ -334,7 +347,7 @@
     G.E.addAll(e.loot);
     for (const it of e.items || []) G.S.items.push(it);
     for (const a of X.members()) {
-      if (a.hp <= 0) G.T.wound(a, 90);
+      if (a.hp <= 0) G.T.wound(a, 45);
       else a.st = 'idle';
     }
     G.log(ok ? 'logExpBack' : 'logExpFail', { f: e.cleared, l: { k: 'loc_' + e.loc }, loot: e.loot }, ok ? 'good' : 'bad');

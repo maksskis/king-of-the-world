@@ -749,6 +749,11 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   .cats { flex-direction: row; flex-wrap: wrap; }
   .ww { flex-wrap: wrap; white-space: normal; justify-content: center; }
 }
+/* Условия похода: отключённые строки и предупреждение режима «до последнего» */
+.cond.off { opacity: 0.45; }
+.cond .cnote { display: block; margin-left: 20px; }
+.pushwarn { margin: 2px 0 6px; padding: 6px 8px; border: 1px dashed rgba(240, 120, 100, 0.5); border-radius: 6px; }
+
 /* Подсказка при наведении на здание */
 #tip {
   position: absolute;

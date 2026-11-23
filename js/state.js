@@ -24,7 +24,7 @@
       gate: { best: 0, sel: 1 },
       exp: null,
       lastExp: null,
-      dng: { best: {}, maxFloor: 3, loc: 'catacombs', hp: 0.4, down: true, boss: false, avoid: 0.3 },
+      dng: { best: {}, maxFloor: 3, start: 1, loc: 'catacombs', hp: 0.4, down: true, boss: false, avoid: 0.3 },
       camp: { awake: false, won: false },
       dyn: dyn || { epoch: 0, pts: 0, perks: {} },
       stats: { clicks: 0, kills: 0, crafted: 0 },

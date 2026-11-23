@@ -416,12 +416,18 @@
       else if (UI.party.size < G.X.maxParty) UI.party.add(id);
       UI.dirty();
     },
-    maxf(d) { G.S.dng.maxFloor = U.clamp(G.S.dng.maxFloor + +d, 1, Math.min(999, G.X.floors(G.S.dng.loc))); UI.dirty(); },
-    condHp(d) { G.S.dng.hp = U.clamp(Math.round((G.S.dng.hp + +d) * 10) / 10, 0.1, 0.9); UI.dirty(); },
+    maxf(d) { const Dn = G.S.dng; Dn.maxFloor = U.clamp(Math.max(Dn.maxFloor, G.X.startFloor(Dn.loc)) + +d, G.X.startFloor(Dn.loc), Math.min(999, G.X.floors(Dn.loc))); UI.dirty(); },
+    startf(d) {
+      const Dn = G.S.dng, o = G.X.startOptions(Dn.loc);
+      Dn.start = o[U.clamp(o.indexOf(G.X.startFloor(Dn.loc)) + +d, 0, o.length - 1)];
+      Dn.maxFloor = Math.max(Dn.maxFloor, Dn.start);
+      UI.dirty();
+    },
+    condHp(d) { G.S.dng.hp = U.clamp(Math.round((G.S.dng.hp + +d) * 10) / 10, 0, 0.9); UI.dirty(); },
     condDown() { G.S.dng.down = !G.S.dng.down; UI.dirty(); },
     condBoss() { G.S.dng.boss = !G.S.dng.boss; UI.dirty(); },
     condAvoid(v) { G.S.dng.avoid = +v; UI.dirty(); },
-    send() { G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor); UI.party.clear(); },
+    send() { G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc)); UI.party.clear(); },
     recall() { G.X.recall(); },
     mclose() { UI.closeModal(); },
     yes() { const f = UI._yes; UI._yes = null; UI.closeModal(); if (f) f(); },
@@ -684,14 +690,18 @@
     }
     const Dn = G.S.dng;
     Dn.maxFloor = Math.min(Dn.maxFloor, G.X.floors(loc));
+    const sf = G.X.startFloor(loc), so = G.X.startOptions(loc), si = so.indexOf(sf);
+    const mf = Math.max(Dn.maxFloor, sf), push = Dn.hp <= 0, off = push ? 'disabled' : '';
     let h = box(ic('i_people') + ' ' + t('party') + ` <span class="muted">${UI.party.size}/${G.X.maxParty}</span>`,
       idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`);
     h += box(ic('i_scroll') + ' ' + t('retreatTitle'), `<div class="hint top">${t('retreatHint')}</div>
-      <div class="cond"><span class="grow">${ic('i_flag')} ${t('maxFloor')}</span><button class="btn small" data-action="maxf" data-arg="-1">◀</button><b>${Dn.maxFloor}</b><button class="btn small" data-action="maxf" data-arg="1">▶</button></div>
-      <div class="cond"><span class="grow">${ic('i_hp')} ${t('condHp')}</span><button class="btn small" data-action="condHp" data-arg="-0.1">◀</button><b>${Math.round(Dn.hp * 100)}%</b><button class="btn small" data-action="condHp" data-arg="0.1">▶</button></div>
-      <div class="cond"><span class="grow">${ic('i_skull')} ${t('condDown')}</span><button class="btn small ${Dn.down ? 'primary' : ''}" data-action="condDown">${Dn.down ? t('yes') : t('no')}</button></div>
-      <div class="cond"><span class="grow">${ic('i_crown')} ${t('condBoss')}</span><button class="btn small ${Dn.boss ? 'primary' : ''}" data-action="condBoss">${Dn.boss ? t('yes') : t('no')}</button></div>
-      <div class="cond"><span class="grow">${ic('i_boot')} ${t('condAvoid')}</span><span class="seg">${[0, 0.3, 0.5, 0.7].map((v) => `<button class="btn small ${Dn.avoid === v ? 'primary' : ''}" data-action="condAvoid" data-arg="${v}">${v ? '< ' + v * 100 + '%' : t('never')}</button>`).join('')}</span></div>`);
+      <div class="cond"><span class="grow">${ic('i_stairs')} ${t('startFloor')}<span class="small muted cnote">${so.length > 1 ? t('startHint') : t('startLocked')}</span></span><button class="btn small" data-action="startf" data-arg="-1" ${si > 0 ? '' : 'disabled'}>◀</button><b>${sf}</b><button class="btn small" data-action="startf" data-arg="1" ${si < so.length - 1 ? '' : 'disabled'}>▶</button></div>
+      <div class="cond"><span class="grow">${ic('i_flag')} ${t('maxFloor')}</span><button class="btn small" data-action="maxf" data-arg="-5">−5</button><button class="btn small" data-action="maxf" data-arg="-1">◀</button><b>${mf}</b><button class="btn small" data-action="maxf" data-arg="1">▶</button><button class="btn small" data-action="maxf" data-arg="5">+5</button></div>
+      <div class="cond"><span class="grow">${ic('i_hp')} ${t('condHp')}</span><button class="btn small" data-action="condHp" data-arg="-0.1" ${push ? 'disabled' : ''}>◀</button><b class="${push ? 'bad' : ''}">${push ? '0% · ' + t('condPush') : Math.round(Dn.hp * 100) + '%'}</b><button class="btn small" data-action="condHp" data-arg="0.1">▶</button></div>
+      ${push ? `<div class="warn small pushwarn">${ic('i_skull')} ${t('pushWarn', { p: Math.round(G.T.deathChance(0.15) * 100) })}</div>` : ''}
+      <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_skull')} ${t('condDown')}</span><button class="btn small ${Dn.down && !push ? 'primary' : ''}" data-action="condDown" ${off}>${Dn.down && !push ? t('yes') : t('no')}</button></div>
+      <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_crown')} ${t('condBoss')}</span><button class="btn small ${Dn.boss && !push ? 'primary' : ''}" data-action="condBoss" ${off}>${Dn.boss && !push ? t('yes') : t('no')}</button></div>
+      <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_boot')} ${t('condAvoid')}</span><span class="seg">${[0, 0.3, 0.5, 0.7].map((v) => `<button class="btn small ${(push ? !v : Dn.avoid === v) ? 'primary' : ''}" data-action="condAvoid" data-arg="${v}" ${off}>${v ? '< ' + v * 100 + '%' : t('never')}</button>`).join('')}</span></div>`);
     h += `<button class="btn primary big" data-action="send" ${UI.party.size ? '' : 'disabled'}>${ic('i_flag')} ${t('sendParty')}</button>`;
     return h;
   }
@@ -710,7 +720,7 @@
     if (e.phase === 'travel' || e.phase === 'ret') body += `${bar('exp')}<div class="muted small" data-b="expT"></div>`;
     if (e.phase === 'fight' || e.flog.length) body += `<div class="flog">${e.flog.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`;
     const c = e.cond || X_COND();
-    body += `<div class="kv small">${t('maxFloor')}: <b>${e.maxFloor}</b> · ${t('condHp')}: <b>${Math.round(c.hp * 100)}%</b>${c.down ? ' · ' + t('condDownShort') : ''}${c.boss ? ' · ' + t('condBossShort') : ''}${c.avoid ? ' · ' + t('condAvoidShort', { p: c.avoid * 100 }) : ''}</div>`;
+    body += `<div class="kv small">${e.start > 1 ? t('startFloor') + ': <b>' + e.start + '</b> · ' : ''}${t('maxFloor')}: <b>${e.maxFloor}</b> · ${c.push ? `<b class="bad">${t('condPushShort')}</b>` : `${t('condHp')}: <b>${Math.round(c.hp * 100)}%</b>`}${c.down ? ' · ' + t('condDownShort') : ''}${c.boss ? ' · ' + t('condBossShort') : ''}${c.avoid ? ' · ' + t('condAvoidShort', { p: c.avoid * 100 }) : ''}</div>`;
     body += `<div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}${e.items && e.items.length ? ` · ${e.items.map((it) => ic('it_' + it.type + ':' + it.ti)).join('')} ${t('itemsN', { n: e.items.length })}` : ''}</div>`;
     if (e.phase !== 'ret') body += `<button class="btn small" data-action="recall" ${e.recall ? 'disabled' : ''}>${e.recall ? t('recalling') : t('recall')}</button>`;
     h += box('', body);
