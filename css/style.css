@@ -462,6 +462,12 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 }
 .itile:hover { filter: brightness(1.2); }
 .itile.on { outline: 2px solid #fff; outline-offset: 1px; }
+/* продажа при наведении и подробности под вещью */
+.itile .isell { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: none; align-items: center; gap: 2px; padding: 1px 5px; font-size: 10.5px; z-index: 2; font-weight: 700; white-space: nowrap; color: #1b1424; background: var(--gold); border-radius: 8px; cursor: pointer; }
+.itile .isell .ic { width: 11px; height: 11px; }
+.itile:hover .isell { display: inline-flex; }
+.itile .isell:hover { background: var(--goldL, #fff2a8); }
+.idetail { grid-column: 1 / -1; }
 .itile.eq { background: #2c2215; box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgba(247, 201, 72, 0.5); }
 .itile .eqb { position: absolute; top: -6px; right: -6px; padding: 1px; background: #1b1424; border: 2px solid var(--gold); border-radius: 50%; line-height: 0; }
 .itile .ench { position: absolute; top: 2px; left: 4px; font-style: normal; font-weight: 700; color: var(--epic); }

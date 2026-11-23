@@ -70,7 +70,7 @@
     const R = D.IRAR[it.rar];
     return `<button class="itile ${it.eq ? 'eq' : ''} ${UI.selItem === it.id && !action ? 'on' : ''}" data-action="${action || 'item'}" data-arg="${arg || it.id}" style="--rc:${R.color}" title="${esc(G.F.name(it))}">
       ${ic('it_' + it.type + ':' + it.ti, 'ic3')}${it.ench ? `<em class="ench">+${it.ench}</em>` : ''}${it.eq ? `<span class="eqb">${ownerIcon(it.eq)}</span>` : ''}
-      <span class="ist">${itemMain(it)}</span></button>`;
+      <span class="ist">${itemMain(it)}</span>${!action && !it.eq ? `<span class="isell" data-action="sellItem" data-arg="${it.id}" title="${esc(t('sell'))}">${t('sell')} ${ic('r_gold')}${U.fmt(G.F.sellValue(it))}</span>` : ''}</button>`;
   }
   function chancesRow(list, ch, open, lockKey) {
     return `<div class="chances">${list.map((r, i) => (open(i)
@@ -515,11 +515,11 @@
     },
     pick(a) { UI.pick = UI.pick === a ? null : a; UI.dirty(); },
     pickClose() { UI.pick = null; UI.dirty(); },
-    item(id) { UI.selItem = UI.selItem === id ? null : id; UI.dirty(); $('#panel').scrollTop = 0; },
+    item(id) { UI.selItem = UI.selItem === id ? null : id; UI.dirty(); },
     itemClose() { UI.selItem = null; UI.dirty(); },
     eq(a) { const [id, owner] = a.split('|'); G.F.equip(id, owner); UI.pick = null; },
     uneq(id) { G.F.unequip(id); UI.pick = null; },
-    sellItem(id) { G.F.sell(id); UI.selItem = null; },
+    sellItem(id) { G.F.sell(id); if (UI.selItem === id) UI.selItem = null; },
     sellJunk() { G.F.sellJunk(); },
     enchant(id) { G.F.enchant(id); },
     armF(f) { UI.armF = f; UI.dirty(); },
@@ -813,12 +813,13 @@
       .concat(G.S.advs.map((a) => ['' + a.id, 'c_' + a.cls, nm(a.name), `${t('cl_' + a.cls)} · ${t('lv')} ${a.lvl} · ${t('st_' + a.st)}`, ['weapon', 'armor'], D.ARAR[a.rar].color]));
     let h = box(ic('i_people') + ' ' + t('wearersTitle'), `<div class="hint top">${t('wearersHint')}</div>` + wearers.map(([o, icon, name, sub, slots, col]) =>
       `<div class="wearer"><div class="wwho">${ic(icon, 'ic2')}<div><b style="color:${col}">${esc(name)}</b><div class="small muted">${sub}</div></div></div><div class="eqrow">${G.PANE.eqSlots(o, slots)}</div></div>${G.PANE.pickerFor(o, slots)}`).join(''));
-    if (UI.selItem) h += G.PANE.item(UI.selItem);
     const cats = ['all', ...Object.keys(D.ITYPES)];
     h += `<div class="filters">${cats.map((c) => `<button class="fbtn ${f === c ? 'on' : ''}" data-action="armF" data-arg="${c}" title="${esc(c === 'all' ? t('all') : t('it_' + c))}">${c === 'all' ? ic('i_chest', 'ic2') : ic('it_' + c + ':0', 'ic2')}</button>`).join('')}${junk.length ? `<button class="btn small" data-action="sellJunk">${ic('r_gold')} ${t('sellJunk', { n: junk.length })}</button>` : ''}</div>`;
     h += `<div class="legend small muted"><span class="lg-eq"></span> ${t('equippedLegend')} · ${t('itemTip')}</div>`;
     if (!items.length) h += box('', G.E.lvl('forge') ? t('noItemsForge') : t('needForgeBuild'), 'muted');
-    h += `<div class="igrid">${items.map((it) => itemTile(it)).join('')}</div>`;
+    h += `<div class="igrid">${items.map((it) => itemTile(it) + (UI.selItem === it.id ? `<div class="idetail">${G.PANE.item(it.id)}</div>` : '')).join('')}</div>`;
+    // выбранная вещь не попала в фильтр — показываем её под сеткой
+    if (UI.selItem && !items.some((it) => it.id === UI.selItem)) h += G.PANE.item(UI.selItem);
     return h;
   }
 
