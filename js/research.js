@@ -115,6 +115,7 @@
     const q = G.S.decree.research;
     if (q.includes(id) || R.done(id) || q.length >= 12) return;
     q.push(id);
+    G.S.stats.resQueued = (G.S.stats.resQueued || 0) + 1;
     G.UI.dirty();
   };
 })();

@@ -65,6 +65,7 @@
     else if (id === 'rallyS') k.buff.rally = sp.dur;
     else G.W.spell(id);
     k.cd[id] = K.spellCd(sp);
+    G.S.stats.spells = (G.S.stats.spells || 0) + 1;
     G.log('logCast', { s: { k: 'sp_' + id } }, 'epic');
     G.SFX.play('spell');
     G.UI.dirty();
@@ -107,7 +108,14 @@
     G.S.dyn.pts -= K.perkCost(id);
     G.S.dyn.perks[id] = K.perkRank(id) + 1;
     G.invalidateBonus();
+    if (id === 'found') K.applyFounders(); // здание появляется сразу
     G.UI.dirty();
+  };
+  // «Основатели»: первые N зданий из списка важности стоят 1-го уровня
+  K.applyFounders = function () {
+    const n = K.perkRank('found');
+    for (const k of D.FOUND_ORDER.slice(0, n)) if (G.S.b[k].lvl < 1 && !G.E.consOf(k)) G.S.b[k].lvl = 1;
+    G.UI.slotsDirty = true;
   };
   // Название земли эпохи: после шести краёв названия идут по кругу с номером
   K.land = (epoch) => {
@@ -150,6 +158,7 @@
     G.invalidateBonus();
     const st = K.perkRank('start');
     if (st) G.E.addAll({ gold: 100 * st, wood: 100 * st, stone: 100 * st });
+    K.applyFounders();
     G.log('logEpoch', { n: dyn.epoch + 1 }, 'epic');
     G.save();
     location.reload();

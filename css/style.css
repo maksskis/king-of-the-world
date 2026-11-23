@@ -389,6 +389,9 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 .pips { display: inline-flex; gap: 2px; vertical-align: middle; }
 .pips i { width: 8px; height: 8px; border-radius: 2px; background: var(--inset); border: 1px solid var(--line2); }
 .pips i.on { background: var(--gold); border-color: var(--goldD, #b07d1a); }
+.pips.many { gap: 1px; }
+.pips.many i { width: 6px; height: 6px; }
+.pips.many i:nth-child(n+4).on { background: #ffd98a; }
 
 .job, .trade, .srow, .spl, .tal, .advc, .perk, .dq, .skill { display: flex; align-items: center; gap: 10px; }
 .job { margin: 6px 0; }
@@ -780,6 +783,10 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   #main { grid-template-columns: 1fr; }
   #bpop { border-left: 0; border-top: 2px solid var(--line); }
 }
+
+/* Династия после передачи трона: подсветка */
+.box.flash { animation: dynFlash 1s ease-in-out 4; }
+@keyframes dynFlash { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 2px var(--gold), 0 0 16px rgba(247, 201, 72, 0.6); } }
 
 /* Звёзды престижа героя */
 .por .prest { position: absolute; right: -6px; top: -6px; padding: 0 4px; font-style: normal; font-size: 11px; font-weight: 700; color: #1b1424; background: var(--gold); border-radius: 8px; }

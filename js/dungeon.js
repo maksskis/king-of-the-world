@@ -91,13 +91,13 @@
   // Снимок бойцов с учётом навыков и таланта «Командир походов»
   function snap(members) {
     const cap = 1 + G.bonus('captain');
-    const shield = 1 + members.reduce((s, a) => s + (a.hp > 0 ? G.T.skillSum(a, 'partyDef') : 0), 0);
+    const shield = 1 + Math.min(0.6, members.reduce((s, a) => s + (a.hp > 0 ? G.T.skillSum(a, 'partyDef') : 0), 0));
     return members.map((a) => {
       const s = G.T.stats(a), sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
         a, cls: a.cls, hp: a.hp, max: s.hp, atk: s.atk * cap, def: s.def * cap * shield,
-        heal: sk('heal'), splash: sk('splash'), guard: sk('guard'), regen: sk('regen'), aura: sk('aura'),
-        dodge: sk('dodge') + (C.dodge || 0), crit: sk('crit') + (C.crit || 0), critMul: 2 + sk('critDmg'), stun: (C.stun || 0) + sk('stun'),
+        heal: sk('heal'), splash: sk('splash'), guard: sk('guard'), regen: Math.min(0.1, sk('regen')), aura: Math.min(0.06, sk('aura')),
+        dodge: Math.min(0.5, sk('dodge') + (C.dodge || 0)), crit: Math.min(0.6, sk('crit') + (C.crit || 0)), critMul: Math.min(4, 2 + sk('critDmg')), stun: Math.min(0.35, (C.stun || 0) + sk('stun')),
       };
     });
   }

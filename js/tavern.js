@@ -60,7 +60,7 @@
   T.skills = (a) => D.SKILLS[a.cls];
   T.skillSum = function (a, key) {
     let v = 0;
-    for (const s of D.SKILLS[a.cls]) if (a.sk && a.sk[s.id] && s.eff[key]) v += a.sk[s.id] * s.eff[key];
+    for (const s of D.SKILLS[a.cls]) if (a.sk && a.sk[s.id] && s.eff[key]) v += D.rankEff(a.sk[s.id]) * s.eff[key];
     return v;
   };
   T.sp = (a) => a.lvl - 1 + (a.skFree || 0) - Object.values(a.sk || {}).reduce((x, y) => x + y, 0); // skFree — ранги, сохранённые престижем

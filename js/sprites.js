@@ -387,7 +387,7 @@
     if (t >= 3) treeTop(b, 40, 27, 5);
     if (t >= 3) roof3q(b, 11, 12, 24, 12, P.roof, P.roofD, P.roofL);
     else roof3q(b, 11, 12, 24, 12, P.woodM, P.woodD, P.woodL);
-    wallPlanks(b, 12, 24, 22, 14, P.wood, P.woodD);
+    brickWall(b, 12, 24, 22, 14, false); // кирпич, как у Замка
     b.rect(20, 29, 6, 9, P.woodD); b.px(24, 33, P.gold);
     windowLit(b, 14, 27, 4, 3); windowLit(b, 28, 27, 4, 3);
     for (const [x, y] of [[5, 41], [9, 41], [7, 38]]) { b.disc(x, y, 2.2, P.woodL); b.px(x - 0.5, y - 0.5, P.woodD); }
@@ -402,7 +402,7 @@
     b.poly([[6, 26], [13, 13], [24, 11], [30, 14], [22, 20], [12, 28]], P.stone);
     b.poly([[13, 13], [24, 11], [20, 15]], P.stoneL);
     b.rect(14, 28, 20, 12, P.dirtD); b.rect(14, 28, 20, 1, P.dirt);
-    b.rect(16, 32, 7, 6, P.stoneM); b.rect(16, 32, 7, 1, P.stoneL); b.rect(25, 33, 6, 5, P.stoneM); b.rect(25, 33, 6, 1, P.stoneL);
+    brickWall(b, 16, 32, 7, 6, false); brickWall(b, 25, 33, 6, 5, false); // штабеля кирпича
     b.line(7, 44, 12, 37, P.wood); b.poly([[9, 36], [12, 35.5], [15, 38], [14, 39], [12, 37.5], [10, 38]], P.ironL);
     if (t >= 2) { b.rect(38, 6, 2, 30, P.wood); b.rect(28, 6, 12, 2, P.wood); b.line(31, 8, 38, 14, P.woodD); b.rect(30, 8, 1, 10, P.dark); b.rect(28, 18, 5, 4, P.stoneM); }
     if (t >= 3) { b.rect(36, 38, 9, 5, P.woodD); b.rect(37, 36, 7, 2, P.stoneL); b.px(37, 43, P.dark); b.px(43, 43, P.dark); }
@@ -426,8 +426,8 @@
     // вход в штольню
     const stone = t >= 4;
     b.rect(19, 27, 14, 15, P.black);
-    b.rect(17, 26, 2, 16, stone ? P.stoneM : P.wood); b.rect(33, 26, 2, 16, stone ? P.stoneM : P.wood);
-    b.rect(16, 24, 20, 3, stone ? P.stoneL : P.woodL); b.rect(16, 26, 20, 1, stone ? P.stoneD : P.woodD);
+    if (stone) { brickWall(b, 15, 26, 4, 16, false); brickWall(b, 33, 26, 4, 16, false); brickWall(b, 15, 23, 22, 4, false); }
+    else { b.rect(17, 26, 2, 16, P.wood); b.rect(33, 26, 2, 16, P.wood); b.rect(16, 24, 20, 3, P.woodL); b.rect(16, 26, 20, 1, P.woodD); }
     // рельсы и вагонетка с рудой
     b.rect(14, 42, 24, 1, P.ironD); b.rect(14, 44, 24, 1, P.ironD); for (let x = 15; x < 38; x += 3) b.rect(x, 42, 1, 3, P.woodD);
     b.poly([[33, 35], [45, 35], [44, 41], [34, 41]], P.ironD); b.rect(33, 35, 12, 1, t >= 4 ? P.gold : P.iron);
@@ -451,7 +451,7 @@
     t = +t || 1;
     roof3q(b, 5, 8, 38, 16, P.roof, P.roofD, P.roofL);
     b.rect(23, 8, 2, 16, P.roofD);
-    b.rect(6, 24, 36, 16, P.wood); for (let x = 8; x < 42; x += 4) b.rect(x, 24, 1, 16, P.woodD);
+    brickWall(b, 6, 24, 36, 16, false);
     b.rect(17, 27, 14, 13, P.woodD); b.line(17, 27, 30, 39, P.woodL); b.line(30, 27, 17, 39, P.woodL); b.rect(23, 27, 1, 13, P.k);
     b.rect(1, 34, 6, 6, P.woodL); b.rect(1, 34, 6, 1, P.wood); b.line(1, 34, 6, 39, P.woodD);
     b.rect(41, 34, 6, 6, P.woodL); b.rect(41, 34, 6, 1, P.wood); b.line(46, 34, 41, 39, P.woodD);
@@ -471,31 +471,31 @@
     stall(3, 14, P.red, P.white, [P.red, P.gold, P.green]);
     stall(29, 14, P.blue, P.white, [P.cry, P.purple, P.bone]);
     if (t >= 2) stall(16, 4, P.green, P.white, [P.gold, P.wood]);
-    b.rect(20, 34, 8, 6, P.wood); b.rect(20, 34, 8, 1, P.woodL); b.disc(24, 31, 3, P.gold); b.px(23, 30, P.goldL);
+    brickWall(b, 19, 34, 10, 6, false); b.disc(24, 31, 3, P.gold); b.px(23, 30, P.goldL);
     b.rect(6, 38, 5, 6, P.woodD); b.rect(6, 39, 5, 1, P.ironD); b.rect(37, 38, 5, 6, P.woodD); b.rect(37, 39, 5, 1, P.ironD);
     if (t >= 3) { b.rect(23, 0, 1, 6, P.woodD); b.poly([[24, 0], [30, 1.5], [24, 3]], P.gold); b.line(2, 31, 46, 31, P.woodD); for (let x = 4; x < 46; x += 5) { b.px(x, 32, P.glow); b.px(x, 33, P.glowL); } }
     if (t >= 4) { b.rect(14, 43, 20, 3, P.purple); b.rect(14, 43, 20, 1, P.gold); b.rect(14, 45, 20, 1, P.gold); b.rect(3, 22, 16, 1, P.gold); b.rect(29, 22, 16, 1, P.gold); b.rect(16, 12, 16, 1, P.gold); }
   } };
   DEF.b_forge = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
-    b.rect(32, 4, 6, 12, P.stone); b.rect(31, 3, 8, 2, P.stoneD); b.rect(33, 5, 4, 1, P.glow);
+    brickWall(b, 32, 4, 6, 12, true); b.rect(31, 3, 8, 2, BRK.MO); b.rect(33, 5, 4, 1, P.glow);
     if (t >= 3) { b.px(34, 1, P.glow); b.px(36, 0, P.glowL); b.px(33, 0, P.glow); }
     roof3q(b, 4, 12, 36, 12, P.slate, P.slateD, P.slateL);
-    wallBricks(b, 5, 24, 34, 16, P.stoneD, P.stone);
+    brickWall(b, 5, 24, 34, 16, true);
     b.rect(9, 28, 9, 7, P.glow); b.rect(10, 29, 7, 5, P.glowL); b.rect(13, 28, 1, 7, P.woodD);
     b.rect(24, 28, 9, 12, P.woodD); b.rect(24, 28, 9, 1, P.k); b.px(31, 34, P.gold);
     if (t >= 3) { b.rect(38, 30, 1, 6, P.woodD); b.rect(46, 30, 1, 6, P.woodD); b.poly([[36, 30], [47.5, 27], [47.5, 30], [36, 32]], P.slateL); b.rect(36, 31, 12, 1, P.slateD); }
     b.rect(38, 36, 9, 2, P.iron); b.rect(38, 36, 9, 1, P.ironL); b.rect(40, 38, 5, 4, P.ironD); b.rect(39, 42, 7, 1, P.ironD);
     if (t >= 2) { b.line(41, 31, 44, 35, P.wood); b.rect(40, 30, 3, 2, P.ironL); b.rect(1, 34, 4, 6, P.woodD); b.rect(1, 35, 4, 1, P.ironD); }
-    if (t >= 4) { b.rect(10, 4, 5, 10, P.stone); b.rect(9, 3, 7, 2, P.stoneD); b.rect(11, 5, 3, 1, P.glow); b.px(12, 1, P.glow); b.px(11, 0, P.glowL); b.rect(18, 16, 9, 6, P.woodD); b.rect(20, 18, 5, 1, P.gold); b.rect(21, 19, 3, 2, P.gold); b.rect(5, 24, 34, 1, P.gold); }
+    if (t >= 4) { brickWall(b, 10, 4, 5, 10, true); b.rect(9, 3, 7, 2, BRK.MO); b.rect(11, 5, 3, 1, P.glow); b.px(12, 1, P.glow); b.px(11, 0, P.glowL); b.rect(18, 16, 9, 6, P.woodD); b.rect(20, 18, 5, 1, P.gold); b.rect(21, 19, 3, 2, P.gold); b.rect(5, 24, 34, 1, P.gold); }
   } };
   DEF.b_tavern = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
-    if (t >= 2) { b.rect(34, 2, 4, 8, P.stone); b.rect(33, 1, 6, 2, P.stoneD); }
+    if (t >= 2) { brickWall(b, 34, 2, 4, 8, true); b.rect(33, 1, 6, 2, BRK.MO); }
     roof3q(b, 4, 6, 40, 12, P.roof, P.roofD, P.roofL);
     b.rect(6, 18, 36, 10, P.plaster); for (const x of [6, 15, 24, 33, 41]) b.rect(x, 18, 1, 10, P.woodD); b.rect(6, 27, 36, 1, P.woodD);
     windowLit(b, 9, 20, 4, 4); windowLit(b, 27, 20, 4, 4); windowLit(b, 35, 20, 4, 4);
-    wallPlanks(b, 6, 28, 36, 13, P.wood, P.woodD);
+    brickWall(b, 6, 28, 36, 13, false);
     windowLit(b, 9, 31, 5, 4); windowLit(b, 33, 31, 5, 4);
     b.rect(20, 31, 8, 10, P.woodD); b.px(26, 36, P.gold);
     b.rect(18, 19, 1, 6, P.woodD); b.rect(16, 24, 7, 5, P.blueD); b.line(17, 24, 21, 28, P.ironL); b.line(21, 24, 17, 28, P.ironL); b.rect(18, 25, 3, 2, P.gold); b.px(19, 27, P.gold);
@@ -506,20 +506,20 @@
   DEF.b_barracks = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
     roof3q(b, 3, 10, 34, 12, P.roofD, '#5a1f1b', P.roof);
-    wallBricks(b, 4, 22, 32, 18, P.stone, P.stoneD);
+    brickWall(b, 4, 22, 32, 18, false);
     b.rect(16, 29, 8, 11, P.woodD); b.rect(8, 26, 3, 4, P.dark); b.rect(29, 26, 3, 4, P.dark);
     b.rect(41, 4, 1, 36, P.woodD); b.rect(42, 5, 5, 10, P.red); b.poly([[42, 14.5], [47, 14.5], [44.5, 17]], P.red); b.rect(43, 8, 3, 3, P.gold);
     b.rect(38, 35, 1, 8, P.wood); b.rect(36, 37, 5, 1, P.wood); b.disc(38.5, 33, 2, P.dirtL);
     if (t >= 2) { b.disc(12, 24.5, 1.8, P.blue); b.disc(28, 24.5, 1.8, P.blue); b.line(1, 32, 1, 43, P.wood); b.px(1, 31, P.ironL); b.line(3, 33, 3, 43, P.wood); b.px(3, 32, P.ironL); }
     if (t >= 3) { b.rect(4, 22, 32, 1, P.gold); b.poly([[26, 44], [30, 36], [34, 44]], P.plaster); }
-    if (t >= 4) { wallBricks(b, 0, 6, 9, 20, P.stone, P.stoneD); crenels(b, 0, 4, 9, P.stone); b.rect(3, 11, 3, 4, P.dark); b.rect(3, 0, 1, 5, P.woodD); b.poly([[4, 0], [9, 1.5], [4, 3]], P.red); b.disc(20, 26, 2.2, P.gold); b.px(20, 26, P.red); }
+    if (t >= 4) { brickWall(b, 0, 6, 9, 20, false); brickMerlons(b, 0, 3, 9); b.rect(3, 11, 3, 4, P.dark); b.rect(3, 0, 1, 5, P.woodD); b.poly([[4, 0], [9, 1.5], [4, 3]], P.red); b.disc(20, 26, 2.2, P.gold); b.px(20, 26, P.red); }
   } };
   DEF.b_academy = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
     if (t >= 2) { b.rect(19, 1, 10, 12, P.plaster); b.rect(19, 1, 10, 1, P.white); windowLit(b, 22, 5, 4, 4); }
     b.ellipse(24, 14, 10, 6, t >= 3 ? P.gold : P.teal); b.ellipse(22, 12, 5, 3, t >= 3 ? P.goldL : P.tealL);
     roof3q(b, 4, 14, 40, 10, P.teal, P.tealD, P.tealL);
-    b.rect(5, 24, 38, 16, P.plaster); b.rect(5, 24, 38, 1, P.plasterD);
+    brickWall(b, 5, 24, 38, 16, false); b.rect(5, 24, 38, 1, BRK.MO);
     for (const x of [8, 15, 30, 37]) { b.rect(x, 25, 3, 14, P.white); b.rect(x, 25, 3, 1, P.plasterD); }
     b.rect(20, 28, 8, 12, P.blueD); b.ellipse(24, 28, 4, 2, P.blueD); b.rect(23, 30, 2, 3, P.gold);
     b.rect(3, 40, 42, 2, P.stoneM); b.rect(5, 42, 38, 2, P.stone);

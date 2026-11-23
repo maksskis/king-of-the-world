@@ -134,6 +134,7 @@
   E.decreeAdd = function (k) {
     if (G.S.decree.build.length >= 12) return;
     G.S.decree.build.push(k);
+    G.S.stats.decreed = (G.S.stats.decreed || 0) + 1;
     G.UI.dirty();
   };
 
@@ -273,6 +274,7 @@
     if (n <= 0 || g < 1) return;
     G.S.res[r] -= n;
     E.add('gold', g);
+    G.S.stats.sold = (G.S.stats.sold || 0) + 1;
     G.log('logSellRes', { n, r: { k: 'res_' + r }, g }, 'info');
     G.SFX.play('coin');
   };
@@ -287,12 +289,20 @@
   };
 
   // ---------- цели ----------
+  E.migrateGoals = function () {
+    const S = G.S;
+    if (S.goalV >= 2) return;
+    const old = S.goal || 0;
+    const idx = old >= 30 ? D.GOALS.findIndex((g) => g.id === 'g29') + 1 : D.GOALS.findIndex((g) => g.id === 'g' + old);
+    S.goal = Math.max(0, idx);
+    S.goalV = 2;
+  };
   E.checkGoal = function () {
     const S = G.S;
     const g = D.GOALS[S.goal];
     if (!g || !g.test(S)) return;
     E.addAll(g.reward);
-    G.log('logGoal', { gi: S.goal, loot: g.reward }, 'good');
+    G.log('logGoal', { gi: g.t, loot: g.reward }, 'good');
     S.goal++;
     G.SFX.play('level');
     G.UI.dirty();

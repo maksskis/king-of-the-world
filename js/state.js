@@ -28,8 +28,8 @@
       dng: { best: {}, maxFloor: 3, start: 1, loc: 'catacombs', hp: 0.4, down: true, boss: false, avoid: 0.3 },
       camp: { awake: false, won: false },
       dyn: dyn || { epoch: 0, pts: 0, perks: {} },
-      stats: { clicks: 0, kills: 0, crafted: 0 },
-      goal: 0,
+      stats: { clicks: 0, kills: 0, crafted: 0, decreed: 0, resQueued: 0, sold: 0, spells: 0, enchanted: 0 },
+      goal: 0, // goalV ставит перенос прогресса целей при загрузке
       log: [],
       lastSave: Date.now(),
     };

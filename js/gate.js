@@ -71,7 +71,7 @@
       const sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
         a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - row * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0,
-        dodge: sk('dodge') + (C.dodge || 0), crit: sk('crit') + (C.crit || 0), critMul: 2 + sk('critDmg'), regen: sk('regen'),
+        dodge: Math.min(0.5, sk('dodge') + (C.dodge || 0)), crit: Math.min(0.6, sk('crit') + (C.crit || 0)), critMul: Math.min(4, 2 + sk('critDmg')), regen: Math.min(0.1, sk('regen')),
         bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
       };
     });

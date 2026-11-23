@@ -39,6 +39,7 @@
     G.S = loaded || G.newState();
     G.R.sanitize();
     G.X.sanitize();
+    G.E.migrateGoals();
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();
@@ -54,7 +55,7 @@
     G.UI.dirty();
     G.UI.refresh();
     if (rep && rep.sec > 60) G.UI.offlineReport(rep);
-    if (G.S.story === 'epoch') { G.S.story = null; G.UI.epochStory(); }
+    if (G.S.story === 'epoch') { G.S.story = null; G.UI.tab = 'king'; G.UI.scrollTo = 'dynasty'; G.UI.dirty(); G.UI.refresh(); G.UI.epochStory(); }
 
     let last = performance.now();
     setInterval(() => {

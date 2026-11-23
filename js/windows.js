@@ -149,7 +149,7 @@
     const R = D.ARAR[a.rar], s = G.T.stats(a), sp = G.T.sp(a);
     const skills = D.SKILLS[a.cls].map((sk) => {
       const r = (a.sk && a.sk[sk.id]) || 0;
-      return `<div class="skill cat-${sk.cat}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b>${t('sk_' + sk.id)}</b> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
+      return `<div class="skill cat-${sk.cat}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b>${t('sk_' + sk.id)}</b> <span class="small muted">${r}/${D.SKILL_MAX}</span> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
     }).join('');
     const xpw = Math.min(100, (a.xp / G.T.xpNeed(a.lvl)) * 100).toFixed(1);
     const canDismiss = a.st !== 'dungeon' && !(G.W.active() && a.st === 'gate');
@@ -163,7 +163,7 @@
           <div class="bar xp"><i style="width:${xpw}%"></i></div><div class="small muted">${t('xp')}: ${Math.floor(a.xp)} / ${G.T.xpNeed(a.lvl)}</div>
           <div class="ast">${h().stIcon(a)}</div><div class="hint">${t('assignHint')}</div></div></div>
       <h3>${ic('i_chest')} ${t('equipment')}</h3><div class="eqrow">${P.eqSlots(a.id, ['weapon', 'armor'])}</div>${pickerFor(a.id, ['weapon', 'armor'])}
-      <h3>${ic('i_star')} ${t('skills')} <span class="muted">${t('skillPts')}: <b class="${sp ? 'good' : ''}">${sp}</b></span></h3><div class="skills">${skills}</div>
+      <h3>${ic('i_star')} ${t('skills')} <span class="muted">${t('skillPts')}: <b class="${sp ? 'good' : ''}">${sp}</b></span></h3><div class="hint top">${t('skillRanksHint')}</div><div class="skills">${skills}</div>
       ${canDismiss ? `<div class="right"><button class="btn danger small" data-action="dismiss" data-arg="${a.id}">${t('dismiss')}</button></div>` : ''}</div>`;
   };
 
@@ -199,6 +199,6 @@
     const { ic, t, lootHtml } = h();
     const cur = G.S.goal;
     return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_star', 'ic2')} ${t('goalsTitle')}</h2><div class="muted small">${t('goalsHint')}</div>
-      <div class="glist">${D.GOALS.map((g, i) => `<div class="gitem ${i < cur ? 'done' : i === cur ? 'cur' : 'later'}">${ic(i < cur ? 'i_check' : i === cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t('goal' + i)}</span><span class="small">${lootHtml(g.reward)}</span></div>`).join('')}</div>`;
+      <div class="glist">${D.GOALS.map((g, i) => `<div class="gitem ${i < cur ? 'done' : i === cur ? 'cur' : 'later'}">${ic(i < cur ? 'i_check' : i === cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t(g.t)}</span><span class="small">${lootHtml(g.reward)}</span></div>`).join('')}</div>`;
   };
 })();

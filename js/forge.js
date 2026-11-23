@@ -201,6 +201,7 @@
     if (!it || !F.canEnchant() || it.ench >= D.ENCH_MAX || F.lockedOwner(it.eq)) return;
     if (!G.E.pay(F.enchCost(it))) return;
     it.ench++;
+    G.S.stats.enchanted = (G.S.stats.enchanted || 0) + 1;
     G.log('logEnchant', { item: F.nameObj(it) }, 'epic');
     G.SFX.play('spell');
     G.UI.dirty();

@@ -38,7 +38,7 @@
   const bar = (key, cls) => `<div class="bar ${cls || ''}"><i data-w="${key}"></i></div>`;
   const box = (title, body, cls) => `<div class="box ${cls || ''}">${title ? `<h3>${title}</h3>` : ''}${body}</div>`;
   const kv = (icon, label, val) => `<div class="kv">${icon ? ic(icon) : ''} <span>${label}:</span> ${val}</div>`;
-  const pips = (n, max) => `<span class="pips">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+  const pips = (n, max) => `<span class="pips ${max > 5 ? 'many' : ''}">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
   function stIcon(a) {
     if (a.st === 'gate') return ic('i_tower') + `<span>${t('st_gate')}</span>`;
     if (a.st === 'dungeon') return ic('i_flag') + `<span>${t('st_dungeon')}</span>`;
@@ -82,7 +82,7 @@
     for (const k in l.p) {
       const v = l.p[k];
       if (k === 'loot') p[k] = lootHtml(v) || '—';
-      else if (k === 'gi') p[k] = t('goal' + v);
+      else if (k === 'gi') p[k] = typeof v === 'string' ? t(v) : t('goal' + v);
       else if (k === 'c') p[k] = t('ch_' + v);
       else if (v && typeof v === 'object') p[k] = esc(nm(v));
       else p[k] = esc(String(v));
@@ -603,6 +603,12 @@
     }
     UI.slotsDirty = true;
     UI.refresh();
+    // после передачи трона панель сама прокручивается к Династии
+    if (UI.scrollTo === 'dynasty') {
+      const el = $('#panel .dynbox');
+      if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 4000); }
+      UI.scrollTo = null;
+    }
   };
 
   function renderTabs() {
@@ -622,7 +628,7 @@
     const i = G.S.goal;
     const el = $('#goal');
     if (i >= D.GOALS.length) { el.innerHTML = `${ic('i_star')} <span>${t('goalsDone')}</span> <span class="more">${t('allGoals')}</span>`; return; }
-    el.innerHTML = `${ic('i_star')} <b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> <span>${t('goal' + i)}</span> <span class="muted">${lootHtml(D.GOALS[i].reward)}</span> <span class="more">${t('allGoals')} ›</span>`;
+    el.innerHTML = `${ic('i_star')} <b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> <span>${t(D.GOALS[i].t)}</span> <span class="muted">${lootHtml(D.GOALS[i].reward)}</span> <span class="more">${t('allGoals')} ›</span>`;
   }
 
   // ---------- окно здания ----------
@@ -982,9 +988,10 @@
     else dh += `<div class="muted small">${ic('i_lock')} ${t('dynastyLocked')}</div>`;
     dh += `<div class="perks">${D.PERKS.map((p) => {
       const r = G.K.perkRank(p.id);
-      return `<div class="perk">${ic(p.icon, 'ic2')}<div class="grow"><b>${t('pk_' + p.id)}</b> ${pips(Math.min(r, 10), D.PERK_MAX)}<div class="small muted">${t('pkd_' + p.id)}</div></div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
+      const nextB = p.id === 'found' && r < D.FOUND_ORDER.length ? `<div class="small good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>` : '';
+      return `<div class="perk">${ic(p.icon, 'ic2')}<div class="grow"><b>${t('pk_' + p.id)}</b> ${pips(Math.min(r, 10), D.PERK_MAX)}<div class="small muted">${t('pkd_' + p.id)}</div>${nextB}</div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
     }).join('')}</div>`;
-    h += box(ic('i_crown') + ' ' + t('dynasty'), dh);
+    h += box(ic('i_crown') + ' ' + t('dynasty'), dh, 'dynbox');
     return h;
   }
 
@@ -1036,7 +1043,7 @@
   UI.epochStory = function () {
     const land = G.tn(G.K.land(G.S.dyn.epoch));
     const heroes = G.S.advs.map((a) => `<span style="color:${D.ARAR[a.rar].color}">${esc(nm(a.name))}</span> (${t('cl_' + a.cls)}, ★${a.prest || 0})`).join(', ');
-    UI.modal(`<div class="story">${ic('i_crown', 'story-img')}<h2>${t('story_epoch', { land })}</h2><p>${t('storyd_epoch', { land })}</p><p>${heroes ? t('storyHeroes', { h: heroes }) : t('storyNoHeroes')}</p></div><div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'story');
+    UI.modal(`<div class="story">${ic('i_crown', 'story-img')}<h2>${t('story_epoch', { land })}</h2><p>${t('storyd_epoch', { land })}</p><p>${heroes ? t('storyHeroes', { h: heroes }) : t('storyNoHeroes')}</p><p class="good">${t('storyLegacy', { n: G.S.dyn.pts })}</p></div><div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'story');
     G.SFX.play('win');
   };
   UI.story = function (id) {
