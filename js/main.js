@@ -2,14 +2,16 @@
   const OFFLINE_CAP = 8 * 3600;
 
   G.tick = function (dt) {
+    G.K.tick(dt);
     G.E.tick(dt);
+    G.R.tick(dt);
     G.F.tick(dt);
     G.T.tick(dt);
     G.X.tick(dt);
     G.E.checkGoal();
   };
 
-  // Прогон симуляции крупными промежутками секундными шагами
+  // Прогон симуляции секундными шагами (офлайн и фоновые вкладки)
   G.simulate = function (sec) {
     while (sec > 0) {
       const d = Math.min(1, sec);
@@ -36,6 +38,7 @@
     const loaded = G.load();
     G.S = loaded || G.newState();
     G.LANG = G.S.lang || 'ru';
+    G.invalidateBonus();
     G.UI.init();
     let rep = null;
     if (loaded) {
@@ -44,11 +47,11 @@
     } else {
       G.log('logWelcome', {}, 'info');
     }
-    if (G.E.lvl('tavern') > 0 && !G.S.tavern.cands.length && G.S.tavern.t <= 0) G.T.refresh(true);
+    if (G.E.lvl('tavern') > 0 && !G.S.tavern.cands.length) G.T.refresh(true);
     G.UI.dirty();
     G.UI.refresh();
     if (rep && rep.sec > 60) G.UI.offlineReport(rep);
-    if (G.S.exp && G.S.exp.pend) G.UI.openDecision();
+    else if (G.S.exp && G.S.exp.pend) G.UI.openDecision();
 
     let last = performance.now();
     setInterval(() => {
@@ -60,7 +63,7 @@
       G.UI.refresh();
     }, 100);
     setInterval(G.save, 10000);
-    window.addEventListener('beforeunload', () => { if (!G.resetting) G.save(); });
+    window.addEventListener('beforeunload', G.save);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') G.save(); });
   };
 
