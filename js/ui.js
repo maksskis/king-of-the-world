@@ -206,7 +206,7 @@
       else if (L > 0) { text = t('busyShort'); icon = 'i_hammer'; }
     } else if (L > 0 && d.click) {
       const n = G.E.gather(k);
-      if (n > 0) { text = '+' + U.fmt1(n); icon = 'r_' + d.click; G.SFX.play('gather'); }
+      if (n > 0) { text = (G.E.lastCrit ? t('critClick') + ' ' : '') + '+' + U.fmt1(n); icon = 'r_' + d.click; G.SFX.play(G.E.lastCrit ? 'coin' : 'gather'); }
       else { text = t('full'); icon = 'i_bag'; }
     } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit'); icon = 'i_anvil'; G.SFX.play('hit'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
@@ -696,7 +696,7 @@
       const open = k.lvl >= sp.lvl;
       return `<div class="spl ${open ? '' : 'locked'}">${ic(sp.icon, 'ic2')}<div class="grow"><b>${t('sp_' + sp.id)}</b> <span class="muted small">${sp.battle ? t('inBattle') : ''}</span><div class="small">${t('spd_' + sp.id, { d: G.K.meteorDmg() })}</div><div class="muted small">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}</div></div>${open ? `<button class="btn small" data-action="cast" data-arg="${sp.id}" data-spell="${sp.id}">${t('cast')} <span data-b="cd:${sp.id}"></span></button>` : `<span class="muted small">${ic('i_lock')} ${t('lv')} ${sp.lvl}</span>`}</div>`;
     }).join(''));
-    const br = ['eco', 'build', 'war'];
+    const br = ['hand', 'eco', 'build', 'war'];
     h += box(ic('i_star') + ' ' + t('talents') + ` <span class="muted">${tp}</span>`, `<div class="tal3">${br.map((b) => `<div class="tcol"><div class="tbr">${t('br_' + b)}</div>${D.TALENTS.filter((x) => x.br === b).map((x) => {
       const r = k.tal[x.id] || 0, mx = G.K.talMax(x);
       return `<div class="tal">${ic(x.icon, 'ic2')}<div class="grow"><b>${t('tl_' + x.id)}</b><div class="small muted">${t('tld_' + x.id)}</div>${pips(r, mx)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < mx ? '' : 'disabled'}>+</button></div>`;

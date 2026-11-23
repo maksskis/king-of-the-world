@@ -141,10 +141,21 @@
     if (k === 'castle') return E.power() * (1 + 0.5 * (L - 1));
     return E.power() * (1 + 0.2 * (L - 1));
   };
+  // Клик короля по зданию. «Удачный удар» даёт шанс ×5,
+  // «Пример короля» добавляет несколько секунд работы этого здания.
+  E.lastCrit = false;
   E.gather = function (k) {
     const d = D.B[k];
     if (!d.click || !E.usable(k)) return 0;
-    const n = E.add(d.click, E.clickAmount(k));
+    let amount = E.clickAmount(k);
+    E.lastCrit = Math.random() < G.bonus('clickCrit');
+    if (E.lastCrit) amount *= 5;
+    const sec = G.bonus('clickProd');
+    if (sec > 0) {
+      const b = G.S.b[k];
+      amount += sec * (k === 'castle' ? E.tax() : b.w * E.workerRate(k));
+    }
+    const n = E.add(d.click, amount);
     G.S.stats.clicks++;
     G.K.xp(0.3);
     return n;

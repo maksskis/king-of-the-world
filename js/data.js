@@ -158,6 +158,10 @@
   // Таланты короля: упор на автоматизацию. max — предел рангов таланта.
   D.TAL_MAX = 5;
   D.TALENTS = [
+    { id: 'pick', br: 'hand', icon: 'i_pick', eff: { gather: 0.2 } },
+    { id: 'strike', br: 'hand', icon: 'i_atk', eff: { click: 0.2 } },
+    { id: 'lucky', br: 'hand', icon: 'i_star', eff: { clickCrit: 0.04 } },
+    { id: 'example', br: 'hand', icon: 'i_crown', eff: { clickProd: 1 } },
     { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.08 } },
     { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1 } },
     { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.1 } },

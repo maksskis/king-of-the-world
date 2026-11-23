@@ -370,7 +370,11 @@
       }
     }
     B.slash.push({ x, y, t: 0 });
-    if (hit) { hitMon(hit, W.kingDmg(), '#f7c948'); G.K.xp(0.2); }
+    if (hit) {
+      const crit = Math.random() < G.bonus('clickCrit');
+      hitMon(hit, W.kingDmg() * (crit ? 3 : 1), crit ? '#ff9a3c' : '#f7c948');
+      G.K.xp(0.2);
+    }
     G.SFX.play('click');
   };
 

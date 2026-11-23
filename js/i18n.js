@@ -59,6 +59,11 @@
     sk_p5: 'Последний шанс', skd_p5: 'Павшие союзники гибнут на 10% реже за ранг.',
     skc_atk: 'Атака', skc_def: 'Защита', skc_heal: 'Лечение', skc_loot: 'Добыча', skc_spec: 'Особый',
 
+    br_hand: 'Рука короля', critClick: 'Крит!',
+    tl_pick: 'Кирка мастера', tld_pick: '+20% к добыче кликом по зданиям за ранг.',
+    tl_strike: 'Королевский удар', tld_strike: '+20% урона кликом по монстрам за ранг.',
+    tl_lucky: 'Удачный удар', tld_lucky: '4% шанс за ранг, что клик критический: ×5 добычи или ×3 урона.',
+    tl_example: 'Пример короля', tld_example: 'Клик по зданию добавляет ещё 1 секунду его работы (налогов или добычи рабочих) за ранг.',
     br_eco: 'Хозяйство', br_build: 'Строительство', br_war: 'Армия',
     tl_steward: 'Управляющий', tld_steward: 'Все рабочие добывают на 8% больше за ранг.',
     tl_crews: 'Бригады', tld_crews: '+1 место для рабочих в Лесопилке, Каменоломне и Шахте за ранг.',
@@ -302,6 +307,11 @@
     sk_p5: 'Last chance', skd_p5: 'Fallen allies die 10% less often per rank.',
     skc_atk: 'Attack', skc_def: 'Defense', skc_heal: 'Healing', skc_loot: 'Loot', skc_spec: 'Special',
 
+    br_hand: "King's hand", critClick: 'Crit!',
+    tl_pick: 'Master pickaxe', tld_pick: '+20% click gathering per rank.',
+    tl_strike: 'Royal strike', tld_strike: '+20% click damage to monsters per rank.',
+    tl_lucky: 'Lucky strike', tld_lucky: '4% chance per rank that a click is critical: ×5 gathering or ×3 damage.',
+    tl_example: "King's example", tld_example: 'Clicking a building adds 1 more second of its work (taxes or worker output) per rank.',
     br_eco: 'Economy', br_build: 'Construction', br_war: 'Army',
     tl_steward: 'Steward', tld_steward: 'All workers produce 8% more per rank.',
     tl_crews: 'Work crews', tld_crews: '+1 worker slot in the Lumber camp, Quarry and Mine per rank.',

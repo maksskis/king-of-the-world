@@ -732,7 +732,7 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Consolas, monospace; color: var(--text); background: var(--inset); border: 1px solid var(--line); border-radius: 4px; resize: vertical; }
 
 @media (min-width: 1500px) {
-  .tal3 { grid-template-columns: repeat(3, 1fr); }
+  .tal3 { grid-template-columns: repeat(2, 1fr); }
   .advs { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 960px) {
