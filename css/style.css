@@ -10,6 +10,7 @@
   --bad: #ff6a6a;
   --warn: #ffb347;
   --epic: #c08aff;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -48,7 +49,7 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 
 /* ---------- каркас ---------- */
-#app { display: flex; flex-direction: column; height: 100vh; }
+#app { display: flex; flex-direction: column; height: 100%; }
 
 #topbar {
   display: flex;
@@ -450,8 +451,10 @@ textarea {
 
 /* ---------- узкие экраны ---------- */
 @media (max-width: 960px) {
-  #app { height: auto; min-height: 100vh; }
+  #app { height: auto; min-height: 100%; }
   #main { grid-template-columns: 1fr; }
+  #topbar, #world, #panel { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #topbar { flex-wrap: wrap; }
   #stage { width: 100%; }
   #side { border-left: 0; border-top: 2px solid var(--line); }
   #panel { max-height: none; }

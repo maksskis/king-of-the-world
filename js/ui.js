@@ -184,7 +184,7 @@
       const ta = $('#save-text');
       ta.value = G.exportSave();
       ta.select();
-      try { navigator.clipboard.writeText(ta.value); } catch (e) { /* буфер недоступен */ }
+      try { navigator.clipboard.writeText(ta.value).catch(() => {}); } catch (e) { /* буфер недоступен — текст уже выделен */ }
       $('#save-msg').textContent = t('exported');
     },
     importSave() {
