@@ -193,7 +193,7 @@
         if (why === 'max') h += `<div class="good">${t('maxLevel')}</div>`;
         else {
           h += `<div>${L ? t('upgradeTo', { l: L + 1 }) : t('build')}:</div><div class="row">${costHtml(G.E.upCost(k))}<span class="muted">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
-          if (why === 'castle') h += `<div class="warn">${t('needCastle', { l: L })}</div>`;
+          if (why === 'castle') h += `<div class="warn">${t('needCastle', { l: L + 1 })}</div>`;
           else if (why === 'storage') h += `<div class="warn">${t('needStorage')}</div>`;
           else if (why === 'builders') h += `<div class="warn">${t('needBuildersShort')}</div>`;
         }
@@ -514,7 +514,7 @@
     const queued = G.S.decree.build.filter((x) => x === k).length;
     const look = [3, 5, 7].includes(L + 1) ? ` <span class="newlook">${ic('i_star')} ${t('newLook')}</span>` : '';
     let h = `<div class="hint top">${t('bh_' + k)}${look}</div><div class="row">${costHtml(cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
-    if (why === 'castle') h += `<div class="warn small">${ic('i_lock')} ${t('needCastle', { l: L })}</div>`;
+    if (why === 'castle') h += `<div class="warn small">${ic('i_lock')} ${t('needCastle', { l: L + 1 })}</div>`;
     else if (why === 'storage') h += `<div class="warn small">${ic('i_bag')} ${t('needStorage')}</div>`;
     else if (why === 'builders') h += `<div class="warn small">${ic('i_hammer')} ${t('needBuilders')}</div>`;
     h += `<div class="row">${btn(ic('i_hammer') + ' ' + (L ? t('upgrade') : t('build')), 'up', k, { cost, chips: false, cls: 'primary', lock: !!why })}
@@ -767,7 +767,9 @@
       if (L >= D.MAXLVL) return ` <span class="muted small">${t('maxLevel')}</span>`;
       const c = G.E.costAt(k, L);
       for (const r in c) total[r] = (total[r] || 0) + c[r];
-      return ` <span class="muted small">→ ${L + 1}</span><div class="row">${costHtml(c)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.timeAt(k, L))}</span></div>`;
+      // здание не может обогнать Замок: учитываем улучшения Замка выше по очереди
+      const wait = k !== 'castle' && L + 1 > fromLvl('castle', i) ? ` <span class="warn small">${ic('i_lock')} ${t('needCastleShort', { l: L + 1 })}</span>` : '';
+      return ` <span class="muted small">→ ${L + 1}</span>${wait}<div class="row">${costHtml(c)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.timeAt(k, L))}</span></div>`;
     };
     const bq = qList('build', 'bn_', (x) => bSprite(x), buildInfo);
     h += box(ic('i_scroll') + ' ' + t('decreeBuild'), bq + (dq.build.length ? `<div class="dtotal">${t('decreeTotal')}: ${costHtml(total)}</div>` : ''));
@@ -775,7 +777,7 @@
     h += box(ic('i_up') + ' ' + t('decreeAddBuild'), `<div class="dgrid">${D.ORDER.filter((k) => !D.B[k].noLevel).map((k) => {
       const L = G.E.lvl(k), why = G.E.whyNot(k);
       const max = L >= D.MAXLVL;
-      return `<button class="dcard" data-action="decreeAdd" data-arg="${k}" ${max ? 'disabled' : ''}>${ic(bSprite(k), 'ic2')}<span class="grow"><b>${t('bn_' + k)}</b><span class="small muted">${L ? t('lv') + ' ' + L : t('notBuilt')}${why === 'castle' ? ' · ' + t('needCastleShort', { l: L }) : why === 'storage' ? ' · ' + t('needStorageShort') : ''}</span></span>${max ? '' : ic('i_scroll')}</button>`;
+      return `<button class="dcard" data-action="decreeAdd" data-arg="${k}" ${max ? 'disabled' : ''}>${ic(bSprite(k), 'ic2')}<span class="grow"><b>${t('bn_' + k)}</b><span class="small muted">${L ? t('lv') + ' ' + L : t('notBuilt')}${why === 'castle' ? ' · ' + t('needCastleShort', { l: L + 1 }) : why === 'storage' ? ' · ' + t('needStorageShort') : ''}</span></span>${max ? '' : ic('i_scroll')}</button>`;
     }).join('')}</div>`);
     // исследования
     const open = D.RESEARCH.filter((r) => !G.R.done(r.id) && !dq.research.includes(r.id) && G.R.state(r.id) !== 'cur');

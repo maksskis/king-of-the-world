@@ -18,7 +18,8 @@
   D.MAP = { w: 384, h: 320, cx: 192, cy: 136, rx: 132, ry: 84, wrx: 182, wry: 124, wcy: 138 };
   D.B = {
     // В начале есть только замок. Первой строится лесопилка: золото с замка + 10 стартового дерева.
-    castle: { base: { gold: 150, wood: 100, stone: 120 }, click: 'gold', size: 64, start: 1 },
+    // цена Замка помещается на Склад того же уровня: Склад не может обогнать Замок
+    castle: { base: { gold: 150, wood: 90, stone: 90 }, click: 'gold', size: 64, start: 1 },
     academy: { base: { gold: 200, wood: 100, stone: 100 }, ang: -90 },
     barracks: { base: { gold: 120, wood: 80, stone: 90, iron: 30 }, ang: -50 },
     market: { base: { gold: 100, wood: 90, stone: 60 }, ang: -10 },

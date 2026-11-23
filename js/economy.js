@@ -3,7 +3,8 @@
   const D = G.D;
 
   E.lvl = (k) => (G.S.b[k] ? G.S.b[k].lvl : 0);
-  E.maxLevel = (k) => (k === 'castle' ? D.MAXLVL : Math.min(D.MAXLVL, E.lvl('castle') + 1));
+  // Никакое здание не может быть выше Замка: сначала улучшаем Замок, потом остальное
+  E.maxLevel = (k) => (k === 'castle' ? D.MAXLVL : Math.min(D.MAXLVL, E.lvl('castle')));
 
   // ---------- склад ----------
   E.cap = function (r) {
@@ -118,13 +119,16 @@
   // Указ о строительстве: строго по порядку, первым идёт первый в списке
   E.tickDecree = function () {
     const q = G.S.decree.build;
-    while (q.length && E.freeBuilder()) {
-      const k = q[0];
+    let i = 0;
+    while (i < q.length && E.freeBuilder()) {
+      const k = q[i];
       const why = E.whyNot(k);
-      if (why === 'max' || why === 'noLevel') { q.shift(); G.UI.dirty(); continue; }
-      if (why || !E.can(E.upCost(k))) break;
+      if (why === 'max' || why === 'noLevel') { q.splice(i, 1); G.UI.dirty(); continue; }
+      // ждёт уровня Замка, места на складе или само строится — пропускаем, очередь идёт дальше
+      if (why === 'castle' || why === 'storage' || why === 'building') { i++; continue; }
+      if (why || !E.can(E.upCost(k))) break; // ждём ресурсы: приоритет за этой записью
       E.startUpgrade(k);
-      q.shift();
+      q.splice(i, 1);
     }
   };
   E.decreeAdd = function (k) {
