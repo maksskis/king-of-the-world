@@ -1,6 +1,6 @@
 (function () {
   const UI = (G.UI = {
-    tab: 'decree', pop: null, _d: true, slotsDirty: true, logDirty: true, party: new Set(), pdown: false,
+    tab: 'decree', pop: 'castle', _d: true, slotsDirty: true, logDirty: true, party: new Set(), pdown: false,
     lastTab: '', craft: { type: 'sword', ti: 0 }, armF: 'all', win: null, winArg: null,
     selAdv: null, selItem: null, pick: null, wallTier: -1,
   });
@@ -105,7 +105,6 @@
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
-      else if (e.key === 'Escape' && UI.pop) UI.closePop();
     });
     $('#brand-icon').src = G.SPR.url('i_crown');
     applyStatic();
@@ -144,10 +143,6 @@
       e.preventDefault();
       UI.slotClick(el.dataset.k, e, el);
     });
-    // клик по пустому месту карты закрывает окно здания
-    $('#map').addEventListener('pointerdown', (e) => {
-      if (!e.target.closest('.slot, #wave-w')) UI.closePop();
-    });
     box.addEventListener('pointermove', (e) => {
       const el = e.target.closest('.slot');
       if (!el || e.pointerType === 'touch' || UI.pop === el.dataset.k) { hideTip(); return; }
@@ -158,17 +153,13 @@
     box.addEventListener('pointerleave', hideTip);
   }
 
-  // Окно здания над картой. Катакомбы открывают вкладку «Походы».
+  // Окно здания — своя колонка рядом с картой, вкладки справа работают независимо.
+  // Катакомбы открывают вкладку «Походы».
   UI.openPop = function (k) {
-    if (k === 'dungeon') { UI.tab = 'exp'; UI.pop = null; }
-    else UI.pop = k;
+    if (k === 'dungeon') { if (UI.tab !== 'exp') { UI.tab = 'exp'; UI.dirty(); } return; }
+    if (UI.pop === k) return;
+    UI.pop = k;
     hideTip();
-    UI.slotsDirty = true;
-    UI.dirty();
-  };
-  UI.closePop = function () {
-    if (!UI.pop) return;
-    UI.pop = null;
     UI.slotsDirty = true;
     UI.dirty();
   };
@@ -281,7 +272,7 @@
       else { text = t('full'); icon = 'i_bag'; }
     } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit'); icon = 'i_anvil'; G.SFX.play('hit'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
-    if (e.type === 'pointerdown' && UI.pop !== k) UI.openPop(k);
+    if (e.type === 'pointerdown') UI.openPop(k);
   };
 
   function fxFloat(e, text, icon) {
@@ -320,7 +311,7 @@
         <button class="wbtn" data-action="wave" data-arg="1" ${n > s.best ? 'disabled' : ''}>▶</button>
       </div>
       <div class="wsec wmons" title="${esc(t('waveEnemies'))}">${mons}</div>
-      <button class="wsec wdef ${why === 'noDefenders' ? 'warnb' : ''}" data-action="goto" data-arg="gate" title="${esc(t('defense'))}">${ic('i_helmet')} ${t('guardsShort')}: <b>${G.S.guards}</b> · ${ic('i_tower')} ${t('onWallShort')}: <b>${defs}/${G.T.gateMax()}</b></button>
+      <button class="wsec wdef ${why === 'noDefenders' ? 'warnb' : ''}" data-action="goto" data-arg="gate" title="${esc(t('defense'))}">${ic('i_helmet')}<span class="wl"> ${t('guardsShort')}:</span> <b>${G.S.guards}</b> · ${ic('i_tower')}<span class="wl"> ${t('onWallShort')}:</span> <b>${defs}/${G.T.gateMax()}</b></button>
       <div class="wsec wgo">
         <button class="btn primary small" data-action="fight" ${why ? 'disabled' : ''} title="${esc(note)}">${why ? `${ic(why === 'gateBusy' ? 'i_hammer' : 'i_lock')} ${t(why === 'gateBusy' ? 'waveGateBusyShort' : 'waveNoDefShort')}` : `${ic('i_atk')} ${t('toBattle')}`}</button>
         ${G.W.finalReady() && !why ? `<button class="btn danger small" data-action="fightFinal">${ic('i_dragon')} ${t('finalBattle')}</button>` : ''}</div>
@@ -362,10 +353,9 @@
     sound() { G.S.sound = !G.S.sound; applyStatic(); G.SFX.play('click'); },
     settings() { UI.openSettings(); },
     goals() { UI.open('goals'); },
-    tab(a) { UI.tab = a; UI.pop = null; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
+    tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
     sel(k) { UI.openPop(k); },
     goto(k) { UI.openPop(k); },
-    popClose() { UI.closePop(); },
     gather(k, el, e) { UI.slotClick(k, e, $(`.slot[data-k="${k}"]`)); },
     up(k) { G.E.startUpgrade(k); },
     cancelUp(k) { G.E.cancelUpgrade(k); },
@@ -619,29 +609,24 @@
   }
   function popPanel(k) {
     const L = G.E.lvl(k);
-    let h = `<div class="bhead">${ic(bSprite(k), 'bimg')}<div class="grow"><h2>${t('bn_' + k)}</h2><div class="lvl">${L ? t('levelOf', { l: L, m: D.MAXLVL }) : t('notBuilt')}</div><p class="desc">${t('bd_' + k)}</p></div>
-      <button class="btn small popx" data-action="popClose" title="${esc(t('close'))}">${ic('i_x')}</button></div>`;
+    let h = `<div class="bhead">${ic(bSprite(k), 'bimg')}<div class="grow"><h2>${t('bn_' + k)}</h2><div class="lvl">${L ? t('levelOf', { l: L, m: D.MAXLVL }) : t('notBuilt')}</div><p class="desc">${t('bd_' + k)}</p></div></div>`;
     h += popAction(k);
     // здание на перестройке недоступно; замок и склад показывают справку
     if (L > 0 && BP[k] && (!G.E.busy(k) || k === 'castle' || k === 'warehouse')) h += BP[k]();
     h += upgradeBox(k);
     return h;
   }
-  // Окно всплывает рядом с картой, поверх панели вкладок, и не закрывает здания
+  // Окно здания: всегда на виду, при выборе другого здания плавно сменяется
   function renderPop() {
-    const el = $('#bpop'), k = UI.pop;
-    if (!k || !D.B[k]) { el.classList.add('hidden'); el.innerHTML = ''; el._k = null; return; }
-    const same = el._k === k, s = el.scrollTop;
+    const el = $('#bpop');
+    if (!D.B[UI.pop] || UI.pop === 'dungeon') UI.pop = 'castle';
+    const k = UI.pop, same = el._k === k, s = el.scrollTop;
     el.innerHTML = popPanel(k);
-    el.classList.remove('hidden');
-    el.style.top = window.innerWidth > 960 ? $('#tabs').offsetHeight + 6 + 'px' : '';
     el.scrollTop = same ? s : 0;
-    if (!same) {
+    if (!same && el._k) {
       el.classList.remove('pop-in');
       void el.offsetWidth;
       el.classList.add('pop-in');
-      // на узком экране окно под картой — прокручиваем к нему
-      if (window.innerWidth <= 960) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
     el._k = k;
   }
@@ -989,7 +974,7 @@
     const h = (g && g.h) || {};
     const want = new Set();
     const add = (sel) => { for (const el of $$(sel)) want.add(el); };
-    const tabShown = h.tab && UI.tab === h.tab && !UI.pop;
+    const tabShown = h.tab && UI.tab === h.tab;
     if (h.b && UI.pop !== h.b && !tabShown) add(`.slot[data-k="${h.b}"]`);
     if (h.tab && !tabShown) add(`.tab[data-arg="${h.tab}"]`);
     // кнопки действия ищем там, где они сейчас видны: в окне здания или в панели вкладки
