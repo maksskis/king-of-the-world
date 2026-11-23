@@ -7,26 +7,29 @@
 
   // ---------- уровни и стройка ----------
   D.MAXLVL = 8;
-  D.CAPS = [200, 400, 800, 1600, 3200, 6400, 12800, 25600]; // лимит склада по уровню
+  // Лимит склада по уровню склада (0 — склада ещё нет)
+  D.CAPS = [100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
+  D.goldCap = (L) => 250 * Math.pow(2, L); // 1 ур. — 500, 2 ур. — 1000 и т. д.
   D.LVLMULT = [1, 2, 4, 8, 16, 32, 64, 128]; // множитель цены перехода L -> L+1
   D.buildTime = (L) => 20 * Math.pow(2, L); // секунды на переход L -> L+1
   D.WORKERS = [0, 1, 2, 3, 4, 6, 8, 10, 12]; // мест для рабочих по уровню
 
   // ---------- карта города 384×300: замок в центре, постройки по кругу ----------
-  D.MAP = { w: 384, h: 300, cx: 192, cy: 136, rx: 132, ry: 84, wrx: 182, wry: 124, wcy: 138 };
+  D.MAP = { w: 384, h: 320, cx: 192, cy: 136, rx: 132, ry: 84, wrx: 182, wry: 124, wcy: 138 };
   D.B = {
+    // В начале есть только замок. Первой строится лесопилка: золото с замка + 10 стартового дерева.
     castle: { base: { gold: 150, wood: 100, stone: 120 }, click: 'gold', size: 64, start: 1 },
-    academy: { base: { gold: 200, wood: 120, stone: 150 }, ang: -90 },
-    barracks: { base: { gold: 120, wood: 80, stone: 100, iron: 30 }, ang: -50 },
-    market: { base: { gold: 100, wood: 100, stone: 60 }, ang: -10 },
+    academy: { base: { gold: 200, wood: 100, stone: 100 }, ang: -90 },
+    barracks: { base: { gold: 120, wood: 80, stone: 90, iron: 30 }, ang: -50 },
+    market: { base: { gold: 100, wood: 90, stone: 60 }, ang: -10 },
     forge: { base: { gold: 100, wood: 60, stone: 80, iron: 20 }, ang: 30 },
-    warehouse: { base: { gold: 60, wood: 80, stone: 60 }, ang: 70, start: 1 },
-    tavern: { base: { gold: 150, wood: 120, stone: 60 }, ang: 110 },
+    warehouse: { base: { gold: 40, wood: 60, stone: 40 }, ang: 70 },
+    tavern: { base: { gold: 150, wood: 100, stone: 60 }, ang: 110 },
     mine: { base: { gold: 80, wood: 60, stone: 50 }, ang: 150, click: 'iron', prod: 'iron' },
-    quarry: { base: { gold: 40, wood: 40 }, ang: 190, click: 'stone', prod: 'stone', start: 1 },
-    lumber: { base: { gold: 40, stone: 30 }, ang: 230, click: 'wood', prod: 'wood', start: 1 },
-    gate: { base: { gold: 80, wood: 60, stone: 150 }, x: 192, y: 258, size: 48, start: 1 },
-    dungeon: { noLevel: true, x: 352, y: 32 },
+    quarry: { base: { gold: 30, wood: 25 }, ang: 190, click: 'stone', prod: 'stone' },
+    lumber: { base: { gold: 25, wood: 10 }, ang: 230, click: 'wood', prod: 'wood' },
+    gate: { base: { gold: 80, wood: 60, stone: 150 }, x: 192, y: 258, size: 48 },
+    dungeon: { noLevel: true, x: 334, y: 284 },
   };
   for (const k in D.B) {
     const b = D.B[k];
@@ -97,6 +100,7 @@
     { adj: { m: 'железный', f: 'железная', en: 'Iron' }, req: 1, atk: 5, def: 3, hp: 15, time: 15, wcost: { iron: 12, wood: 8 }, acost: { iron: 16, wood: 6 } },
     { adj: { m: 'костяной', f: 'костяная', en: 'Bone' }, req: 3, atk: 12, def: 7, hp: 40, time: 40, wcost: { iron: 40, wood: 20, bone: 15 }, acost: { iron: 50, bone: 20 } },
     { adj: { m: 'мифриловый', f: 'мифриловая', en: 'Mithril' }, req: 5, atk: 28, def: 15, hp: 90, time: 90, wcost: { iron: 80, mithril: 10, crystal: 8 }, acost: { iron: 100, mithril: 12, crystal: 6 } },
+    { adj: { m: 'драконий', f: 'драконья', en: 'Dragon' }, req: 7, atk: 55, def: 28, hp: 170, time: 180, wcost: { mithril: 30, crystal: 25, bone: 60 }, acost: { mithril: 35, crystal: 20, bone: 80 } },
   ];
   // Редкость предметов; forge — с какого уровня кузницы может выпасть
   D.IRAR = [
@@ -151,7 +155,8 @@
     { id: 'strike', br: 'war', icon: 'i_atk', eff: { click: 0.2 } },
     { id: 'rally', br: 'war', icon: 'i_flag', eff: { defAtk: 0.05 } },
     { id: 'walls', br: 'war', icon: 'i_def', eff: { gateHp: 0.1 } },
-    { id: 'arch', br: 'build', icon: 'i_hammer', eff: { buildT: 0.08 } },
+    { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.08 } },
+    { id: 'foreman', br: 'build', icon: 'i_hammer', eff: { boost: 1 } },
     { id: 'thrift', br: 'build', icon: 'r_stone', eff: { buildC: 0.04 } },
     { id: 'pick', br: 'build', icon: 'i_pick', eff: { gather: 0.2 } },
     { id: 'tax', br: 'trade', icon: 'r_gold', eff: { tax: 0.1 } },
@@ -250,15 +255,19 @@
   // ---------- цели (обучение и кампания) ----------
   const R = (S, id) => !!S.research.done[id];
   D.GOALS = [
-    { test: (S) => S.stats.clicks >= 10, reward: { gold: 15 } },
-    { test: (S) => S.b.lumber.w + S.b.quarry.w >= 1, reward: { gold: 15 } },
-    { test: (S) => S.b.mine.lvl >= 1, reward: { gold: 30 } },
-    { test: (S) => S.b.warehouse.lvl >= 2, reward: { wood: 50, stone: 50 } },
+    { test: (S) => S.stats.clicks >= 10, reward: { gold: 10 } },
+    { test: (S) => S.b.lumber.lvl >= 1, reward: { wood: 15 } },
+    { test: (S) => S.b.lumber.w >= 1, reward: { gold: 15 } },
+    { test: (S) => S.b.quarry.lvl >= 1, reward: { stone: 20 } },
+    { test: (S) => S.b.warehouse.lvl >= 1, reward: { gold: 30 } },
+    { test: (S) => S.b.mine.lvl >= 1, reward: { iron: 15 } },
     { test: (S) => S.b.forge.lvl >= 1, reward: { iron: 20 } },
     { test: (S) => S.stats.crafted >= 1, reward: { gold: 40 } },
     { test: (S) => S.b.tavern.lvl >= 1, reward: { gold: 50 } },
     { test: (S) => S.advs.length >= 1, reward: { iron: 20 } },
     { test: (S) => S.items.some((i) => i.eq && i.eq !== 'king'), reward: { gold: 40 } },
+    { test: (S) => S.b.gate.lvl >= 1, reward: { stone: 60 } },
+    { test: (S) => S.guards > 0 || S.advs.some((a) => a.st === 'gate'), reward: { gold: 50 } },
     { test: (S) => S.gate.best >= 1, reward: { gold: 60 } },
     { test: (S) => (S.dng.best.catacombs || 0) >= 1, reward: { gold: 80 } },
     { test: (S) => S.b.castle.lvl >= 2, reward: { gold: 100 } },
@@ -277,4 +286,5 @@
     { test: (S) => S.camp.awake, reward: { gold: 3000 } },
     { test: (S) => S.camp.won, reward: { gold: 10000 } },
   ];
+
 })();

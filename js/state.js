@@ -1,15 +1,15 @@
 (function () {
-  const KEY = 'king-of-world-save-v2';
+  const KEY = 'king-of-world-save-v3';
 
   G.newState = function (dyn) {
     const b = {};
     for (const k in G.D.B) b[k] = { lvl: G.D.B[k].start || (G.D.B[k].noLevel ? 1 : 0), w: 0 };
     return {
-      v: 2,
+      v: 3,
       lang: 'ru',
       sound: true,
-      res: { gold: 30, wood: 0, stone: 0, iron: 0, bone: 0, crystal: 0, mithril: 0 },
-      seen: { gold: true, wood: true, stone: true },
+      res: { gold: 0, wood: 10, stone: 0, iron: 0, bone: 0, crystal: 0, mithril: 0 },
+      seen: { gold: true, wood: true },
       b,
       cons: [], // идущие стройки: {k, t, total}
       decree: { build: [], research: [] }, // указы — очереди приоритетов
@@ -68,7 +68,7 @@
   G.exportSave = () => btoa(unescape(encodeURIComponent(JSON.stringify(G.S))));
   G.importSave = function (str) {
     const s = JSON.parse(decodeURIComponent(escape(atob(str.trim()))));
-    if (!s || !s.res || !s.b || s.v !== 2) throw new Error('bad save');
+    if (!s || !s.res || !s.b || s.v !== 3) throw new Error('bad save');
     return merge(G.newState(), s);
   };
 

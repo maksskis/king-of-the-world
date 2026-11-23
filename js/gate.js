@@ -1,7 +1,7 @@
 (function () {
   const W = (G.W = {});
   const D = G.D;
-  const LW = 320, LH = 130, SC = 3, TOP = 60; // TOP — небо над полем боя
+  const LW = 320, LH = 130, SC = 3, TOP = 80; // TOP — небо над полем боя
   const LANES = [100, 112, 124];
   let B = null, raf = 0, lastT = 0, cv = null, ctx = null, bg = null;
 
@@ -47,9 +47,16 @@
     return { gold: Math.ceil(15 * Math.pow(1.15, n - 1) * m), bone: Math.floor(n / 2) + 1 };
   };
   W.finalReady = () => G.S.camp.awake && !G.S.camp.won;
+  // Почему нельзя начать волну: нет стен, ворота на перестройке или некому защищать
+  W.whyNot = function () {
+    if (G.E.lvl('gate') < 1) return 'noWalls';
+    if (G.E.busy('gate')) return 'gateBusy';
+    if (G.S.guards <= 0 && !G.S.advs.some((a) => a.st === 'gate' && a.hp > 0)) return 'noDefenders';
+    return '';
+  };
 
   W.start = function (final) {
-    if (W.active()) return;
+    if (W.active() || W.whyNot()) return;
     const n = final ? 'final' : G.S.gate.sel;
     if (final && !W.finalReady()) return;
     if (!final && n > G.S.gate.best + 1) return;

@@ -7,9 +7,9 @@
 
   // ---------- склад ----------
   E.cap = function (r) {
-    if (r === 'gold') return Infinity;
-    const L = Math.max(1, E.lvl('warehouse'));
-    return Math.floor(D.CAPS[L - 1] * (1 + G.bonus('store')));
+    const L = E.lvl('warehouse');
+    const base = r === 'gold' ? D.goldCap(L) : D.CAPS[L];
+    return Math.floor(base * (1 + G.bonus('store')));
   };
   E.can = function (cost) {
     for (const r in cost) if ((G.S.res[r] || 0) < cost[r]) return false;
@@ -36,7 +36,7 @@
   E.addAll = function (obj) {
     for (const r in obj) if (obj[r] > 0) E.add(r, obj[r]);
   };
-  E.full = (r) => r !== 'gold' && (G.S.res[r] || 0) >= E.cap(r);
+  E.full = (r) => (G.S.res[r] || 0) >= E.cap(r);
 
   // ---------- стройка ----------
   E.upCost = function (k) {
@@ -46,6 +46,9 @@
   E.upTime = (k) => D.buildTime(E.lvl(k)) * Math.max(0.3, 1 - G.bonus('buildT'));
   E.builders = () => 1 + G.bonus('builders');
   E.consOf = (k) => G.S.cons.find((c) => c.k === k);
+  // Здание на перестройке недоступно (кроме налогов замка)
+  E.busy = (k) => E.lvl(k) > 0 && !!E.consOf(k);
+  E.usable = (k) => E.lvl(k) > 0 && !E.busy(k);
   E.freeBuilder = () => G.S.cons.length < E.builders();
 
   E.whyNot = function (k) {
@@ -83,11 +86,12 @@
     G.UI.slotsDirty = true;
   };
 
-  // Король помогает строителям кликом
+  // Король помогает строителям кликом — только с талантом «Прораб»
+  E.boostSec = () => G.bonus('boost');
   E.boost = function (k) {
     const c = E.consOf(k);
-    if (!c) return false;
-    c.t -= 1;
+    if (!c || E.boostSec() <= 0) return false;
+    c.t -= E.boostSec();
     return true;
   };
 
@@ -124,7 +128,7 @@
     }
   };
   E.decreeAdd = function (k) {
-    if (G.S.decree.build.length >= 8) return;
+    if (G.S.decree.build.length >= 12) return;
     G.S.decree.build.push(k);
     G.UI.dirty();
   };
@@ -139,7 +143,7 @@
   };
   E.gather = function (k) {
     const d = D.B[k];
-    if (!d.click || E.lvl(k) < 1) return 0;
+    if (!d.click || !E.usable(k)) return 0;
     const n = E.add(d.click, E.clickAmount(k));
     G.S.stats.clicks++;
     G.K.xp(0.3);
@@ -154,7 +158,7 @@
   E.workerCost = (k) => ({ gold: Math.ceil(15 * Math.pow(1.45, G.S.b[k].w)) });
   E.hireWorker = function (k) {
     const b = G.S.b[k];
-    if (b.w >= E.maxWorkers(k)) return;
+    if (b.w >= E.maxWorkers(k) || E.busy(k)) return;
     if (!E.pay(E.workerCost(k))) return;
     b.w++;
     G.SFX.play('coin');
@@ -172,7 +176,7 @@
     const r = { gold: E.tax() };
     for (const k of D.PROD) {
       const b = G.S.b[k];
-      if (b.lvl > 0 && b.w > 0) {
+      if (b.lvl > 0 && b.w > 0 && !E.busy(k)) {
         const res = D.B[k].prod;
         r[res] = (r[res] || 0) + b.w * E.workerRate(k);
       }
@@ -212,7 +216,7 @@
   E.buyPrice = (r) => (E.PRICE[r] * 3.5 * (1 - 0.04 * (E.lvl('market') - 1))) / (1 + G.bonus('trade'));
   E.canBuy = (r) => E.lvl('market') >= E.BUY_LVL[r];
   E.sell = function (r, n) {
-    if (E.lvl('market') < 1) return;
+    if (!E.usable('market')) return;
     n = Math.min(Math.floor(n), Math.floor(G.S.res[r] || 0));
     const g = Math.floor(n * E.sellPrice(r));
     if (n <= 0 || g < 1) return;
@@ -222,7 +226,7 @@
     G.SFX.play('coin');
   };
   E.buy = function (r, n) {
-    if (!E.canBuy(r)) return;
+    if (!E.canBuy(r) || !E.usable('market')) return;
     n = Math.min(Math.floor(n), Math.floor(E.cap(r) - (G.S.res[r] || 0)));
     const g = Math.ceil(n * E.buyPrice(r));
     if (n <= 0 || !E.pay({ gold: g })) return;

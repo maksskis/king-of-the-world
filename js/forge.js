@@ -4,14 +4,14 @@
   const lvl = () => G.E.lvl('forge');
 
   F.speed = () => (1 + 0.12 * (lvl() - 1)) * (1 + 0.25 * G.S.b.forge.w) * (1 + G.bonus('craft'));
-  F.qMax = () => 1 + Math.floor(lvl() / 3) + G.bonus('forgeQ');
+  F.qMax = () => Math.max(1, lvl()) + G.bonus('forgeQ'); // 1 ур. — 1 вещь, 2 ур. — 2 и т. д.
   F.maxSmiths = () => lvl();
   F.smithCost = function () {
     const n = G.S.b.forge.w;
     return { gold: Math.ceil(80 * Math.pow(1.6, n)), iron: Math.ceil(20 * Math.pow(1.5, n)) };
   };
   F.hireSmith = function () {
-    if (G.S.b.forge.w >= F.maxSmiths()) return;
+    if (G.S.b.forge.w >= F.maxSmiths() || G.E.busy('forge')) return;
     if (!G.E.pay(F.smithCost())) return;
     G.S.b.forge.w++;
     G.SFX.play('coin');
@@ -23,7 +23,7 @@
   F.rarOpen = (i) => lvl() >= D.IRAR[i].forge;
 
   F.craft = function (type, ti) {
-    if (lvl() < 1 || !F.unlocked(ti) || G.S.forge.q.length >= F.qMax()) return;
+    if (!G.E.usable('forge') || !F.unlocked(ti) || G.S.forge.q.length >= F.qMax()) return;
     const cost = F.cost(type, ti);
     if (!G.E.pay(cost)) return;
     const t = D.TIERS[ti].time;
@@ -55,7 +55,7 @@
 
   F.tick = function (dt) {
     const q = G.S.forge.q;
-    if (!q.length || lvl() < 1) return;
+    if (!q.length || !G.E.usable('forge')) return;
     q[0].t -= dt * F.speed();
     while (q.length && q[0].t <= 0) {
       const over = -q[0].t;
@@ -66,7 +66,7 @@
   };
   F.boost = function () {
     const q = G.S.forge.q;
-    if (!q.length) return false;
+    if (!q.length || !G.E.usable('forge')) return false;
     q[0].t -= 0.5 * F.speed();
     F.tick(0);
     return true;

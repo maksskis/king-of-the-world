@@ -133,9 +133,9 @@
   function windowLit(b, x, y, w, h) { b.rect(x, y, w, h, P.glow); b.rect(x, y, w, 1, P.glowL); b.rect(x + Math.floor(w / 2), y, 1, h, P.woodD); }
   function crenels(b, x, y, w, c) { for (let i = 0; i < w; i += 3) b.rect(x + i, y, 2, 2, c); }
   function tierCols(t) {
-    return [[P.iron, P.ironD, P.ironL], [P.bone, P.boneD, P.boneL], [P.mith, P.mithD, P.mithL]][t] || [P.iron, P.ironD, P.ironL];
+    return [[P.iron, P.ironD, P.ironL], [P.bone, P.boneD, P.boneL], [P.mith, P.mithD, P.mithL], [P.red, P.redD, P.gold]][t] || [P.iron, P.ironD, P.ironL];
   }
-  const GEM = [P.cry, P.red, P.mith];
+  const GEM = [P.cry, P.red, P.mith, P.gold];
 
   const DEF = {};
 
@@ -453,6 +453,18 @@
   } };
   DEF.b_gate = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
+    if (t === 1) {
+      for (const x of [2, 36]) {
+        b.rect(x, 10, 10, 34, P.wood); for (let i = x + 2; i < x + 10; i += 3) b.rect(i, 10, 1, 34, P.woodD);
+        for (let i = x; i < x + 10; i += 3) b.poly([[i, 10], [i + 1.5, 6], [i + 3, 10]], P.woodL);
+        b.rect(x, 8, 10, 2, P.woodM); b.rect(x + 4, 18, 2, 4, P.black);
+      }
+      b.rect(12, 16, 24, 26, P.woodM); for (let x = 13; x < 36; x += 3) b.rect(x, 16, 1, 26, P.woodD);
+      for (let x = 12; x < 36; x += 3) b.poly([[x, 16], [x + 1.5, 12], [x + 3, 16]], P.woodL);
+      b.rect(17, 24, 14, 18, P.woodD); for (let x = 18; x < 31; x += 3) b.rect(x, 24, 1, 18, P.wood);
+      b.rect(17, 30, 14, 1, P.dark); b.rect(17, 36, 14, 1, P.dark);
+      return;
+    }
     wallBricks(b, 12, 14, 24, 28, P.stoneD, P.stone); crenels(b, 12, 12, 24, P.stoneD);
     for (const x of [2, 36]) {
       wallBricks(b, x, 8, 10, 36, P.stone, P.stoneD); crenels(b, x, 6, 10, P.stone);
@@ -472,6 +484,12 @@
     b.rect(9, 33, 1, 6, P.woodD); b.px(9, 32, P.glow); b.px(9, 31, P.glowL);
     b.rect(38, 33, 1, 6, P.woodD); b.px(38, 32, P.glow); b.px(38, 31, P.glowL);
     b.px(21, 39, '#ff3b3b'); b.px(26, 39, '#ff3b3b');
+  } };
+  DEF.b_scaffold = { w: 48, h: 48, draw(b) {
+    for (const x of [4, 22, 41]) b.rect(x, 6, 2, 38, P.woodL);
+    for (const y of [10, 24, 38]) b.rect(3, y, 42, 2, P.wood);
+    b.line(5, 38, 23, 24, P.woodD); b.line(24, 24, 42, 10, P.woodD);
+    b.rect(28, 40, 9, 4, P.stone); b.rect(29, 38, 7, 2, P.stoneM); b.rect(8, 41, 10, 3, P.woodL);
   } };
   DEF.b_site = { w: 48, h: 48, draw(b) {
     b.ellipse(24, 38, 20, 7, P.dirt); b.ellipse(24, 38, 16, 5, P.dirtL);
@@ -503,7 +521,9 @@
   };
 
   // ---------- фон карты города 384×300 ----------
-  G.SPR.mapBg = function (cv) {
+  // wt — облик стен: 0 нет, 1 частокол, 2 камень и башни, 3 камень, башни и ров
+  G.SPR.mapBg = function (cv, wt) {
+    wt = wt || 0;
     const M = G.D.MAP, W = M.w, H = M.h, b = new Buf(W, H), r = G.U.seeded(1337);
     const ell = (x, y) => Math.hypot((x + 0.5 - M.cx) / M.wrx, (y + 0.5 - M.wcy) / M.wry);
     const WALL_IN = 0.955, WALL_OUT = 1.0, MOAT = 1.065;
@@ -541,7 +561,9 @@
       if (k === 'castle' || k === 'dungeon' || k === 'gate') continue;
       road(M.cx, M.cy, d.x, d.y + 10, 3);
     }
-    road(M.cx, M.cy, M.cx, 300, 4);
+    road(M.cx, M.cy, M.cx, H, 4);
+    const DG = G.D.B.dungeon;
+    road(M.cx + 4, 292, DG.x - 8, DG.y + 10, 2);
 
     // мощёная площадь вокруг замка
     for (let y = M.cy - 46; y < M.cy + 50; y++) {
@@ -554,35 +576,43 @@
       }
     }
 
-    // ров и стена-кольцо
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const d = ell(x, y);
-        if (d >= WALL_OUT && d < MOAT) {
-          const n = r();
-          b.px(x, y, d > MOAT - 0.008 || d < WALL_OUT + 0.006 ? P.waterD : n < 0.05 ? P.waterL : P.water);
-        } else if (d >= WALL_IN && d < WALL_OUT) {
-          const a = Math.atan2((y - M.wcy) / M.wry, (x - M.cx) / M.wrx);
-          const seg = Math.floor(((a + Math.PI) / (2 * Math.PI)) * 220);
-          const inner = d < WALL_IN + 0.012;
-          if (inner) b.px(x, y, seg % 2 ? P.stoneL : P.stoneD);
-          else b.px(x, y, (seg + Math.floor(d * 400)) % 5 === 0 ? P.stoneD : d > WALL_OUT - 0.01 ? P.stoneD : P.stone);
+    // стена-кольцо: облик зависит от уровня ворот
+    if (wt >= 1) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const d = ell(x, y);
+          if (wt >= 3 && d >= WALL_OUT && d < MOAT) {
+            const n = r();
+            b.px(x, y, d > MOAT - 0.008 || d < WALL_OUT + 0.006 ? P.waterD : n < 0.05 ? P.waterL : P.water);
+          } else if (d >= WALL_IN && d < WALL_OUT) {
+            const a = Math.atan2((y - M.wcy) / M.wry, (x - M.cx) / M.wrx);
+            const seg = Math.floor(((a + Math.PI) / (2 * Math.PI)) * 220);
+            const inner = d < WALL_IN + 0.012;
+            if (wt === 1) b.px(x, y, seg % 2 ? (inner ? P.woodL : P.wood) : P.woodD);
+            else if (inner) b.px(x, y, seg % 2 ? P.stoneL : P.stoneD);
+            else b.px(x, y, (seg + Math.floor(d * 400)) % 5 === 0 ? P.stoneD : d > WALL_OUT - 0.01 ? P.stoneD : P.stone);
+          }
         }
       }
-    }
-    // башни на стене
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
-      if (Math.abs(a - Math.PI / 2) < 0.4) continue;
-      const tx = M.cx + M.wrx * 0.978 * Math.cos(a), ty = M.wcy + M.wry * 0.978 * Math.sin(a);
-      b.ellipse(tx + 1, ty + 3, 9, 5, '#2f5a26');
-      b.disc(tx, ty, 8, P.k); b.disc(tx, ty, 7, P.stoneD); b.disc(tx, ty - 1, 6, P.stone); b.disc(tx, ty - 1, 4.5, P.stoneM);
-      for (let j = 0; j < 8; j++) { const aa = (j / 8) * Math.PI * 2; b.px(tx + Math.cos(aa) * 5.5, ty - 1 + Math.sin(aa) * 5.5, P.stoneL); }
-      b.px(tx, ty - 1, P.red);
-    }
-    // мост через ров к воротам
-    for (let y = M.wcy + M.wry - 6; y < M.wcy + M.wry + 14; y++) {
-      for (let x = M.cx - 9; x <= M.cx + 9; x++) b.px(x, y, Math.abs(x - M.cx) === 9 ? P.woodD : y % 3 === 0 ? P.woodM : P.wood);
+      // башни: деревянные вышки или каменные башни
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
+        if (Math.abs(a - Math.PI / 2) < 0.4) continue;
+        const tx = M.cx + M.wrx * 0.978 * Math.cos(a), ty = M.wcy + M.wry * 0.978 * Math.sin(a);
+        if (wt === 1) {
+          b.rect(tx - 4, ty - 4, 8, 8, P.k); b.rect(tx - 3, ty - 3, 6, 6, P.wood); b.rect(tx - 3, ty - 3, 6, 1, P.woodL);
+          continue;
+        }
+        b.ellipse(tx + 1, ty + 3, 9, 5, '#2f5a26');
+        b.disc(tx, ty, 8, P.k); b.disc(tx, ty, 7, P.stoneD); b.disc(tx, ty - 1, 6, P.stone); b.disc(tx, ty - 1, 4.5, P.stoneM);
+        for (let j = 0; j < 8; j++) { const aa = (j / 8) * Math.PI * 2; b.px(tx + Math.cos(aa) * 5.5, ty - 1 + Math.sin(aa) * 5.5, P.stoneL); }
+        b.px(tx, ty - 1, P.red);
+      }
+      if (wt >= 3) {
+        for (let y = M.wcy + M.wry - 6; y < M.wcy + M.wry + 14; y++) {
+          for (let x = M.cx - 9; x <= M.cx + 9; x++) b.px(x, y, Math.abs(x - M.cx) === 9 ? P.woodD : y % 3 === 0 ? P.woodM : P.wood);
+        }
+      }
     }
 
     // тени под постройками
@@ -598,7 +628,7 @@
     for (let i = 0; i < 260; i++) {
       const x = rt() * W, y = rt() * H;
       const d = ell(x, y);
-      if (d > MOAT + 0.05 && !(x > 300 && y < 75) && !(Math.abs(x - M.cx) < 18 && y > 250)) trees.push([x, y, 5 + rt() * 3]);
+      if (d > MOAT + 0.05 && !(x > 300 && y < 60) && !(x > 300 && y > 250) && !(Math.abs(x - M.cx) < 18 && y > 250)) trees.push([x, y, 5 + rt() * 3]);
     }
     for (const [x, y] of [[140, 182], [246, 182], [120, 100], [266, 100], [192, 92], [60, 152], [324, 152], [100, 222], [286, 222]]) trees.push([x, y, 4.5]);
     trees.sort((p, q) => p[1] - q[1]);
@@ -610,8 +640,6 @@
       b.poly([[x - s, y + s * 0.6], [x - s * 0.2, y - s], [x + s, y + s * 0.6]], P.stoneD);
       b.poly([[x - s * 0.2, y - s], [x + s * 0.15, y - s * 0.4], [x - s * 0.5, y + s * 0.1]], P.stoneL);
     }
-    // тропа к подземелью
-    road(M.cx + 70, 300, 352, 54, 2);
     // цветы внутри стен
     for (let i = 0; i < 140; i++) {
       const x = Math.floor(r() * W), y = Math.floor(r() * H);
@@ -625,7 +653,7 @@
 
   // ---------- фон боя у ворот 320×130 ----------
   G.SPR.battleBg = function () {
-    const OFF = 60, W = 320, H = 130 + OFF, b = new Buf(W, H), r = G.U.seeded(42);
+    const OFF = 80, W = 320, H = 130 + OFF, b = new Buf(W, H), r = G.U.seeded(42);
     const sky = ['#140f24', '#1a1330', '#1d1530', '#261b3d', '#30214a', '#3d2a55', '#4d3360'];
     for (let y = 0; y < 72 + OFF; y++) { const c = sky[Math.min(6, Math.floor(y / 19))]; for (let x = 0; x < W; x++) b.px(x, y, c); }
     for (let i = 0; i < 90; i++) b.px(Math.floor(r() * W), Math.floor(r() * (45 + OFF)), r() < 0.5 ? '#ffffff' : '#c8b8ff');

@@ -17,7 +17,7 @@
   };
 
   R.start = function (id) {
-    if (G.S.research.cur || R.state(id) !== 'open') return false;
+    if (G.S.research.cur || R.state(id) !== 'open' || !G.E.usable('academy')) return false;
     const r = R.get(id);
     if (!G.E.pay(r.cost)) return false;
     const t = R.time(r);
@@ -38,7 +38,7 @@
 
   R.tick = function (dt) {
     const c = G.S.research.cur;
-    if (c && G.E.lvl('academy') > 0) {
+    if (c && G.E.usable('academy')) {
       c.t -= dt;
       if (c.t <= 0) {
         const r = R.get(c.id);
@@ -59,7 +59,7 @@
   // Указ об исследованиях: следующее по списку начинается само
   R.tickDecree = function () {
     const q = G.S.decree.research;
-    while (q.length && !G.S.research.cur) {
+    while (q.length && !G.S.research.cur && G.E.usable('academy')) {
       const id = q[0];
       const st = R.state(id);
       if (st === 'done' || st === 'cur') { q.shift(); continue; }
@@ -69,7 +69,7 @@
   };
   R.enqueue = function (id) {
     const q = G.S.decree.research;
-    if (q.includes(id) || R.done(id) || q.length >= 8) return;
+    if (q.includes(id) || R.done(id) || q.length >= 12) return;
     q.push(id);
     G.UI.dirty();
   };

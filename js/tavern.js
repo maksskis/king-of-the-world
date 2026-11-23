@@ -35,7 +35,7 @@
 
   T.refreshCost = () => ({ gold: 20 * Math.max(1, tl()) });
   T.refresh = function (free) {
-    if (!free && !G.E.pay(T.refreshCost())) return;
+    if (!free && (G.E.busy('tavern') || !G.E.pay(T.refreshCost()))) return;
     G.S.tavern.cands = Array.from({ length: T.candCount() }, T.gen);
     G.S.tavern.t = T.REFRESH;
     G.UI.dirty();
@@ -43,7 +43,7 @@
 
   T.hire = function (i) {
     const c = G.S.tavern.cands[i];
-    if (!c || G.S.advs.length >= T.maxAdvs()) return;
+    if (!c || G.S.advs.length >= T.maxAdvs() || !G.E.usable('tavern')) return;
     if (!G.E.pay({ gold: c.cost })) return;
     G.S.tavern.cands.splice(i, 1);
     delete c.cost;
@@ -176,7 +176,7 @@
   };
   T.guardDmg = () => 2 * (1 + 0.3 * (G.E.lvl('barracks') - 1)) * (1 + G.bonus('guardAtk') + G.bonus('defAtk'));
   T.hireGuard = function () {
-    if (G.S.guards >= T.maxGuards()) return;
+    if (G.S.guards >= T.maxGuards() || !G.E.usable('barracks')) return;
     if (!G.E.pay(T.guardCost())) return;
     G.S.guards++;
     G.SFX.play('coin');
