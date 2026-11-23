@@ -12,7 +12,8 @@
 
   // ---------- общие помощники ----------
   const ic = (k, cls) => `<img class="${cls || 'ic'}" src="${G.SPR.url(k)}" alt="">`;
-  const tierOf = (L) => (L >= 6 ? 3 : L >= 3 ? 2 : 1);
+  // облик здания: 1–2 уровень — 1, 3–4 — 2, 5–6 — 3, 7–8 — 4
+  const tierOf = (L) => Math.max(1, Math.min(4, Math.ceil(L / 2)));
   const bSprite = (k) => {
     if (k === 'dungeon') return 'b_dungeon';
     const L = G.E.lvl(k);
@@ -210,7 +211,7 @@
 
   function wallTier() {
     const L = G.E.lvl('gate');
-    return L === 0 ? 0 : tierOf(L);
+    return L === 0 ? 0 : L >= 6 ? 3 : L >= 3 ? 2 : 1;
   }
 
   function updateSlots() {
@@ -271,6 +272,7 @@
       if (n > 0) { text = (G.E.lastCrit ? t('critClick') + ' ' : '') + '+' + U.fmt1(n); icon = 'r_' + d.click; G.SFX.play(G.E.lastCrit ? 'coin' : 'gather'); }
       else { text = t('full'); icon = 'i_bag'; }
     } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit'); icon = 'i_anvil'; G.SFX.play('hit'); }
+    else if (k === 'academy' && G.R.boost()) { text = '−' + U.fmt1(G.R.boostSec()) + t('sec'); icon = 'i_book'; G.SFX.play('click'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
     if (e.type === 'pointerdown') UI.openPop(k);
   };
@@ -365,6 +367,11 @@
       const [q, i] = a.split('|');
       const arr = G.S.decree[q], j = +i;
       if (j > 0) { [arr[j - 1], arr[j]] = [arr[j], arr[j - 1]]; UI.slotsDirty = true; UI.dirty(); }
+    },
+    decreeDown(a) {
+      const [q, i] = a.split('|');
+      const arr = G.S.decree[q], j = +i;
+      if (j < arr.length - 1) { [arr[j + 1], arr[j]] = [arr[j], arr[j + 1]]; UI.slotsDirty = true; UI.dirty(); }
     },
     worker(k) { G.E.hireWorker(k); },
     tools() { G.E.upgradeTools(); },
@@ -505,7 +512,8 @@
     if (why === 'max') return box('', `${ic('i_star')} ${t('maxLevel')}`, 'muted');
     const cost = G.E.upCost(k);
     const queued = G.S.decree.build.filter((x) => x === k).length;
-    let h = `<div class="hint top">${t('bh_' + k)}</div><div class="row">${costHtml(cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
+    const look = [3, 5, 7].includes(L + 1) ? ` <span class="newlook">${ic('i_star')} ${t('newLook')}</span>` : '';
+    let h = `<div class="hint top">${t('bh_' + k)}${look}</div><div class="row">${costHtml(cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
     if (why === 'castle') h += `<div class="warn small">${ic('i_lock')} ${t('needCastle', { l: L })}</div>`;
     else if (why === 'storage') h += `<div class="warn small">${ic('i_bag')} ${t('needStorage')}</div>`;
     else if (why === 'builders') h += `<div class="warn small">${ic('i_hammer')} ${t('needBuilders')}</div>`;
@@ -605,6 +613,7 @@
     if (G.E.consOf(k)) return G.E.boostSec() > 0 ? `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_hammer')} ${t('helpBuild', { n: U.fmt1(G.E.boostSec()) })}</button>` : '';
     if (L > 0 && d.click) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_pick')} ${t('gatherBtn')} <b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + d.click)}</button>`;
     if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn')}</button>`;
+    if (k === 'academy' && L > 0 && G.S.research.cur) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_book')} ${t('resBoostBtn', { n: U.fmt1(G.R.boostSec()) })}</button>`;
     return '';
   }
   function popPanel(k) {
@@ -745,7 +754,7 @@
       (S.cons.length ? S.cons.map((c) => `<div class="job">${ic(bSprite(c.k), 'ic2')}<div class="grow"><div>${t('bn_' + c.k)} → ${G.E.lvl(c.k) + 1}</div>${bar('cons:' + c.k)}<div class="muted small" data-b="consT:${c.k}"></div></div><button class="btn small" data-action="cancelUp" data-arg="${c.k}" title="${esc(t('cancelRefund'))}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('buildersIdle')}</div>`) +
       `<div class="hint">${t('decreeHint')}</div>`);
     // очередь строительства
-    const qList = (q, nameKey, icon, extra) => (dq[q].length ? dq[q].map((x, i) => `<div class="dq">${ic(icon(x), 'ic2')}<div class="grow">${i + 1}. <b>${t(nameKey + x)}</b>${extra ? extra(x, i) : ''}</div><button class="btn small" data-action="decreeUp" data-arg="${q}|${i}" ${i ? '' : 'disabled'}>▲</button><button class="btn small" data-action="decreeDel" data-arg="${q}|${i}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('decreeEmpty')}</div>`);
+    const qList = (q, nameKey, icon, extra) => (dq[q].length ? dq[q].map((x, i) => `<div class="dq">${ic(icon(x), 'ic2')}<div class="grow">${i + 1}. <b>${t(nameKey + x)}</b>${extra ? extra(x, i) : ''}</div><button class="btn small" data-action="decreeUp" data-arg="${q}|${i}" ${i ? '' : 'disabled'}>▲</button><button class="btn small" data-action="decreeDown" data-arg="${q}|${i}" ${i < dq[q].length - 1 ? '' : 'disabled'}>▼</button><button class="btn small" data-action="decreeDel" data-arg="${q}|${i}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('decreeEmpty')}</div>`);
     // для каждой записи: уровень, цена и время этого перехода
     const fromLvl = (k, i) => {
       let L = G.E.lvl(k) + (G.E.consOf(k) ? 1 : 0);
@@ -980,7 +989,7 @@
     // кнопки действия ищем там, где они сейчас видны: в окне здания или в панели вкладки
     const scope = h.tab ? '#panel' : '#bpop';
     for (const a of [].concat(h.act || [])) {
-      const arg = h.arg && a !== 'send' && a !== 'pickParty' ? h.arg : a === 'up' || a === 'worker' ? h.b : null;
+      const arg = h.arg && a !== 'send' && a !== 'pickParty' ? h.arg : a === 'up' || a === 'worker' || a === 'gather' ? h.b : null;
       add(arg ? `${scope} [data-action="${a}"][data-arg="${arg}"]` : `${scope} [data-action="${a}"], #wave-w [data-action="${a}"]`);
     }
     for (const el of $$('.goal-hl')) if (!want.has(el)) el.classList.toggle('goal-hl', false);

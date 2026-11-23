@@ -736,6 +736,8 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
 .cond .cnote { display: block; margin-left: 20px; }
 .pushwarn { margin: 2px 0 6px; padding: 6px 8px; border: 1px dashed rgba(240, 120, 100, 0.5); border-radius: 6px; }
 
+.newlook { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; color: var(--gold); font-weight: 600; }
+
 /* Три колонки: карта, окно здания, вкладки */
 #main { grid-template-columns: minmax(0, 1fr) 360px 420px; }
 @media (min-width: 1600px) { #main { grid-template-columns: minmax(0, 1fr) 400px 480px; } }

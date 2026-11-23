@@ -350,19 +350,21 @@
     b.line(26, 18, 34, 18, cl);
   } };
 
-  // ---------- здания 3/4 (48×48), аргумент — облик 1..3 ----------
+  // ---------- здания 3/4 (48×48), аргумент — облик 1..4: меняется на 3, 5 и 7 уровнях ----------
   DEF.b_lumber = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
     treeTop(b, 7, 14, 6); treeTop(b, 41, 12, 6);
     if (t >= 3) treeTop(b, 40, 27, 5);
-    roof3q(b, 11, 12, 24, 12, P.woodM, P.woodD, P.woodL);
+    if (t >= 3) roof3q(b, 11, 12, 24, 12, P.roof, P.roofD, P.roofL);
+    else roof3q(b, 11, 12, 24, 12, P.woodM, P.woodD, P.woodL);
     wallPlanks(b, 12, 24, 22, 14, P.wood, P.woodD);
     b.rect(20, 29, 6, 9, P.woodD); b.px(24, 33, P.gold);
     windowLit(b, 14, 27, 4, 3); windowLit(b, 28, 27, 4, 3);
     for (const [x, y] of [[5, 41], [9, 41], [7, 38]]) { b.disc(x, y, 2.2, P.woodL); b.px(x - 0.5, y - 0.5, P.woodD); }
     if (t >= 2) for (const [x, y] of [[13, 42], [11, 39]]) { b.disc(x, y, 2.2, P.woodL); b.px(x - 0.5, y - 0.5, P.woodD); }
     b.rect(37, 38, 7, 5, P.wood); b.rect(37, 37, 7, 2, P.woodL); b.line(40, 32, 40, 37, P.woodD); b.rect(38, 31, 4, 2, P.ironL);
-    if (t >= 2) { b.disc(37, 20, 3, P.ironL); b.px(37, 20, P.ironD); }
+    if (t >= 2) { b.disc(37, 20, 3, t >= 4 ? P.gold : P.ironL); b.px(37, 20, P.ironD); }
+    if (t >= 4) { b.rect(23, 3, 1, 10, P.woodD); b.poly([[24, 3], [30, 4.5], [24, 6]], P.green); b.px(26, 4, P.gold); b.rect(1, 44, 12, 2, P.woodL); b.rect(2, 43, 10, 1, P.wood); }
   } };
   DEF.b_quarry = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -374,16 +376,46 @@
     b.line(7, 44, 12, 37, P.wood); b.poly([[9, 36], [12, 35.5], [15, 38], [14, 39], [12, 37.5], [10, 38]], P.ironL);
     if (t >= 2) { b.rect(38, 6, 2, 30, P.wood); b.rect(28, 6, 12, 2, P.wood); b.line(31, 8, 38, 14, P.woodD); b.rect(30, 8, 1, 10, P.dark); b.rect(28, 18, 5, 4, P.stoneM); }
     if (t >= 3) { b.rect(36, 38, 9, 5, P.woodD); b.rect(37, 36, 7, 2, P.stoneL); b.px(37, 43, P.dark); b.px(43, 43, P.dark); }
+    if (t >= 4) { b.rect(39, 0, 1, 6, P.woodD); b.poly([[40, 0], [46, 1.5], [40, 3]], P.blue); b.px(16, 16, P.gold); b.px(19, 18, P.gold); b.px(9, 24, P.gold); b.px(22, 14, P.goldL); b.rect(2, 42, 4, 1, P.woodD); b.px(3, 41, P.glow); b.px(3, 40, P.glowL); }
   } };
+  // Шахта: деревянный вход в склон, копёр с колесом, рельсы и вагонетка с синей железной рудой —
+  // не путается ни с серой скалой каменоломни, ни с пещерой катакомб
   DEF.b_mine = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
-    b.ellipse(24, 30, 22, 17, P.stoneD); b.ellipse(16, 22, 8, 5, P.stone); b.ellipse(24, 15, 12, 3, P.leafD); b.ellipse(22, 14, 7, 2, P.leaf);
-    b.rect(17, 26, 14, 16, P.black); b.ellipse(24, 26, 7, 5, P.black);
-    b.rect(15, 23, 2, 19, P.wood); b.rect(31, 23, 2, 19, P.wood); b.rect(14, 21, 20, 3, P.woodL); b.rect(14, 23, 20, 1, P.woodD);
-    b.rect(18, 42, 12, 1, P.ironD); b.rect(18, 44, 12, 1, P.ironD); for (let x = 18; x < 30; x += 3) b.rect(x, 42, 1, 3, P.woodD);
-    b.rect(34, 36, 10, 6, P.ironD); b.rect(34, 36, 10, 1, P.iron); b.rect(35, 33, 8, 3, P.rust); b.px(36, 42, P.dark); b.px(42, 42, P.dark);
-    if (t >= 2) { b.rect(23, 17, 2, 3, P.glow); b.px(23, 16, P.woodD); b.px(24, 16, P.woodD); }
-    if (t >= 3) { b.px(37, 33, P.gold); b.px(40, 33, P.gold); b.rect(4, 36, 8, 5, P.ironD); b.rect(5, 34, 6, 2, P.rust); }
+    const ore = '#7f93b5', oreL = '#c9d8f0', dirt = '#6b4a2e', dirtL = '#8a6440';
+    b.poly([[1, 45], [5, 31], [13, 23], [25, 20], [37, 23], [44, 31], [47, 45]], dirt);
+    b.poly([[7, 31], [14, 24.5], [25, 21.5], [36, 24.5], [40, 29], [25, 25], [13, 28]], dirtL);
+    b.ellipse(25, 21, 11, 2.5, P.leafD); b.ellipse(23, 20.5, 6, 1.5, P.leaf);
+    if (t >= 2) {
+      // копёр: деревянная вышка с колесом над стволом
+      b.line(17, 26, 25, 5, P.woodD); b.line(18, 26, 26, 5, P.wood); b.line(34, 26, 26, 5, P.woodD); b.line(33, 26, 25, 5, P.wood);
+      b.rect(20, 15, 12, 1, P.woodD); b.rect(22, 10, 8, 1, P.woodD);
+      b.disc(25.5, 5, 3.6, P.ironD); b.disc(25.5, 5, 2.2, P.iron); b.px(25, 5, P.k); b.px(26, 4, P.k);
+      b.line(25, 8, 25, 25, P.k);
+    }
+    // вход в штольню
+    const stone = t >= 4;
+    b.rect(19, 27, 14, 15, P.black);
+    b.rect(17, 26, 2, 16, stone ? P.stoneM : P.wood); b.rect(33, 26, 2, 16, stone ? P.stoneM : P.wood);
+    b.rect(16, 24, 20, 3, stone ? P.stoneL : P.woodL); b.rect(16, 26, 20, 1, stone ? P.stoneD : P.woodD);
+    // рельсы и вагонетка с рудой
+    b.rect(14, 42, 24, 1, P.ironD); b.rect(14, 44, 24, 1, P.ironD); for (let x = 15; x < 38; x += 3) b.rect(x, 42, 1, 3, P.woodD);
+    b.poly([[33, 35], [45, 35], [44, 41], [34, 41]], P.ironD); b.rect(33, 35, 12, 1, t >= 4 ? P.gold : P.iron);
+    for (const [x, y] of [[36, 34], [39, 33], [42, 34]]) { b.disc(x, y, 1.8, ore); b.px(x - 1, y - 1, oreL); }
+    b.px(35, 42, P.k); b.px(43, 42, P.k);
+    if (t >= 3) {
+      // сарай для инструмента и фонарь у входа
+      b.poly([[1, 31], [7, 25], [13, 31]], P.roofD); b.rect(1, 31, 12, 1, P.roof);
+      b.rect(2, 32, 10, 9, P.wood); for (let x = 4; x < 12; x += 3) b.rect(x, 32, 1, 9, P.woodD);
+      b.rect(5, 35, 3, 6, P.woodD); b.rect(9, 33, 2, 2, P.glow);
+      b.rect(15, 28, 1, 4, P.woodD); b.px(15, 27, P.glow); b.px(15, 26, P.glowL);
+    }
+    if (t >= 4) {
+      // флаг, горка руды и вторая вагонетка
+      b.rect(7, 17, 1, 8, P.woodD); b.poly([[8, 17], [14, 18.5], [8, 20]], P.blue); b.px(10, 18, P.gold);
+      for (const [x, y] of [[4, 44], [7, 43], [10, 44], [6, 41]]) { b.disc(x, y, 1.8, ore); b.px(x - 1, y - 1, oreL); }
+      b.poly([[38, 43], [46, 43], [45.5, 47], [38.5, 47]], P.ironD); b.rect(38, 43, 8, 1, P.gold); b.px(42, 42, oreL);
+    }
   } };
   DEF.b_warehouse = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -395,6 +427,7 @@
     b.rect(41, 34, 6, 6, P.woodL); b.rect(41, 34, 6, 1, P.wood); b.line(46, 34, 41, 39, P.woodD);
     if (t >= 2) { b.rect(2, 29, 5, 5, P.woodL); b.line(2, 29, 6, 33, P.woodD); b.ellipse(44, 31, 3, 3, P.dirtL); b.rect(43, 28, 2, 1, P.woodD); }
     if (t >= 3) { b.rect(22, 2, 1, 7, P.woodD); b.poly([[23, 2], [29, 3.5], [23, 5]], P.blue); b.rect(9, 26, 6, 4, P.glow); b.rect(33, 26, 6, 4, P.glow); }
+    if (t >= 4) { b.rect(5, 23, 38, 1, P.gold); b.rect(11, 13, 7, 6, P.wood); b.poly([[10, 13], [14.5, 9], [19, 13]], P.roofD); b.rect(13, 15, 3, 3, P.glow); b.rect(30, 13, 7, 6, P.wood); b.poly([[29, 13], [33.5, 9], [38, 13]], P.roofD); b.rect(32, 15, 3, 3, P.glow); }
   } };
   DEF.b_market = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -410,7 +443,8 @@
     if (t >= 2) stall(16, 4, P.green, P.white, [P.gold, P.wood]);
     b.rect(20, 34, 8, 6, P.wood); b.rect(20, 34, 8, 1, P.woodL); b.disc(24, 31, 3, P.gold); b.px(23, 30, P.goldL);
     b.rect(6, 38, 5, 6, P.woodD); b.rect(6, 39, 5, 1, P.ironD); b.rect(37, 38, 5, 6, P.woodD); b.rect(37, 39, 5, 1, P.ironD);
-    if (t >= 3) { b.rect(23, 0, 1, 6, P.woodD); b.poly([[24, 0], [30, 1.5], [24, 3]], P.gold); }
+    if (t >= 3) { b.rect(23, 0, 1, 6, P.woodD); b.poly([[24, 0], [30, 1.5], [24, 3]], P.gold); b.line(2, 31, 46, 31, P.woodD); for (let x = 4; x < 46; x += 5) { b.px(x, 32, P.glow); b.px(x, 33, P.glowL); } }
+    if (t >= 4) { b.rect(14, 43, 20, 3, P.purple); b.rect(14, 43, 20, 1, P.gold); b.rect(14, 45, 20, 1, P.gold); b.rect(3, 22, 16, 1, P.gold); b.rect(29, 22, 16, 1, P.gold); b.rect(16, 12, 16, 1, P.gold); }
   } };
   DEF.b_forge = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -420,8 +454,10 @@
     wallBricks(b, 5, 24, 34, 16, P.stoneD, P.stone);
     b.rect(9, 28, 9, 7, P.glow); b.rect(10, 29, 7, 5, P.glowL); b.rect(13, 28, 1, 7, P.woodD);
     b.rect(24, 28, 9, 12, P.woodD); b.rect(24, 28, 9, 1, P.k); b.px(31, 34, P.gold);
+    if (t >= 3) { b.rect(38, 30, 1, 6, P.woodD); b.rect(46, 30, 1, 6, P.woodD); b.poly([[36, 30], [47.5, 27], [47.5, 30], [36, 32]], P.slateL); b.rect(36, 31, 12, 1, P.slateD); }
     b.rect(38, 36, 9, 2, P.iron); b.rect(38, 36, 9, 1, P.ironL); b.rect(40, 38, 5, 4, P.ironD); b.rect(39, 42, 7, 1, P.ironD);
     if (t >= 2) { b.line(41, 31, 44, 35, P.wood); b.rect(40, 30, 3, 2, P.ironL); b.rect(1, 34, 4, 6, P.woodD); b.rect(1, 35, 4, 1, P.ironD); }
+    if (t >= 4) { b.rect(10, 4, 5, 10, P.stone); b.rect(9, 3, 7, 2, P.stoneD); b.rect(11, 5, 3, 1, P.glow); b.px(12, 1, P.glow); b.px(11, 0, P.glowL); b.rect(18, 16, 9, 6, P.woodD); b.rect(20, 18, 5, 1, P.gold); b.rect(21, 19, 3, 2, P.gold); b.rect(5, 24, 34, 1, P.gold); }
   } };
   DEF.b_tavern = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -434,7 +470,8 @@
     b.rect(20, 31, 8, 10, P.woodD); b.px(26, 36, P.gold);
     b.rect(18, 19, 1, 6, P.woodD); b.rect(16, 24, 7, 5, P.woodL); b.rect(18, 25, 3, 3, P.gold); b.px(21, 26, P.goldD);
     b.rect(42, 36, 5, 6, P.woodD); b.rect(42, 37, 5, 1, P.ironD); b.rect(42, 40, 5, 1, P.ironD);
-    if (t >= 3) { b.px(5, 18, P.glowL); b.px(42, 18, P.glowL); b.rect(1, 36, 5, 6, P.woodD); b.rect(1, 37, 5, 1, P.ironD); }
+    if (t >= 3) { b.rect(20, 9, 8, 6, P.plaster); b.poly([[19, 9], [24, 5], [29, 9]], P.roofD); b.rect(22, 11, 4, 3, P.glow); b.rect(23, 11, 1, 3, P.woodD); b.px(5, 18, P.glowL); b.px(42, 18, P.glowL); b.rect(1, 36, 5, 6, P.woodD); b.rect(1, 37, 5, 1, P.ironD); }
+    if (t >= 4) { b.rect(10, 0, 1, 8, P.woodD); b.poly([[11, 0], [17, 1.5], [11, 3]], P.purple); b.px(13, 1, P.gold); for (const x of [9, 27, 35]) { b.rect(x, 24, 4, 1, P.leaf); b.px(x, 23, P.redL); b.px(x + 2, 23, P.gold); b.px(x + 3, 23, P.redL); } b.rect(18, 25, 3, 3, P.goldL); }
   } };
   DEF.b_barracks = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -445,6 +482,7 @@
     b.rect(38, 35, 1, 8, P.wood); b.rect(36, 37, 5, 1, P.wood); b.disc(38.5, 33, 2, P.dirtL);
     if (t >= 2) { b.disc(12, 24.5, 1.8, P.blue); b.disc(28, 24.5, 1.8, P.blue); b.line(1, 32, 1, 43, P.wood); b.px(1, 31, P.ironL); b.line(3, 33, 3, 43, P.wood); b.px(3, 32, P.ironL); }
     if (t >= 3) { b.rect(4, 22, 32, 1, P.gold); b.poly([[26, 44], [30, 36], [34, 44]], P.plaster); }
+    if (t >= 4) { wallBricks(b, 0, 6, 9, 20, P.stone, P.stoneD); crenels(b, 0, 4, 9, P.stone); b.rect(3, 11, 3, 4, P.dark); b.rect(3, 0, 1, 5, P.woodD); b.poly([[4, 0], [9, 1.5], [4, 3]], P.red); b.disc(20, 26, 2.2, P.gold); b.px(20, 26, P.red); }
   } };
   DEF.b_academy = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -456,6 +494,7 @@
     b.rect(20, 28, 8, 12, P.blueD); b.ellipse(24, 28, 4, 2, P.blueD); b.rect(23, 30, 2, 3, P.gold);
     b.rect(3, 40, 42, 2, P.stoneM); b.rect(5, 42, 38, 2, P.stone);
     if (t >= 3) { b.px(24, 7, P.white); b.rect(41, 8, 1, 6, P.woodD); b.poly([[42, 8], [47, 9.5], [42, 11]], P.purple); }
+    if (t >= 4) { b.line(28, 4, 34, 1, P.gold); b.line(28, 5, 34, 2, P.goldD); b.px(35, 1, P.cry); b.disc(3, 30, 1.6, P.purpleL); b.px(3, 30, P.white); b.disc(45, 32, 1.6, P.cry); b.px(45, 32, P.white); b.disc(7, 21, 1.2, P.purpleL); b.rect(5, 39, 38, 1, P.gold); }
   } };
   DEF.b_castle = { w: 64, h: 64, draw(b, t) {
     t = +t || 1;
@@ -484,6 +523,11 @@
       b.rect(19, 46, 3, 7, P.red); b.px(20, 48, P.gold); b.rect(42, 46, 3, 7, P.red); b.px(43, 48, P.gold);
     }
     if (t >= 3) { b.rect(15, 36, 34, 1, P.gold); b.rect(22, 10, 20, 1, P.gold); }
+    if (t >= 4) {
+      for (const x of [10, 54]) { b.rect(x, 1, 1, 9, P.woodD); b.poly([[x + 1, 1], [x + 6, 2.5], [x + 1, 4]], P.gold); }
+      b.rect(29, 24, 6, 8, P.purple); b.rect(29, 24, 6, 1, P.gold); b.px(31, 27, P.gold); b.px(32, 27, P.gold); b.px(31, 28, P.gold); b.px(32, 28, P.gold);
+      b.rect(24, 44, 1, 10, P.gold); b.rect(39, 44, 1, 10, P.gold);
+    }
   } };
   DEF.b_gate = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -509,6 +553,7 @@
     b.rect(17, 30, 14, 1, P.ironD); b.rect(17, 36, 14, 1, P.ironD);
     if (t >= 2) { b.rect(13, 26, 1, 3, P.woodD); b.px(13, 25, P.glow); b.rect(34, 26, 1, 3, P.woodD); b.px(34, 25, P.glow); }
     if (t >= 3) { b.rect(4, 24, 6, 9, P.red); b.rect(38, 24, 6, 9, P.red); b.px(6, 27, P.gold); b.px(7, 27, P.gold); b.px(40, 27, P.gold); b.px(41, 27, P.gold); }
+    if (t >= 4) { for (const x of [2, 36]) { b.poly([[x - 1, 7], [x + 5, -1], [x + 11, 7]], P.blue); b.poly([[x + 5, -1], [x + 11, 7], [x + 5, 7]], P.blueD); } b.disc(24, 17, 2.6, P.gold); b.px(24, 17, P.red); b.rect(17, 24, 14, 1, P.gold); }
   } };
   DEF.b_dungeon = { w: 48, h: 48, draw(b) {
     b.poly([[1, 46], [5, 26], [14, 12], [26, 8], [37, 14], [44, 28], [47, 46]], P.stoneD);

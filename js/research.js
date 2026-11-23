@@ -28,6 +28,16 @@
     return true;
   };
 
+  // Клик по Академии ускоряет текущее исследование (сильнее с уровнем Академии)
+  R.boostSec = () => R.speed();
+  R.boost = function () {
+    const c = G.S.research.cur;
+    if (!c || !G.E.usable('academy')) return false;
+    c.t -= R.boostSec();
+    R.tick(0);
+    return true;
+  };
+
   R.cancel = function () {
     const c = G.S.research.cur;
     if (!c) return;
