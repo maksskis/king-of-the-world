@@ -1,0 +1,393 @@
+(function () {
+  const W = (G.W = {});
+  const LW = 320, LH = 130, SC = 3;
+  const LANES = [100, 112, 124];
+  let B = null, raf = 0, lastT = 0, cv = null, ctx = null, bg = null;
+
+  W.active = () => !!B && B.state === 'run';
+  W.battle = () => B;
+  W.wallHp = () => Math.round(120 * Math.pow(1.6, G.E.lvl('gate') - 1));
+  W.kingDmg = function () {
+    const w = G.F.equipped('king', 'weapon');
+    return 2 + (w ? w.atk : 0);
+  };
+
+  // Состав волны детерминирован, чтобы предпросмотр совпадал с боем
+  W.comp = function (n) {
+    const list = [];
+    const count = 3 + Math.floor((n - 1) * 1.2);
+    const pool = ['slime'];
+    if (n >= 2) pool.push('goblin');
+    if (n >= 4) pool.push('wolf');
+    if (n >= 6) pool.push('skeleton');
+    if (n >= 9) pool.push('orc');
+    const rng = G.U.seeded(n * 7919);
+    for (let i = 0; i < count; i++) list.push(pool[Math.floor(rng() * pool.length)]);
+    if (n % 5 === 0) list.push('troll');
+    return list;
+  };
+  W.hpMul = (n) => Math.pow(1.16, n - 1);
+  W.atkMul = (n) => Math.pow(1.1, n - 1);
+  W.preview = function (n) {
+    const c = {};
+    let hp = 0;
+    for (const k of W.comp(n)) {
+      c[k] = (c[k] || 0) + 1;
+      hp += G.D.MON[k].hp * W.hpMul(n);
+    }
+    return { counts: c, hp: Math.round(hp) };
+  };
+  W.reward = (n) => ({ gold: Math.ceil(15 * Math.pow(1.15, n - 1)), bone: Math.floor(n / 2) + 1 });
+
+  W.start = function () {
+    if (W.active()) return;
+    const n = G.S.gate.sel;
+    if (n > G.S.gate.best + 1) return;
+    const order = { warrior: 0, priest: 1, archer: 2, mage: 3 };
+    const advs = G.S.advs.filter((a) => a.st === 'gate' && a.hp > 0).sort((p, q) => order[p.cls] - order[q.cls]);
+    const defs = advs.map((a, i) => {
+      const s = G.T.stats(a);
+      return { a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - Math.floor(i / 3) * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0 };
+    });
+    B = {
+      n, state: 'run', t: 0, queue: W.comp(n), mons: [], defs, guards: [], proj: [], fl: [], slash: [],
+      gate: W.wallHp(), gateMax: W.wallHp(), spawnT: 0.6, gold: 0, bone: 0, kills: 0, shake: 0, total: W.comp(n).length,
+    };
+    for (let i = 0; i < G.S.guards; i++) B.guards.push({ cd: Math.random() * 1.2 });
+    cv = document.getElementById('battlecv');
+    cv.width = LW * SC;
+    cv.height = LH * SC;
+    ctx = cv.getContext('2d');
+    if (!bg) bg = G.SPR.battleBg();
+    G.UI.showBattle(true);
+    G.log('logWaveStart', { n }, 'info');
+    lastT = performance.now();
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+  };
+
+  W.close = function () {
+    if (W.active()) return;
+    B = null;
+    cancelAnimationFrame(raf);
+    G.UI.showBattle(false);
+    G.UI.dirty();
+  };
+
+  function frame(now) {
+    if (!B) return;
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    if (B.state === 'run') update(dt);
+    updateFx(dt);
+    draw();
+    G.UI.battleHud(B);
+    raf = requestAnimationFrame(frame);
+  }
+
+  function float(x, y, text, color) { B.fl.push({ x, y, text, color, t: 0 }); }
+  const aliveDefs = () => B.defs.filter((d) => d.a.hp > 0);
+  function front() {
+    let best = null;
+    for (const m of B.mons) if (!m.dead && m.x < LW - 4 && (!best || m.x < best.x)) best = m;
+    return best;
+  }
+
+  function spawn() {
+    const k = B.queue.shift();
+    const M = G.D.MON[k];
+    const spr = G.SPR.canvas('m_' + k);
+    const lane = Math.floor(Math.random() * 3);
+    B.mons.push({
+      k, hp: M.hp * W.hpMul(B.n), max: M.hp * W.hpMul(B.n), atk: M.atk * W.atkMul(B.n), spd: M.spd * G.U.rand(0.9, 1.1),
+      x: LW + 10, y: LANES[lane] + G.U.randInt(-2, 2), w: spr.width, h: spr.height, cd: 0.3, flash: 0, dead: false, deadT: 0,
+      boss: !!M.boss, walk: 0, jit: G.U.randInt(0, 8),
+    });
+  }
+
+  function hitMon(m, dmg, col) {
+    if (m.dead) return;
+    m.hp -= dmg;
+    m.flash = 0.1;
+    float(m.x, m.y - m.h - 2, G.U.fmt(Math.max(1, Math.round(dmg))), col);
+    if (m.hp <= 0) kill(m);
+  }
+
+  function kill(m) {
+    m.dead = true;
+    m.deadT = 0.5;
+    B.kills++;
+    G.S.stats.kills++;
+    const g = Math.ceil(G.D.MON[m.k].gold * Math.pow(1.13, B.n - 1));
+    B.gold += g;
+    G.E.add('gold', g);
+    float(m.x, m.y - m.h - 10, '+' + g + 'g', '#f7c948');
+    if (m.boss || Math.random() < 0.25) {
+      const bn = m.boss ? 3 + Math.floor(B.n / 2) : 1;
+      B.bone += bn;
+      G.E.add('bone', bn);
+    }
+  }
+
+  function monsterAttack(m, alive) {
+    if (alive.length) {
+      const wars = alive.filter((d) => d.cls === 'warrior');
+      const pool = wars.length ? wars : alive;
+      const d = pool[Math.floor(Math.random() * pool.length)];
+      const dmg = Math.max(1, (m.atk * 20) / (20 + d.def));
+      d.a.hp = Math.max(0, d.a.hp - dmg);
+      d.hit = 0.15;
+      float(d.x, d.y - 18, '-' + Math.ceil(dmg), '#ff6a6a');
+      if (d.a.hp <= 0) float(d.x, d.y - 26, G.t('downed'), '#ffb0b0');
+    } else {
+      B.gate -= m.atk;
+      B.shake = 0.15;
+      float(30, 74, '-' + Math.ceil(m.atk), '#ff6a6a');
+      if (B.gate <= 0) { B.gate = 0; end(false); }
+    }
+  }
+
+  function update(dt) {
+    B.t += dt;
+    if (B.shake > 0) B.shake -= dt;
+    if (B.queue.length) {
+      B.spawnT -= dt;
+      if (B.spawnT <= 0) { spawn(); B.spawnT = G.U.rand(0.7, 1.5) * (B.n > 10 ? 0.8 : 1); }
+    }
+    let alive = aliveDefs();
+    const line = alive.length ? 76 : 42;
+
+    for (const m of B.mons) {
+      if (m.dead) continue;
+      if (m.flash > 0) m.flash -= dt;
+      const stop = line + m.w / 2 + m.jit;
+      if (m.x > stop) { m.x -= m.spd * dt; m.walk += dt; }
+      else {
+        m.cd -= dt;
+        if (m.cd <= 0) { m.cd = 1.1; monsterAttack(m, alive); if (B.state !== 'run') return; alive = aliveDefs(); }
+      }
+    }
+
+    B.guards.forEach((g, i) => {
+      g.cd -= dt;
+      if (g.cd > 0) return;
+      const tg = front();
+      if (!tg) { g.cd = 0.2; return; }
+      g.cd = 1.2;
+      B.proj.push({ x: 6 + (i % 6) * 5, y: 6, tg, dmg: G.T.guardDmg(), kind: 'arrow', spd: 240 });
+    });
+
+    for (const d of alive) {
+      d.cd -= dt;
+      if (d.hit > 0) d.hit -= dt;
+      if (d.swing > 0) d.swing -= dt;
+      if (d.cd > 0) continue;
+      const tg = front();
+      if (d.cls === 'priest') {
+        const hurt = alive.filter((o) => o.a.hp < o.max * 0.9).sort((p, q) => p.a.hp / p.max - q.a.hp / q.max)[0];
+        if (hurt) {
+          const h = d.atk * 1.5;
+          hurt.a.hp = Math.min(hurt.max, hurt.a.hp + h);
+          float(hurt.x, hurt.y - 18, '+' + Math.round(h), '#7dff7a');
+          d.cd = 1.5;
+        } else if (tg) { B.proj.push({ x: d.x + 4, y: d.y - 8, tg, dmg: d.atk * 0.8, kind: 'holy', spd: 200 }); d.cd = 1.5; }
+        else d.cd = 0.2;
+        continue;
+      }
+      if (!tg) { d.cd = 0.2; continue; }
+      if (d.cls === 'warrior') {
+        if (tg.x - tg.w / 2 <= d.x + 24) { hitMon(tg, d.atk, '#ffffff'); d.cd = 1.0; d.swing = 0.15; }
+        else d.cd = 0.15;
+      } else if (d.cls === 'archer') {
+        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk, kind: 'arrow', spd: 260 });
+        d.cd = 1.0;
+      } else if (d.cls === 'mage') {
+        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 1.3, kind: 'orb', spd: 170, splash: 26 });
+        d.cd = 1.5;
+      }
+    }
+
+    for (const p of B.proj) {
+      if (p.done) continue;
+      if (p.tg.dead) { p.done = true; continue; }
+      const tx = p.tg.x, ty = p.tg.y - p.tg.h / 2;
+      const dx = tx - p.x, dy = ty - p.y, dist = Math.hypot(dx, dy), step = p.spd * dt;
+      p.ang = Math.atan2(dy, dx);
+      if (dist <= step + 2) {
+        p.done = true;
+        const col = p.kind === 'orb' ? '#c08aff' : p.kind === 'holy' ? '#fff2a8' : '#ffffff';
+        const main = p.tg;
+        hitMon(main, p.dmg, col);
+        if (p.splash) {
+          for (const m of B.mons) {
+            if (m !== main && !m.dead && Math.abs(m.x - main.x) < p.splash && Math.abs(m.y - main.y) < 16) hitMon(m, p.dmg * 0.5, col);
+          }
+        }
+      } else { p.x += (dx / dist) * step; p.y += (dy / dist) * step; }
+    }
+    B.proj = B.proj.filter((p) => !p.done);
+
+    if (!B.queue.length && B.mons.every((m) => m.dead)) end(true);
+  }
+
+  function updateFx(dt) {
+    for (const f of B.fl) { f.t += dt; f.y -= 14 * dt; }
+    B.fl = B.fl.filter((f) => f.t < 0.9);
+    for (const s of B.slash) s.t += dt;
+    B.slash = B.slash.filter((s) => s.t < 0.2);
+    for (const m of B.mons) if (m.dead) m.deadT -= dt;
+    B.mons = B.mons.filter((m) => !m.dead || m.deadT > 0);
+  }
+
+  function end(win) {
+    if (B.state !== 'run') return;
+    B.state = win ? 'won' : 'lost';
+    const n = B.n;
+    const downed = B.defs.filter((d) => d.a.hp <= 0 && G.T.get(d.a.id));
+    if (win) {
+      const r = W.reward(n);
+      G.E.addAll(r);
+      B.gold += r.gold;
+      B.bone += r.bone;
+      if (n > G.S.gate.best) G.S.gate.best = n;
+      G.S.gate.sel = Math.min(G.S.gate.best + 1, n + 1);
+      const xp = Math.round(10 * Math.pow(1.15, n - 1));
+      for (const d of B.defs) G.T.giveXp(d.a, d.a.hp > 0 ? xp : Math.round(xp / 2));
+      for (const d of downed) G.T.wound(d.a, 60);
+      B.result = { win, gold: B.gold, bone: B.bone, xp, wounded: downed.length };
+      G.log('logWaveWon', { n, loot: { gold: B.gold, bone: B.bone } }, 'good');
+    } else {
+      const lost = {};
+      for (const r of ['gold', 'wood', 'stone', 'iron']) {
+        const v = Math.floor(G.S.res[r] * 0.15);
+        if (v > 0) { G.S.res[r] -= v; lost[r] = v; }
+      }
+      const cand = ['lumber', 'quarry', 'mine', 'forge', 'tavern', 'barracks'].filter((k) => G.E.lvl(k) > 1);
+      let broken = null;
+      if (cand.length) {
+        broken = G.U.pick(cand);
+        G.S.b[broken].lvl--;
+        G.E.clampWorkers();
+      }
+      const dead = [];
+      for (const d of downed) {
+        if (Math.random() < 0.4) { dead.push(d.a.name); G.T.kill(d.a, false); }
+        else G.T.wound(d.a, 90);
+      }
+      B.result = { win, lost, broken, dead };
+      G.log('logWaveLost', { n, loot: lost }, 'bad');
+      if (broken) G.log('logBroken', { b: G.D.B[broken].name, l: G.S.b[broken].lvl }, 'bad');
+    }
+    G.UI.dirty();
+    G.UI.slotsDirty = true;
+    G.UI.battleResult(B.result);
+    G.save();
+  }
+
+  // Клик короля по монстру
+  W.click = function (ev) {
+    if (!B || B.state !== 'run') return;
+    const r = cv.getBoundingClientRect();
+    const x = ((ev.clientX - r.left) / r.width) * LW, y = ((ev.clientY - r.top) / r.height) * LH;
+    let hit = null;
+    for (const m of B.mons) {
+      if (m.dead) continue;
+      if (x >= m.x - m.w / 2 - 5 && x <= m.x + m.w / 2 + 5 && y >= m.y - m.h - 5 && y <= m.y + 4) {
+        if (!hit || m.x < hit.x) hit = m;
+      }
+    }
+    B.slash.push({ x, y, t: 0 });
+    if (hit) hitMon(hit, W.kingDmg(), '#f7c948');
+  };
+
+  function draw() {
+    ctx.setTransform(SC, 0, 0, SC, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    const sx = B.shake > 0 ? Math.round((Math.random() - 0.5) * 3) : 0;
+    ctx.drawImage(bg, sx, 0);
+
+    // ворота: трещины по мере урона
+    const g = B.gate / B.gateMax;
+    if (g < 0.66) { ctx.fillStyle = '#1b1424'; ctx.fillRect(24 + sx, 86, 1, 10); ctx.fillRect(25 + sx, 95, 1, 6); }
+    if (g < 0.33) { ctx.fillRect(29 + sx, 100, 1, 12); ctx.fillRect(22 + sx, 110, 4, 1); }
+
+    const gs = G.SPR.canvas('guard');
+    for (let i = 0; i < Math.min(6, B.guards.length); i++) ctx.drawImage(gs, 1 + i * 5 + sx, 0);
+
+    const ents = [];
+    for (const m of B.mons) ents.push({ y: m.y, m });
+    for (const d of B.defs) ents.push({ y: d.y, d });
+    ents.sort((p, q) => p.y - q.y);
+    for (const e of ents) { if (e.m) drawMon(e.m); else drawDef(e.d); }
+
+    for (const p of B.proj) {
+      if (p.kind === 'arrow') {
+        ctx.strokeStyle = '#e8e0c8';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - Math.cos(p.ang || 0) * 5, p.y - Math.sin(p.ang || 0) * 5);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = p.kind === 'orb' ? '#c08aff' : '#fff2a8';
+        ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 3, 3);
+      }
+    }
+
+    for (const s of B.slash) {
+      ctx.globalAlpha = 1 - s.t / 0.2;
+      ctx.strokeStyle = '#fff2a8';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(s.x - 5, s.y - 5); ctx.lineTo(s.x + 5, s.y + 5);
+      ctx.moveTo(s.x + 5, s.y - 5); ctx.lineTo(s.x - 5, s.y + 5);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.font = '600 7px "Pixelify Sans", monospace';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1b1424';
+    for (const f of B.fl) {
+      ctx.globalAlpha = Math.max(0, 1 - f.t / 0.9);
+      ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function hpBar(x, y, w, frac, col) {
+    ctx.fillStyle = '#1b1424';
+    ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, w + 2, 4);
+    ctx.fillStyle = col;
+    ctx.fillRect(Math.round(x), Math.round(y), Math.max(0, Math.round(w * frac)), 2);
+  }
+
+  function drawMon(m) {
+    const spr = G.SPR.canvas(m.flash > 0 ? 'm_' + m.k + '|w' : 'm_' + m.k);
+    const bob = !m.dead && Math.sin(m.walk * 12) > 0 ? -1 : 0;
+    const x = Math.round(m.x - m.w / 2), y = Math.round(m.y - m.h + bob);
+    if (m.dead) ctx.globalAlpha = Math.max(0, m.deadT / 0.5);
+    ctx.drawImage(spr, x, y);
+    ctx.globalAlpha = 1;
+    if (!m.dead && m.hp < m.max) hpBar(x, y - 4, Math.max(10, m.w - 2), m.hp / m.max, m.boss ? '#ff9a3c' : '#d64545');
+  }
+
+  function drawDef(d) {
+    const spr = G.SPR.canvas(d.hit > 0 ? 'c_' + d.cls + '|w' : 'c_' + d.cls);
+    const x = Math.round(d.x - 8 + (d.swing > 0 ? 2 : 0)), y = Math.round(d.y - 16);
+    if (d.a.hp <= 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.translate(x + 8, y + 12);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(spr, -8, -8);
+      ctx.restore();
+      return;
+    }
+    ctx.drawImage(spr, x, y);
+    hpBar(x + 1, y - 4, 14, d.a.hp / d.max, '#7ddc7a');
+  }
+})();
