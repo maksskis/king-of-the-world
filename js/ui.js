@@ -880,6 +880,27 @@
     kxp: () => G.S.king.xp / G.K.need(),
   };
 
+  // Подсветка следующей цели: здание на карте, нужная вкладка, кнопка в меню построек и кнопка действия
+  function applyGoal() {
+    const g = D.GOALS[G.S.goal];
+    const h = (g && g.h) || {};
+    const want = new Set();
+    const add = (sel) => { for (const el of $$(sel)) want.add(el); };
+    if (h.b) {
+      add(`.slot[data-k="${h.b}"]`);
+      const home = h.tab || (h.b === 'dungeon' ? 'exp' : 'city');
+      const there = UI.tab === home || (UI.tab === 'city' && UI.sel === h.b);
+      if (!there) add(`.tab[data-arg="${home}"]`);
+      if (UI.tab === 'city' && UI.sel !== h.b) add(`.bnb[data-arg="${h.b}"]`);
+    } else if (h.tab && UI.tab !== h.tab) add(`.tab[data-arg="${h.tab}"]`);
+    for (const a of [].concat(h.act || [])) {
+      const arg = h.arg && a !== 'send' && a !== 'pickParty' ? h.arg : a === 'up' || a === 'worker' ? h.b : null;
+      add(arg ? `#panel [data-action="${a}"][data-arg="${arg}"]` : `#panel [data-action="${a}"], #wave-w [data-action="${a}"]`);
+    }
+    for (const el of $$('.goal-hl')) if (!want.has(el)) el.classList.toggle('goal-hl', false);
+    for (const el of want) el.classList.toggle('goal-hl', true);
+  }
+
   UI.refresh = function () {
     if (UI._d && !UI.pdown) UI.render();
     if (UI.slotsDirty) updateSlots();
@@ -915,5 +936,6 @@
     }
     $('#rush-ind').classList.toggle('hidden', !(G.S.king.buff.rush > 0));
     updateBadges();
+    applyGoal();
   };
 })();
