@@ -503,22 +503,26 @@
   } };
   DEF.b_castle = { w: 64, h: 64, draw(b, t) {
     t = +t || 1;
+    // тёплый песчаник, чтобы замок не сливался с серой мостовой
+    const S1 = '#b3a891', S1D = '#7b705e', S1M = '#c8bea8', S1L = '#ddd4c2';
+    // зелёный вал под замком: стены стоят на холме, а не лежат на камне
+    b.ellipse(32, 58.5, 31, 5.5, P.leafD); b.ellipse(32, 57.5, 29, 4.5, P.leaf); b.px(9, 57, P.leafL); b.px(52, 58, P.leafL); b.px(14, 59, P.leafL);
     // задняя стена с зубцами
-    wallBricks(b, 8, 16, 48, 14, P.stone, P.stoneD); crenels(b, 8, 14, 48, P.stone);
+    wallBricks(b, 8, 16, 48, 14, S1, S1D); crenels(b, 8, 14, 48, S1);
     // главная башня (донжон)
-    wallBricks(b, 22, 10, 20, 32, P.stoneM, P.stone);
+    wallBricks(b, 22, 10, 20, 32, S1M, S1);
     b.poly([[20, 11], [32, -1 + (t >= 3 ? 0 : 3)], [44, 11]], P.blue); b.poly([[32, -1 + (t >= 3 ? 0 : 3)], [44, 11], [32, 11]], P.blueD);
     if (t >= 3) { b.px(32, 0, P.gold); b.px(32, 1, P.gold); }
     windowLit(b, 30, 16, 4, 5);
     // угловые башни
     for (const x of [4, 48]) {
-      wallBricks(b, x, 22, 12, 34, P.stone, P.stoneD);
-      crenels(b, x, 20, 12, P.stone);
+      wallBricks(b, x, 22, 12, 34, S1, S1D);
+      crenels(b, x, 20, 12, S1);
       b.poly([[x - 1, 21], [x + 6, 9], [x + 13, 21]], P.blue); b.poly([[x + 6, 9], [x + 13, 21], [x + 6, 21]], P.blueD);
       b.rect(x + 5, 30, 2, 4, P.dark);
     }
     // передняя стена
-    wallBricks(b, 15, 36, 34, 20, P.stoneM, P.stone); crenels(b, 15, 34, 34, P.stoneM);
+    wallBricks(b, 15, 36, 34, 20, S1M, S1); crenels(b, 15, 34, 34, S1M);
     b.rect(26, 42, 12, 14, P.woodD); b.ellipse(32, 42, 6, 3, P.woodD); for (let x = 28; x < 37; x += 3) b.rect(x, 40, 1, 16, P.wood);
     b.px(36, 49, P.gold);
     windowLit(b, 18, 42, 3, 4); windowLit(b, 43, 42, 3, 4);
@@ -533,6 +537,10 @@
       b.rect(29, 24, 6, 8, P.purple); b.rect(29, 24, 6, 1, P.gold); b.px(31, 27, P.gold); b.px(32, 27, P.gold); b.px(31, 28, P.gold); b.px(32, 28, P.gold);
       b.rect(24, 44, 1, 10, P.gold); b.rect(39, 44, 1, 10, P.gold);
     }
+    // тёмный цоколь у подножия стен и ступени от ворот вниз на площадь
+    b.rect(4, 55, 12, 2, S1D); b.rect(48, 55, 12, 2, S1D); b.rect(15, 55, 11, 2, S1D); b.rect(38, 55, 11, 2, S1D);
+    b.rect(25, 56, 14, 2, S1L); b.rect(23, 58, 18, 2, S1M); b.rect(21, 60, 22, 2, S1); b.rect(21, 61, 22, 1, S1D);
+    b.outline(P.k);
   } };
   DEF.b_gate = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
@@ -657,6 +665,29 @@
         const bx = Math.floor((x + (Math.floor(y / 4) % 2) * 3) / 6), by = Math.floor(y / 4);
         const edge = (x + (Math.floor(y / 4) % 2) * 3) % 6 === 0 || y % 4 === 0;
         b.px(x, y, d > 0.95 ? P.stoneD : edge ? '#8a8378' : (bx + by) % 3 === 0 ? '#bfb6a6' : '#aea596');
+      }
+    }
+
+    // двор замка: газон с живой изгородью внутри площади и дорожка к южной дороге
+    for (let y = M.cy - 28; y < M.cy + 40; y++) {
+      for (let x = M.cx - 48; x < M.cx + 48; x++) {
+        const d = Math.hypot((x - M.cx) / 45, (y - M.cy - 6) / 31);
+        if (d > 1) continue;
+        const n = r();
+        b.px(x, y, d > 0.93 ? (n < 0.3 ? '#3c7f34' : '#2f6b2a') : n < 0.07 ? '#6fb45c' : ((x >> 3) + (y >> 3)) % 2 ? '#5c9f4b' : '#589a47');
+      }
+    }
+    for (let y = M.cy + 26; y < M.cy + 46; y++) {
+      for (let x = M.cx - 5; x <= M.cx + 5; x++) {
+        const edge = x === M.cx - 5 || x === M.cx + 5 || y % 4 === 0;
+        b.px(x, y, edge ? '#8a8378' : (x + (y >> 2)) % 3 ? '#bfb6a6' : '#aea596');
+      }
+    }
+    // тень под замком на траве: он стоит на земле, а не лежит на мостовой
+    for (let y = M.cy + 6; y < M.cy + 32; y++) {
+      for (let x = M.cx - 40; x < M.cx + 44; x++) {
+        const d = Math.hypot((x - M.cx - 4) / 37, (y - M.cy - 20) / 9);
+        if (d <= 1) b.px(x, y, d > 0.8 ? '#4a8a3c' : '#3f7a34');
       }
     }
 

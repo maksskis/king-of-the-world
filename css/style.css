@@ -155,6 +155,7 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
   pointer-events: none;
 }
 .slot-label b { color: var(--gold); }
+.slot[data-k="castle"] .slot-label { top: 96%; } /* подпись Замка ниже, чтобы не закрывать ступени */
 .slot-label i { color: var(--muted); font-style: normal; font-weight: 400; }
 .slot-prog { position: absolute; left: 15%; right: 15%; top: 4%; height: 5px; background: var(--inset); border: 1px solid #000; border-radius: 3px; overflow: hidden; pointer-events: none; }
 .slot-prog i { display: block; height: 100%; width: 0; background: var(--warn); }
