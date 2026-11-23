@@ -553,6 +553,14 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 .sfloor { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); padding: 1px 10px; font-weight: 600; background: rgba(0, 0, 0, 0.65); border-radius: 10px; }
 .sfloor b { color: var(--gold); }
 .party, .dparty { display: flex; gap: 8px; align-items: flex-end; }
+/* ряды отряда: сзади дальний бой и поддержка, впереди (ближе к врагу) ближний бой */
+.scene .party { flex: 1 1 auto; min-width: 0; gap: 12px; }
+.prow { display: flex; gap: 6px; align-items: flex-end; }
+.prow:empty { display: none; }
+.party.many .prow { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); gap: 4px 6px; }
+.party.many .fig { width: 38px; }
+.party.many .fig .ic3 { width: 28px; height: 28px; }
+.scene .foe { flex: none; }
 .fig { display: flex; flex-direction: column; align-items: center; width: 52px; }
 .fig .bar { width: 100%; }
 .fig.down img { transform: rotate(-90deg); opacity: 0.5; }

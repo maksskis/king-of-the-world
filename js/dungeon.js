@@ -5,6 +5,22 @@
   const D = G.D;
   const ROUND = 0.8, MAX_ROUNDS = 40;
   X.maxParty = 4;
+  // Ближний бой стоит в первом ряду, дальний и поддержка — сзади. Враг чаще бьёт первый ряд.
+  X.FRONT = { warrior: 1, rogue: 1 };
+  X.isFront = (cls) => !!X.FRONT[cls];
+  X.FRONT_HIT = 0.75;
+  // Клик по Катакомбам торопит отряды в пути между этажами и по дороге домой
+  X.hurrySec = () => 1;
+  X.hurry = function (id) {
+    let n = 0;
+    for (const e of id ? [X.get(id)].filter(Boolean) : X.list()) {
+      if (e.phase !== 'travel' && e.phase !== 'ret') continue;
+      e.t -= X.hurrySec();
+      n++;
+    }
+    if (n) X.tick(0);
+    return n > 0;
+  };
   // Сколько отрядов в походе одновременно: 1, с 4-го уровня Гильдии — 2, с 7-го — 3
   X.maxSquads = () => (G.E.lvl('tavern') < 1 ? 0 : 1 + Math.floor((G.E.lvl('tavern') - 1) / 3));
   X.nextSquadLvl = () => { const L = G.E.lvl('tavern'); return L < 4 ? 4 : L < 7 ? 7 : 0; };
@@ -121,8 +137,8 @@
     for (let h = 0; h < hits; h++) {
       const al = P.filter((p) => p.hp > 0);
       if (!al.length) break;
-      const wars = al.filter((p) => p.cls === 'warrior');
-      const tg = wars.length && Math.random() < 0.6 ? G.U.pick(wars) : G.U.pick(al);
+      const front = al.filter((p) => X.isFront(p.cls));
+      const tg = front.length && Math.random() < X.FRONT_HIT ? G.U.pick(front) : G.U.pick(al);
       if (tg.dodge && Math.random() < tg.dodge) { if (out) out.push(['fr_dodge', { name: tg.a.name }, 'good']); continue; }
       const dmg = (((en.atk / hits) * takenM * G.U.rand(0.85, 1.15) * 20) / (20 + tg.def)) * (1 - dr);
       tg.hp = Math.max(0, tg.hp - dmg);

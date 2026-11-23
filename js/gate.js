@@ -62,11 +62,15 @@
     if (!final && n > G.S.gate.best + 1) return;
     const order = { warrior: 0, rogue: 1, priest: 2, shaman: 3, archer: 4, mage: 5 };
     const advs = G.S.advs.filter((a) => a.st === 'gate' && a.hp > 0).sort((p, q) => order[p.cls] - order[q.cls]);
-    const defs = advs.map((a, i) => {
+    // ряды: ближний бой — передние, дальний — за ним (по 3 в ряду)
+    const meleeN = advs.filter((a) => G.X.isFront(a.cls)).length, meleeRows = Math.ceil(meleeN / 3);
+    const defs = advs.map((a, idx) => {
+      const melee = G.X.isFront(a.cls), k = melee ? idx : idx - meleeN;
+      const row = melee ? Math.floor(k / 3) : meleeRows + Math.floor(k / 3), i = k;
       const s = G.T.stats(a);
       const sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
-        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - Math.floor(i / 3) * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0,
+        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - row * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0,
         dodge: sk('dodge') + (C.dodge || 0), crit: sk('crit') + (C.crit || 0), critMul: 2 + sk('critDmg'), regen: sk('regen'),
         bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
       };
@@ -166,8 +170,8 @@
 
   function monsterAttack(m, alive) {
     if (alive.length) {
-      const wars = alive.filter((d) => d.cls === 'warrior');
-      const pool = wars.length ? wars : alive;
+      const front = alive.filter((d) => G.X.isFront(d.cls));
+      const pool = front.length ? front : alive;
       const d = pool[Math.floor(Math.random() * pool.length)];
       if (d.dodge && Math.random() < d.dodge) { float(d.x, d.y - 18, G.t('dodged'), '#9ad0ff'); return; }
       const dmg = Math.max(1, ((m.atk * 20) / (20 + d.def)) * (1 - B.guardDr));

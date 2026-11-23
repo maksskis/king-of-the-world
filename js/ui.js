@@ -286,6 +286,7 @@
     let h = `<b>${t('bn_' + k)}</b>`;
     if (k === 'dungeon') {
       h += ` · ${t('deepest')}: ${G.X.best('catacombs')}`;
+      if (G.S.exps.some((e) => e.phase === 'travel' || e.phase === 'ret')) h += `<div class="good">${ic('i_boot')} ${t('hurryTip')}</div>`;
       for (const e of G.S.exps) h += `<div class="warn">${ic('i_flag')} ${t('tipSquad', { l: t('loc_' + e.loc), f: e.phase === 'ret' ? e.cleared : e.floor })}</div>`;
     } else {
       h += ` · ${L ? t('lv') + ' ' + L : t('notBuilt')}`;
@@ -387,7 +388,8 @@
       const n = G.E.gather(k);
       if (n > 0) { text = (G.E.lastCrit ? t('critClick') + ' ' : '') + '+' + U.fmt1(n); icon = 'r_' + d.click; G.SFX.play(G.E.lastCrit ? 'coin' : 'gather'); }
       else { text = t('full'); icon = 'i_bag'; }
-    } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit') + ' −' + U.fmt1(G.F.boostSec()) + t('sec'); icon = 'i_anvil'; G.SFX.play('hit'); }
+    } else if (k === 'dungeon' && G.X.hurry()) { text = '−' + U.fmt1(G.X.hurrySec()) + t('sec'); icon = 'i_boot'; G.SFX.play('click'); }
+    else if (k === 'forge' && G.F.boost()) { text = t('hammerHit') + ' −' + U.fmt1(G.F.boostSec()) + t('sec'); icon = 'i_anvil'; G.SFX.play('hit'); }
     else if (k === 'academy' && G.R.boost()) { text = '−' + U.fmt1(G.R.boostSec()) + t('sec'); icon = 'i_book'; G.SFX.play('click'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
     if (e.type === 'pointerdown') UI.openPop(k);
@@ -556,6 +558,7 @@
     condAvoid(v) { G.S.dng.avoid = +v; UI.dirty(); },
     send() { const e = G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc)); UI.party.clear(); if (e) UI.expView = e.id; },
     recall(id) { G.X.recall(id); },
+    hurry(id) { G.X.hurry(id); G.SFX.play('click'); UI.dirty(); },
     mclose() { UI.closeModal(); },
     yes() { const f = UI._yes; UI._yes = null; UI.closeModal(); if (f) f(); },
     exportSave() {
@@ -886,6 +889,8 @@
     return h;
   }
 
+  // фигурка героя в сцене похода
+  const sceneFig = (a) => `<div class="fig ${a.hp <= 0 ? 'down' : ''}" title="${esc(nm(a.name))}">${ic('c_' + a.cls, 'ic3')}${bar('hp:' + a.id, 'hp')}</div>`;
   function expActive(e) {
     const ms = G.X.members(e);
     const fl = e.phase === 'ret' ? e.cleared : e.floor;
@@ -893,7 +898,7 @@
     const showFoe = e.enemy && (e.phase === 'enc' || e.phase === 'fight');
     let h = `<div class="scene ${e.phase === 'fight' ? 'fighting' : ''}" style="background-image:url(${G.SPR.dungeonBg(e.loc)})">
       <div class="sfloor">${t('floor')} <b>${fl}</b></div>
-      <div class="party">${ms.map((a) => `<div class="fig ${a.hp <= 0 ? 'down' : ''}">${ic('c_' + a.cls, 'ic3')}${bar('hp:' + a.id, 'hp')}</div>`).join('')}</div>
+      <div class="party ${ms.length > 4 ? 'many' : ''}"><div class="prow back">${ms.filter((a) => !G.X.isFront(a.cls)).map(sceneFig).join('')}</div><div class="prow front">${ms.filter((a) => G.X.isFront(a.cls)).map(sceneFig).join('')}</div></div>
       ${showFoe ? `<div class="foe">${ic(monSpr(e.enemy.key), 'ic4')}<div class="fn">${esc(nm(G.X.enemyName(e.enemy)))}</div>${bar('ehp:' + e.id, 'hp')}<div class="small" data-b="ehp:${e.id}"></div></div>` : `<div class="walk">${ic('i_flag', 'ic2')}<span>${ph}</span></div>`}
     </div>`;
     let body = `<div class="phase">${ph}</div>`;
@@ -902,7 +907,10 @@
     const c = e.cond || X_COND();
     body += `<div class="kv small">${e.start > 1 ? t('startFloor') + ': <b>' + e.start + '</b> · ' : ''}${t('maxFloor')}: <b>${e.maxFloor}</b> · ${c.push ? `<b class="bad">${t('condPushShort')}</b>` : `${t('condHp')}: <b>${Math.round(c.hp * 100)}%</b>`}${c.down ? ' · ' + t('condDownShort') : ''}${c.boss ? ' · ' + t('condBossShort') : ''}${c.avoid ? ' · ' + t('condAvoidShort', { p: c.avoid * 100 }) : ''}</div>`;
     body += `<div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}${e.items && e.items.length ? ` · ${e.items.map((it) => ic('it_' + it.type + ':' + it.ti)).join('')} ${t('itemsN', { n: e.items.length })}` : ''}</div>`;
+    body += '<div class="row">';
+    if (e.phase === 'travel' || e.phase === 'ret') body += `<button class="btn small primary" data-action="hurry" data-arg="${e.id}">${ic('i_boot')} ${t('hurryBtn', { n: U.fmt1(G.X.hurrySec()) })}</button>`;
     if (e.phase !== 'ret') body += `<button class="btn small" data-action="recall" data-arg="${e.id}" ${e.recall ? 'disabled' : ''}>${e.recall ? t('recalling') : t('recall')}</button>`;
+    body += `</div><div class="hint">${t('hurryHint')}</div><div class="hint">${t('rowsHint')}</div>`;
     h += box('', body);
     h += box(ic('i_scroll') + ' ' + t('chronicle'), `<div class="xlog">${e.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
     return h;
