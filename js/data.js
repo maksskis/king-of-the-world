@@ -185,6 +185,8 @@
     { id: 'strike', br: 'hand', icon: 'i_atk', eff: { click: 0.2 } },
     { id: 'lucky', br: 'hand', icon: 'i_star', eff: { clickCrit: 0.04 } },
     { id: 'example', br: 'hand', icon: 'i_crown', eff: { clickProd: 1 } },
+    { id: 'mentor', br: 'hand', icon: 'i_book', eff: { resBoost: 0.5 } },
+    { id: 'hammer', br: 'hand', icon: 'i_anvil', eff: { forgeBoost: 0.5 } },
     { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.08 } },
     { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1 } },
     { id: 'settlers', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1, smiths: 1 } },
@@ -220,12 +222,13 @@
     // 1 уровень Академии
     { id: 'tools', b: 'academy', acad: 1, icon: 'i_pick', cost: { gold: 120, wood: 80 }, t: 60, eff: { prod: 0.15 } },
     { id: 'logging', b: 'lumber', acad: 1, icon: 'r_wood', cost: { gold: 100, stone: 60 }, t: 60, eff: { prod_wood: 0.25, gather_wood: 0.5 } },
+    { id: 'scholars', b: 'academy', acad: 1, icon: 'i_people', cost: { gold: 150, wood: 100 }, t: 90, eff: { resBoost: 1 } },
     { id: 'masonry', b: 'quarry', acad: 1, icon: 'r_stone', cost: { gold: 100, wood: 60 }, t: 60, eff: { prod_stone: 0.25, gather_stone: 0.5 } },
     // 2
     { id: 'mining', b: 'mine', acad: 2, req: 'tools', icon: 'r_iron', cost: { gold: 200, wood: 150, stone: 100 }, t: 150, eff: { prod_iron: 0.25, gather_iron: 0.5 } },
     { id: 'builders', b: 'castle', acad: 2, icon: 'i_hammer', cost: { gold: 300, wood: 250, stone: 250 }, t: 240, eff: { builders: 1 } },
     { id: 'mint', b: 'castle', acad: 2, icon: 'r_gold', cost: { gold: 300, stone: 200 }, t: 200, eff: { tax: 0.2 } },
-    { id: 'bellows', b: 'forge', acad: 2, icon: 'i_fire', cost: { gold: 250, wood: 200, iron: 100 }, t: 200, eff: { craft: 0.25 } },
+    { id: 'apprentices', b: 'forge', acad: 2, icon: 'i_anvil', cost: { gold: 250, wood: 150, iron: 80 }, t: 180, eff: { forgeBoost: 1 } },
     // 3
     { id: 'bows', b: 'barracks', acad: 3, icon: 'it_bow:0', cost: { gold: 400, wood: 300, iron: 120 }, t: 300, eff: { guardAtk: 0.25 } },
     { id: 'gates', b: 'gate', acad: 3, icon: 'i_def', cost: { gold: 400, stone: 500, iron: 150 }, t: 360, eff: { gateHp: 0.25 } },
@@ -250,7 +253,7 @@
     { id: 'builders2', b: 'castle', acad: 7, req: 'builders', icon: 'i_hammer', cost: { gold: 5000, wood: 5000, stone: 5000 }, t: 1800, eff: { builders: 1 } },
     { id: 'contracts', b: 'market', acad: 7, req: 'guild', icon: 'i_scroll', cost: { gold: 5000, wood: 3000, stone: 3000 }, t: 1600, eff: { buyC: 0.25 } },
     { id: 'smelting', b: 'forge', acad: 7, req: 'workshop', icon: 'i_anvil', cost: { gold: 5000, iron: 3000, stone: 1500 }, t: 1600, eff: { forgeC: 0.2 } },
-    { id: 'scholars', b: 'academy', acad: 7, icon: 'i_people', cost: { gold: 5000, crystal: 80 }, t: 1600, eff: { resBoost: 1 } },
+    { id: 'bellows', b: 'forge', acad: 7, icon: 'i_fire', cost: { gold: 5000, wood: 3000, iron: 2000 }, t: 1600, eff: { craft: 0.4 } },
     // 8
     { id: 'vault', b: 'warehouse', acad: 8, req: 'storage', icon: 'i_lock', cost: { gold: 9000, stone: 8000 }, t: 2400, eff: { store: 0.15, lootProtect: 0.5 } },
     { id: 'masons', b: 'gate', acad: 8, req: 'gates', icon: 'i_hammer', cost: { gold: 9000, stone: 9000, iron: 2500 }, t: 2400, eff: { gateRegen: 0.008 } },

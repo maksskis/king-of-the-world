@@ -64,10 +64,12 @@
       if (q.length) q[0].t -= over;
     }
   };
+  // Удар молотом: сколько секунд ковки сокращает один клик («Подмастерья кузнеца», «Молот короля»)
+  F.boostSec = () => 0.5 * (1 + G.bonus('forgeBoost'));
   F.boost = function () {
     const q = G.S.forge.q;
     if (!q.length || !G.E.usable('forge')) return false;
-    q[0].t -= 0.5 * F.speed();
+    q[0].t -= F.boostSec() * F.speed();
     F.tick(0);
     return true;
   };

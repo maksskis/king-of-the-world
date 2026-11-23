@@ -418,7 +418,7 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 }
 .atile:hover { border-color: var(--rc); }
 .atile.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; background: #2c2215; }
-.atile .an { font-weight: 600; font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atile .an { font-weight: 600; font-size: 12.5px; line-height: 1.2; max-width: 100%; text-align: center; white-space: normal; overflow-wrap: anywhere; }
 .atile .bar { width: 100%; }
 .ast { display: flex; align-items: center; gap: 3px; font-size: 11.5px; color: var(--muted); }
 .ast .ic { width: 14px; height: 14px; }

@@ -339,7 +339,7 @@
       const n = G.E.gather(k);
       if (n > 0) { text = (G.E.lastCrit ? t('critClick') + ' ' : '') + '+' + U.fmt1(n); icon = 'r_' + d.click; G.SFX.play(G.E.lastCrit ? 'coin' : 'gather'); }
       else { text = t('full'); icon = 'i_bag'; }
-    } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit'); icon = 'i_anvil'; G.SFX.play('hit'); }
+    } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit') + ' −' + U.fmt1(G.F.boostSec()) + t('sec'); icon = 'i_anvil'; G.SFX.play('hit'); }
     else if (k === 'academy' && G.R.boost()) { text = '−' + U.fmt1(G.R.boostSec()) + t('sec'); icon = 'i_book'; G.SFX.play('click'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
     if (e.type === 'pointerdown') UI.openPop(k);
@@ -683,7 +683,7 @@
     const d = D.B[k], L = G.E.lvl(k);
     if (G.E.consOf(k)) return G.E.boostSec() > 0 ? `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_hammer')} ${t('helpBuild', { n: U.fmt1(G.E.boostSec()) })}</button>` : '';
     if (L > 0 && d.click) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_pick')} ${t('gatherBtn')} <b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + d.click)}</button>`;
-    if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn')}</button>`;
+    if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn', { n: U.fmt1(G.F.boostSec()) })}</button>`;
     if (k === 'academy' && L > 0 && G.R.active().length) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_book')} ${t('resBoostBtn', { n: U.fmt1(G.R.boostSec()) })}</button>`;
     return '';
   }
