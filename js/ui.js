@@ -593,6 +593,8 @@
       ${kv('i_pick', t('clickGives'), `<b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + r)}`)}
       ${G.E.full(r) ? `<div class="warn small">${ic('i_bag')} ${t('storageFull')}</div>` : ''}
       ${b.w < mx ? btn(ic('i_people') + ' ' + t('hireWorker'), 'worker', k, { cost: G.E.workerCost(k) }) : `<div class="muted small">${t('workersFull')}</div>`}${next}
+      ${mx > D.WORKERS[L] ? `<div class="good small">${t('workersBonus', { n: mx - D.WORKERS[L] })}</div>` : ''}
+      <div class="hint">${t('workersMore')}</div>
       <div class="hint">${t('clickHint')}</div>`);
   }
 
@@ -683,10 +685,10 @@
     const L = G.E.lvl(k);
     let h = `<div class="bhead">${ic(bSprite(k), 'bimg')}<div class="grow"><h2>${t('bn_' + k)}</h2><div class="lvl">${L ? t('levelOf', { l: L, m: D.MAXLVL }) : t('notBuilt')}</div><p class="desc">${t('bd_' + k)}</p></div></div>`;
     h += popAction(k);
+    h += upgradeBox(k);
     // здание на перестройке недоступно; замок и склад показывают справку
     if (L > 0 && BP[k] && (!G.E.busy(k) || k === 'castle' || k === 'warehouse')) h += BP[k]();
     if (k !== 'academy') h += skillsBox(k);
-    h += upgradeBox(k);
     return h;
   }
   // Навыки здания: его исследования в Академии — изучить отсюда или поставить в указ

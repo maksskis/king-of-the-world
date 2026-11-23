@@ -185,6 +185,7 @@
     { id: 'example', br: 'hand', icon: 'i_crown', eff: { clickProd: 1 } },
     { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.08 } },
     { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1 } },
+    { id: 'settlers', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1, smiths: 1 } },
     { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.1 } },
     { id: 'agent', br: 'eco', icon: 'i_scale', max: 3, eff: { agent: 1, trade: 0.1 } },
     { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.08 } },
