@@ -59,6 +59,8 @@
     sk_p5: 'Последний шанс', skd_p5: 'Павшие союзники гибнут на 10% реже за ранг.',
     skc_atk: 'Атака', skc_def: 'Защита', skc_heal: 'Лечение', skc_loot: 'Добыча', skc_spec: 'Особый',
 
+    tipExp: 'отряд в походе, этаж {f}', tipOpen: 'Двойной клик — открыть здание', needBuildersShort: 'Все строители заняты',
+    availN: '· в арсенале {n}', wearersTitle: 'Кто что носит', wearersHint: 'Нажми на ячейку оружия или брони, чтобы надеть, сменить или снять вещь.',
     br_hand: 'Рука короля', critClick: 'Крит!',
     tl_pick: 'Кирка мастера', tld_pick: '+20% к добыче кликом по зданиям за ранг.',
     tl_strike: 'Королевский удар', tld_strike: '+20% урона кликом по монстрам за ранг.',
@@ -307,6 +309,8 @@
     sk_p5: 'Last chance', skd_p5: 'Fallen allies die 10% less often per rank.',
     skc_atk: 'Attack', skc_def: 'Defense', skc_heal: 'Healing', skc_loot: 'Loot', skc_spec: 'Special',
 
+    tipExp: 'party on expedition, floor {f}', tipOpen: 'Double-click to open the building', needBuildersShort: 'All builders are busy',
+    availN: '· {n} in armory', wearersTitle: 'Who wears what', wearersHint: 'Tap a weapon or armor slot to equip, swap or remove an item.',
     br_hand: "King's hand", critClick: 'Crit!',
     tl_pick: 'Master pickaxe', tld_pick: '+20% click gathering per rank.',
     tl_strike: 'Royal strike', tld_strike: '+20% click damage to monsters per rank.',

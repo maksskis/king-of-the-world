@@ -10,21 +10,24 @@
   P.picker = function (owner, slot) {
     const { ic, t, itemTile } = h();
     const cur = G.F.equipped(owner, slot);
-    const list = G.S.items.filter((it) => G.F.slotOf(it) === slot && it.eq !== owner && G.F.canUse(it, owner) && !G.F.lockedOwner(it.eq)).sort((x, y) => G.F.score(y) - G.F.score(x));
+    const list = P.fits(owner, slot).sort((x, y) => G.F.score(y) - G.F.score(x));
     return `<div class="picker"><div class="row"><b>${t('chooseItem')}: ${slot === 'weapon' ? t('weapon') : t('armor')}</b><span class="grow"></span>
       ${cur ? `<button class="btn small" data-action="uneq" data-arg="${cur.id}">${ic('i_x')} ${t('unequip')}</button>` : ''}
       <button class="btn small" data-action="pickClose">${t('close')}</button></div>
       <div class="igrid">${list.map((it) => itemTile(it, 'eq', it.id + '|' + owner)).join('') || `<div class="muted small">${t('noItems')}</div>`}</div></div>`;
   };
+  // Вещи, которые можно надеть этому владельцу в эту ячейку
+  P.fits = (owner, slot) => G.S.items.filter((it) => G.F.slotOf(it) === slot && it.eq !== owner && G.F.canUse(it, owner) && !G.F.lockedOwner(it.eq));
   P.eqSlots = function (owner, slots) {
     const { ic, t, esc } = h();
     return slots.map((slot) => {
       const it = G.F.equipped(owner, slot);
+      let n = 0;
       const lab = slot === 'weapon' ? t('weapon') : t('armor');
       const open = G.UI.pick === owner + '|' + slot;
       return `<button class="eq big ${it ? 'has' : ''} ${open ? 'on' : ''}" data-action="pick" data-arg="${owner}|${slot}" ${G.F.lockedOwner(owner) ? 'disabled' : ''} ${it ? `style="--rc:${D.IRAR[it.rar].color}"` : ''}>
         ${it ? ic('it_' + it.type + ':' + it.ti, 'ic3') : `<span class="ph">${ic(slot === 'weapon' ? 'i_atk' : 'i_def', 'ic2')}</span>`}
-        <span class="grow"><span class="small muted">${lab}</span><br>${it ? `<span style="color:${D.IRAR[it.rar].color}">${esc(G.F.name(it))}</span>` : `<span class="muted">${t('empty')}</span>`}</span></button>`;
+        <span class="grow"><span class="small muted">${lab}</span><br>${it ? `<span style="color:${D.IRAR[it.rar].color}">${esc(G.F.name(it))}</span>` : `<span class="muted">${t('empty')}</span>${(n = P.fits(owner, slot).filter((x) => !x.eq).length) ? ` <span class="avail">${t('availN', { n })}</span>` : ''}`}</span></button>`;
     }).join('');
   };
   function pickerFor(owner, slots) {

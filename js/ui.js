@@ -143,6 +143,71 @@
       e.preventDefault();
       UI.slotClick(el.dataset.k, e, el);
     });
+    // двойной клик по зданию — сразу его вкладка
+    box.addEventListener('dblclick', (e) => {
+      const el = e.target.closest('.slot');
+      if (el) UI.openBuilding(el.dataset.k);
+    });
+    box.addEventListener('pointermove', (e) => {
+      const el = e.target.closest('.slot');
+      if (!el || e.pointerType === 'touch') { hideTip(); return; }
+      UI.tipK = el.dataset.k;
+      placeTip(e);
+      renderTip();
+    });
+    box.addEventListener('pointerleave', hideTip);
+  }
+
+  UI.openBuilding = function (k) {
+    UI.tab = k === 'dungeon' ? 'exp' : 'city';
+    UI.sel = k;
+    UI.pick = null;
+    UI.slotsDirty = true;
+    UI.dirty();
+  };
+
+  // ---------- подсказка при наведении: уровень, цена и время улучшения ----------
+  function hideTip() {
+    UI.tipK = null;
+    $('#tip').classList.add('hidden');
+  }
+  function placeTip(e) {
+    const st = $('#stage').getBoundingClientRect(), tip = $('#tip');
+    let x = e.clientX - st.left + 14, y = e.clientY - st.top + 14;
+    if (x + 250 > st.width) x = e.clientX - st.left - 260;
+    if (y + 140 > st.height) y = e.clientY - st.top - 150;
+    tip.style.left = Math.max(4, x) + 'px';
+    tip.style.top = Math.max(4, y) + 'px';
+  }
+  function tipHtml(k) {
+    const d = D.B[k], L = G.E.lvl(k);
+    let h = `<b>${t('bn_' + k)}</b>`;
+    if (k === 'dungeon') {
+      h += ` · ${t('deepest')}: ${G.X.best('catacombs')}`;
+      if (G.S.exp) h += `<div class="warn">${ic('i_flag')} ${t('tipExp', { f: G.S.exp.phase === 'ret' ? G.S.exp.cleared : G.S.exp.floor })}</div>`;
+    } else {
+      h += ` · ${L ? t('lv') + ' ' + L : t('notBuilt')}`;
+      const c = G.E.consOf(k);
+      if (c) h += `<div class="warn">${ic('i_hammer')} ${t(L ? 'consUp' : 'consBuild', { l: L + 1 })}: ${U.fmtTime(c.t)}</div>`;
+      else {
+        const why = G.E.whyNot(k);
+        if (why === 'max') h += `<div class="good">${t('maxLevel')}</div>`;
+        else {
+          h += `<div>${L ? t('upgradeTo', { l: L + 1 }) : t('build')}:</div><div class="row">${costHtml(G.E.upCost(k))}<span class="muted">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
+          if (why === 'castle') h += `<div class="warn">${t('needCastle', { l: L })}</div>`;
+          else if (why === 'storage') h += `<div class="warn">${t('needStorage')}</div>`;
+          else if (why === 'builders') h += `<div class="warn">${t('needBuildersShort')}</div>`;
+        }
+      }
+      if (d.prod && L) h += `<div class="muted">${ic('i_people')} ${G.S.b[k].w}/${G.E.maxWorkers(k)} · +${U.fmt1(G.S.b[k].w * G.E.workerRate(k))}/${t('sec')}</div>`;
+    }
+    return h + `<div class="muted tiphint">${t('tipOpen')}</div>`;
+  }
+  function renderTip() {
+    if (!UI.tipK) return;
+    const tip = $('#tip'), html = tipHtml(UI.tipK);
+    if (tip._h !== html) { tip.innerHTML = html; tip._h = html; }
+    tip.classList.remove('hidden');
   }
 
   function wallTier() {
@@ -569,7 +634,11 @@
     if (UI.selItem && !G.F.get(UI.selItem)) UI.selItem = null;
     const items = G.S.items.filter((i) => f === 'all' || i.type === f).sort((a, b) => (b.eq ? 1 : 0) - (a.eq ? 1 : 0) || b.rar - a.rar || b.ti - a.ti || G.F.score(b) - G.F.score(a));
     const junk = G.F.junk();
-    let h = box(ic('i_crown') + ' ' + t('kingEq'), `<div class="eqrow">${G.PANE.eqSlots('king', ['weapon'])}</div>${G.PANE.pickerFor('king', ['weapon'])}<div class="muted small">${t('kingDmg')}: ${G.W.kingDmg()}</div>`);
+    // Кто что носит: король и каждый авантюрист, ячейки нажимаются для замены
+    const wearers = [['king', 'c_king', t('king'), `${t('kingDmg')}: ${G.W.kingDmg()}`, ['weapon'], '#f7c948']]
+      .concat(G.S.advs.map((a) => ['' + a.id, 'c_' + a.cls, nm(a.name), `${t('cl_' + a.cls)} · ${t('lv')} ${a.lvl} · ${t('st_' + a.st)}`, ['weapon', 'armor'], D.ARAR[a.rar].color]));
+    let h = box(ic('i_people') + ' ' + t('wearersTitle'), `<div class="hint top">${t('wearersHint')}</div>` + wearers.map(([o, icon, name, sub, slots, col]) =>
+      `<div class="wearer"><div class="wwho">${ic(icon, 'ic2')}<div><b style="color:${col}">${esc(name)}</b><div class="small muted">${sub}</div></div></div><div class="eqrow">${G.PANE.eqSlots(o, slots)}</div></div>${G.PANE.pickerFor(o, slots)}`).join(''));
     if (UI.selItem) h += G.PANE.item(UI.selItem);
     const cats = ['all', ...Object.keys(D.ITYPES)];
     h += `<div class="filters">${cats.map((c) => `<button class="fbtn ${f === c ? 'on' : ''}" data-action="armF" data-arg="${c}" title="${esc(c === 'all' ? t('all') : t('it_' + c))}">${c === 'all' ? ic('i_chest', 'ic2') : ic('it_' + c + ':0', 'ic2')}</button>`).join('')}${junk.length ? `<button class="btn small" data-action="sellJunk">${ic('r_gold')} ${t('sellJunk', { n: junk.length })}</button>` : ''}</div>`;
@@ -937,5 +1006,6 @@
     $('#rush-ind').classList.toggle('hidden', !(G.S.king.buff.rush > 0));
     updateBadges();
     applyGoal();
+    renderTip();
   };
 })();
