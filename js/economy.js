@@ -39,11 +39,11 @@
   E.full = (r) => (G.S.res[r] || 0) >= E.cap(r);
 
   // ---------- стройка ----------
-  E.upCost = function (k) {
-    const m = D.LVLMULT[Math.min(E.lvl(k), D.LVLMULT.length - 1)] * Math.max(0.6, 1 - G.bonus('buildC'));
-    return G.U.scaleCost(D.B[k].base, m);
-  };
-  E.upTime = (k) => D.buildTime(E.lvl(k)) * Math.max(0.3, 1 - G.bonus('buildT'));
+  // Цена и время перехода с уровня L на L+1 (нужно и для очереди указов)
+  E.costAt = (k, L) => G.U.scaleCost(D.B[k].base, D.LVLMULT[Math.min(L, D.LVLMULT.length - 1)] * Math.max(0.6, 1 - G.bonus('buildC')));
+  E.timeAt = (k, L) => D.buildTime(L) * Math.max(0.3, 1 - G.bonus('buildT'));
+  E.upCost = (k) => E.costAt(k, E.lvl(k));
+  E.upTime = (k) => E.timeAt(k, E.lvl(k));
   E.builders = () => 1 + G.bonus('builders');
   E.consOf = (k) => G.S.cons.find((c) => c.k === k);
   // Здание на перестройке недоступно (кроме налогов замка)
@@ -150,7 +150,7 @@
     return n;
   };
 
-  E.maxWorkers = (k) => D.WORKERS[E.lvl(k)] || 0;
+  E.maxWorkers = (k) => (E.lvl(k) > 0 ? D.WORKERS[E.lvl(k)] + G.bonus('crews') : 0); // «Бригады» дают места
   E.workerRate = function (k) {
     const L = Math.max(1, E.lvl(k));
     return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * E.rush();
@@ -184,9 +184,24 @@
     return r;
   };
 
+  // Торговый агент (талант): продаёт излишки, когда склад почти полон
+  E.autoSell = function () {
+    if (G.bonus('agent') <= 0 || !E.usable('market')) return;
+    for (const r of D.MAT) {
+      if (!E.PRICE[r] || (G.S.res[r] || 0) < E.cap(r) * 0.95) continue;
+      const n = Math.floor(E.cap(r) * 0.2);
+      const g = Math.floor(n * E.sellPrice(r));
+      if (n <= 0 || g < 1 || E.full('gold')) continue;
+      G.S.res[r] -= n;
+      E.add('gold', g);
+      G.S.stats.autoSold = (G.S.stats.autoSold || 0) + g;
+    }
+  };
+
   E.tick = function (dt) {
     const r = E.rates();
     for (const k in r) E.add(k, r[k] * dt);
+    E.autoSell();
     E.tickCons(dt);
     E.tickDecree();
   };
@@ -209,11 +224,12 @@
   };
 
   // ---------- рынок ----------
-  E.PRICE = { wood: 0.08, stone: 0.08, iron: 0.15, bone: 1, crystal: 3, mithril: 6 };
+  // Курс мягче: 100 дерева на 1 уровне рынка = 40 золота, на 8-м — около 68
+  E.PRICE = { wood: 0.4, stone: 0.4, iron: 0.6, bone: 2.5, crystal: 6, mithril: 12 };
   E.BUY_LVL = { wood: 1, stone: 1, iron: 2, bone: 3, crystal: 4, mithril: 5 };
   E.batch = (r) => (E.PRICE[r] < 1 ? 100 : 10);
   E.sellPrice = (r) => E.PRICE[r] * (1 + 0.1 * (E.lvl('market') - 1)) * (1 + G.bonus('trade'));
-  E.buyPrice = (r) => (E.PRICE[r] * 3.5 * (1 - 0.04 * (E.lvl('market') - 1))) / (1 + G.bonus('trade'));
+  E.buyPrice = (r) => (E.PRICE[r] * 2.5 * (1 - 0.04 * (E.lvl('market') - 1))) / (1 + G.bonus('trade'));
   E.canBuy = (r) => E.lvl('market') >= E.BUY_LVL[r];
   E.sell = function (r, n) {
     if (!E.usable('market')) return;

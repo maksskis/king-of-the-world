@@ -1,11 +1,12 @@
+// Подземелья. Игрок выбирает только глубину похода и условия отхода —
+// бой на каждом этаже идёт сам, отряд сам выбирает тактику.
 (function () {
   const X = (G.X = {});
   const D = G.D;
-  const ASK_SEC = 20, ROUND = 1.2, MAX_ROUNDS = 40;
+  const ROUND = 1.2, MAX_ROUNDS = 40;
   X.maxParty = 4;
   X.travelTime = (f) => 10 + 2 * f;
   X.returnTime = (f) => 8 + 2 * f;
-  const RETREAT = { aggressive: 0.2, balanced: 0.4, careful: 0.6 };
 
   // ---------- локации ----------
   X.loc = (id) => D.LOCS[id];
@@ -23,8 +24,8 @@
     const key = boss ? L.boss(f) : G.U.pick(L.pool(f));
     const count = boss ? 1 : G.U.randInt(2, 4);
     const diff = L.diff * G.K.epochMul();
-    const hp = Math.round(45 * Math.pow(1.25, f - 1) * diff * (boss ? 3 : 1) * (count / 3));
-    const atk = Math.round(7 * Math.pow(1.18, f - 1) * Math.pow(diff, 0.8) * (boss ? 1.6 : 1) * (0.7 + count * 0.1) * 10) / 10;
+    const hp = Math.round(60 * Math.pow(1.26, f - 1) * diff * (boss ? 3.5 : 1) * (count / 3));
+    const atk = Math.round(9 * Math.pow(1.19, f - 1) * Math.pow(diff, 0.8) * (boss ? 1.6 : 1) * (0.7 + count * 0.1) * 10) / 10;
     return { key, count, hp, max: hp, atk, boss, f };
   };
   X.enemyName = function (en) {
@@ -33,10 +34,16 @@
   };
 
   X.members = () => (G.S.exp ? G.S.exp.party.map(G.T.get).filter(Boolean) : []);
+  // Снимок бойцов с учётом навыков и таланта «Командир походов»
   function snap(members) {
+    const cap = 1 + G.bonus('captain');
+    const shield = 1 + members.reduce((s, a) => s + (a.hp > 0 ? G.T.skillSum(a, 'partyDef') : 0), 0);
     return members.map((a) => {
-      const s = G.T.stats(a);
-      return { a, cls: a.cls, hp: a.hp, max: s.hp, atk: s.atk, def: s.def, heal: G.T.skillSum(a, 'heal'), splash: G.T.skillSum(a, 'splash'), guard: G.T.skillSum(a, 'guard') };
+      const s = G.T.stats(a), sk = (k) => G.T.skillSum(a, k);
+      return {
+        a, cls: a.cls, hp: a.hp, max: s.hp, atk: s.atk * cap, def: s.def * cap * shield,
+        heal: sk('heal'), splash: sk('splash'), guard: sk('guard'), regen: sk('regen'), aura: sk('aura'), dodge: sk('dodge'), crit: sk('crit'),
+      };
     });
   }
   function xlog(k, p, c) {
@@ -51,18 +58,20 @@
   }
   const MULT = { attack: [1.35, 1.2], defend: [0.75, 0.55] };
 
-  // Один раунд боя над массивом бойцов (общий для живого боя и оценки шансов)
+  // Один раунд боя (общий для живого боя и оценки шансов)
   function roundCore(P, en, ehp, stance, out) {
     const [dealtM, takenM] = MULT[stance];
     const alive = P.filter((p) => p.hp > 0);
-    let d = 0;
+    let d = 0, crits = 0;
     for (const p of alive) {
-      d += p.cls === 'priest' ? p.atk * 0.6 : p.atk;
-      if (p.cls === 'mage' && en.count > 1) d += p.atk * (0.3 + p.splash);
+      let hit = p.cls === 'priest' ? p.atk * 0.6 : p.atk;
+      if (p.cls === 'mage' && en.count > 1) hit += p.atk * (0.3 + p.splash);
+      if (p.crit && Math.random() < p.crit) { hit *= 2; crits++; }
+      d += hit;
     }
     d *= dealtM * G.U.rand(0.85, 1.15);
     ehp -= d;
-    if (out) out.push(['fr_party', { d: Math.round(d) }, 'good']);
+    if (out) out.push([crits ? 'fr_partyCrit' : 'fr_party', { d: Math.round(d) }, 'good']);
     if (ehp <= 0) return ehp;
     const dr = Math.min(0.3, alive.reduce((s, p) => s + p.guard, 0));
     const hits = en.boss ? 1 : Math.min(en.count, 2);
@@ -71,6 +80,7 @@
       if (!al.length) break;
       const wars = al.filter((p) => p.cls === 'warrior');
       const tg = wars.length && Math.random() < 0.6 ? G.U.pick(wars) : G.U.pick(al);
+      if (tg.dodge && Math.random() < tg.dodge) { if (out) out.push(['fr_dodge', { name: tg.a.name }, 'good']); continue; }
       const dmg = (((en.atk / hits) * takenM * G.U.rand(0.85, 1.15) * 20) / (20 + tg.def)) * (1 - dr);
       tg.hp = Math.max(0, tg.hp - dmg);
       if (out) {
@@ -78,6 +88,7 @@
         if (tg.hp <= 0) out.push(['fr_down', { name: tg.a.name }, 'bad']);
       }
     }
+    // лечение: жрецы, аура мага, второе дыхание
     for (const pr of P) {
       if (pr.cls !== 'priest' || pr.hp <= 0) continue;
       const al = P.filter((p) => p.hp > 0 && p.hp < p.max).sort((a, b) => a.hp / a.max - b.hp / b.max);
@@ -85,6 +96,12 @@
       const h = pr.atk * 0.9 * (1 + pr.heal);
       al[0].hp = Math.min(al[0].max, al[0].hp + h);
       if (out) out.push(['fr_heal', { name: pr.a.name, who: al[0].a.name, h: Math.round(h) }, 'good']);
+    }
+    const aura = P.reduce((s, p) => s + (p.hp > 0 ? p.aura : 0), 0);
+    for (const p of P) {
+      if (p.hp <= 0) continue;
+      const r = p.regen + aura;
+      if (r > 0) p.hp = Math.min(p.max, p.hp + p.max * r);
     }
     return ehp;
   }
@@ -98,12 +115,12 @@
     }
     return false;
   };
-  X.chance = function (stance) {
-    const e = G.S.exp;
-    if (!e || !e.enemy) return 0;
+  X.chance = function (stance, en) {
+    en = en || (G.S.exp && G.S.exp.enemy);
+    if (!en) return 0;
     const ps = snap(X.members());
     let w = 0;
-    for (let i = 0; i < 40; i++) if (X.sim(ps, e.enemy, stance)) w++;
+    for (let i = 0; i < 40; i++) if (X.sim(ps, en, stance)) w++;
     return w / 40;
   };
   X.fleeChance = function () {
@@ -117,16 +134,22 @@
     return m ? h / m : 0;
   };
 
-  X.start = function (ids, loc, tactic, maxFloor) {
+  // Условия отхода задаются перед походом
+  X.cond = () => {
+    const d = G.S.dng;
+    return { hp: d.hp, down: d.down, boss: d.boss, avoid: d.avoid };
+  };
+
+  X.start = function (ids, loc, maxFloor) {
     if (G.S.exp || !X.locOpen(loc)) return;
     const party = ids.map(G.T.get).filter((a) => a && a.st === 'idle' && a.hp > 0).slice(0, X.maxParty);
     if (!party.length) return;
     for (const a of party) a.st = 'dungeon';
     const t = X.travelTime(1);
     G.S.exp = {
-      loc, party: party.map((a) => a.id), tactic, maxFloor: Math.min(maxFloor, X.floors(loc)),
+      loc, party: party.map((a) => a.id), maxFloor: Math.min(maxFloor, X.floors(loc)), cond: X.cond(),
       floor: 1, cleared: 0, phase: 'travel', t, tt: t, enemy: null, stance: null, ehp: 0, rt: 0, round: 0,
-      fell: [], flog: [], pend: null, loot: {}, log: [], recall: false,
+      fell: [], flog: [], loot: {}, items: [], log: [], recall: false,
     };
     xlog('xStart', { n: party.length, l: { k: 'loc_' + loc } });
     G.log('logExpStart', { n: party.length, l: { k: 'loc_' + loc } }, 'info');
@@ -134,106 +157,64 @@
     G.UI.dirty();
   };
 
-  X.present = () => document.visibilityState === 'visible' && !G.offlineSim;
-  X.ask = function (kind) {
-    const e = G.S.exp;
-    if (G.S.dng.live && X.present()) {
-      e.pend = { kind, dl: Date.now() + ASK_SEC * 1000 };
-      G.UI.openDecision();
-      G.SFX.play('alert');
-    } else X.decide(kind, X.autoChoice(kind), true);
-  };
-
-  X.autoChoice = function (kind) {
-    const e = G.S.exp;
-    if (kind === 'enc') {
-      const ca = X.chance('attack'), cd = X.chance('defend');
-      if (e.tactic === 'aggressive') {
-        if (ca < 0.15 && cd < 0.15) return 'flee';
-        return ca >= cd * 0.9 ? 'attack' : 'defend';
-      }
-      if (e.tactic === 'balanced') {
-        if (Math.max(ca, cd) < 0.4) return 'flee';
-        return ca >= cd ? 'attack' : 'defend';
-      }
-      if (cd >= 0.7) return 'defend';
-      return ca >= 0.85 ? 'attack' : 'flee';
-    }
-    if (e.recall || e.floor >= e.maxFloor || e.floor >= X.floors(e.loc)) return 'return';
-    return X.hpRatio() < RETREAT[e.tactic] ? 'return' : 'deeper';
-  };
-
   X.tick = function (dt) {
     const e = G.S.exp;
     if (!e) return;
-    if (e.pend) {
-      if (Date.now() > e.pend.dl || !X.present()) X.decide(e.pend.kind, X.autoChoice(e.pend.kind), true);
-      return;
-    }
+    if (e.pend) e.pend = null; // старые сохранения с ожиданием приказа
+    if (!e.cond) e.cond = X.cond();
+    if (!e.items) e.items = [];
     if (e.phase === 'travel') {
       for (const a of X.members()) {
         if (a.hp > 0) { const mx = G.T.stats(a).hp; a.hp = Math.min(mx, a.hp + mx * 0.004 * dt); }
       }
       e.t -= dt;
-      if (e.t <= 0) {
-        e.enemy = X.enemy(e.loc, e.floor);
-        e.phase = 'enc';
-        xlog('xEnc', { f: e.floor, m: X.enemyName(e.enemy) });
-        G.UI.dirty();
-        X.ask('enc');
-      }
+      if (e.t <= 0) X.engage();
     } else if (e.phase === 'fight') {
       e.rt += dt;
       while (G.S.exp && G.S.exp.phase === 'fight' && e.rt >= ROUND) { e.rt -= ROUND; X.round(); }
     } else if (e.phase === 'ret') {
       e.t -= dt;
       if (e.t <= 0) X.finish(true);
-    } else if (e.phase === 'enc' || e.phase === 'after') X.ask(e.phase);
+    } else if (e.phase === 'enc') X.engage();
+    else if (e.phase === 'after') X.afterFloor();
   };
 
-  X.decide = function (kind, ch, auto) {
+  // Встреча с врагом: отряд сам выбирает тактику или уходит, если бой безнадёжен
+  X.engage = function () {
     const e = G.S.exp;
-    if (!e) return;
-    if (e.pend && e.pend.kind !== kind) return;
-    if (!e.pend && e.phase !== kind) return;
-    e.pend = null;
-    G.UI.closeDecision();
-    xlog(auto ? 'xAuto' : 'xOrder', { c: ch });
-    if (kind === 'enc') {
-      if (ch === 'flee') {
-        if (Math.random() < X.fleeChance()) {
-          xlog('xFled', {}, 'warn');
-          for (const r in e.loot) e.loot[r] = Math.floor(e.loot[r] * 0.7);
-          X.goHome();
-          G.UI.dirty();
-          return;
-        }
-        xlog('xFleeFail', {}, 'bad');
-        for (const a of X.members()) {
-          if (a.hp <= 0) continue;
-          const s = G.T.stats(a);
-          a.hp = Math.max(0, a.hp - (e.enemy.atk * 0.5 * 20) / (20 + s.def));
-        }
-        ch = 'defend';
+    e.enemy = e.enemy || X.enemy(e.loc, e.floor);
+    e.phase = 'enc';
+    xlog('xEnc', { f: e.floor, m: X.enemyName(e.enemy) });
+    const ca = X.chance('attack'), cd = X.chance('defend');
+    const best = Math.max(ca, cd);
+    let stance = ca >= cd ? 'attack' : 'defend';
+    if (e.cond.avoid > 0 && best < e.cond.avoid) {
+      if (Math.random() < X.fleeChance()) {
+        xlog('xAvoid', { p: Math.round(best * 100) }, 'warn');
+        e.enemy = null;
+        X.goHome();
+        G.UI.dirty();
+        return;
       }
-      e.phase = 'fight';
-      e.stance = ch;
-      e.ehp = e.enemy.hp;
-      e.rt = ROUND * 0.6;
-      e.round = 0;
-      e.fell = [];
-      e.flog = [];
-      flog('fr_start', { m: X.enemyName(e.enemy), s: { k: 'ch_' + ch } }, 'warn');
-    } else if (ch === 'deeper') {
-      e.floor++;
-      e.phase = 'travel';
-      e.t = e.tt = X.travelTime(e.floor);
-      xlog('xDeeper', { f: e.floor });
-    } else X.goHome();
+      xlog('xFleeFail', {}, 'bad');
+      for (const a of X.members()) {
+        if (a.hp <= 0) continue;
+        const s = G.T.stats(a);
+        a.hp = Math.max(0, a.hp - (e.enemy.atk * 0.5 * 20) / (20 + s.def));
+      }
+      stance = 'defend';
+    }
+    e.phase = 'fight';
+    e.stance = stance;
+    e.ehp = e.enemy.hp;
+    e.rt = ROUND * 0.6;
+    e.round = 0;
+    e.fell = [];
+    e.flog = [];
+    flog('fr_start', { m: X.enemyName(e.enemy), s: { k: 'ch_' + stance }, p: Math.round(best * 100) }, 'warn');
     G.UI.dirty();
   };
 
-  // Живой раунд: меняет здоровье бойцов и пишет строчки боя
   X.round = function () {
     const e = G.S.exp;
     const ms = X.members();
@@ -254,6 +235,20 @@
     else if (e.round >= MAX_ROUNDS) { xlog('xStalemate', {}, 'warn'); X.goHome(); }
   };
 
+  // Добыча предмета: шанс растёт с навыками «добычи», материал — с глубиной
+  function dropItem(e, boss) {
+    const ms = X.members();
+    const chance = (boss ? 0.5 : 0.12) * (1 + G.T.partySum(ms, 'drop'));
+    if (Math.random() >= chance) return;
+    const depth = e.floor * D.LOCS[e.loc].diff;
+    const ti = Math.min(3, Math.floor(depth / 5));
+    const k = 0.05 * e.floor + G.bonus('luck');
+    const rar = G.U.weighted(D.IRAR.map((r, i) => r.w * Math.pow(1 + k, i)));
+    const it = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
+    e.items.push(it);
+    xlog('xItem', { item: G.F.nameObj(it) }, it.rar >= 3 ? 'epic' : 'good');
+  }
+
   X.endFight = function (win) {
     const e = G.S.exp;
     const L = D.LOCS[e.loc];
@@ -264,31 +259,57 @@
     if (!win) {
       xlog('xWiped', { f: e.floor }, 'bad');
       e.loot = {};
+      e.items = [];
       X.finish(false);
       return;
     }
+    const boss = e.enemy.boss;
     e.cleared = e.floor;
     if (e.floor > X.best(e.loc)) G.S.dng.best[e.loc] = e.floor;
     const ms = X.members();
     const lootMul = (1 + G.T.partySum(ms, 'loot')) * G.K.epochReward();
-    const loot = L.loot(e.floor, e.enemy.boss);
+    const loot = L.loot(e.floor, boss);
     for (const k in loot) { loot[k] = Math.round(loot[k] * lootMul); e.loot[k] = (e.loot[k] || 0) + loot[k]; }
-    const xp = Math.round(12 * Math.pow(1.17, e.floor - 1) * L.diff * (e.enemy.boss ? 2 : 1));
+    dropItem(e, boss);
+    const xp = Math.round(12 * Math.pow(1.17, e.floor - 1) * L.diff * (boss ? 2 : 1));
     for (const a of ms) if (a.hp > 0) G.T.giveXp(a, xp);
     G.K.xp(4 * e.floor * L.diff);
     xlog('xWin', { f: e.floor, loot }, 'good');
     flog('fr_win', { f: e.floor }, 'good');
     for (const a of fell) if (!dead.includes(a)) xlog('xDowned', { name: a.name }, 'warn');
     e.enemy = null;
+    e.lastBoss = boss;
     G.SFX.play('win');
     if (L.final && e.floor >= L.floors && !G.S.camp.awake) {
       G.S.camp.awake = true;
       G.log('logDragonAwake', {}, 'epic');
       G.UI.story('awake');
     }
-    if (!ms.some((a) => a.hp > 0) || e.floor >= X.floors(e.loc)) { X.goHome(); return; }
     e.phase = 'after';
-    X.ask('after');
+    X.afterFloor();
+  };
+
+  // После этажа: проверяем условия отхода
+  X.afterFloor = function () {
+    const e = G.S.exp;
+    const ms = X.members();
+    let why = '';
+    if (!ms.some((a) => a.hp > 0)) why = 'xwDown';
+    else if (e.recall) why = 'xwRecall';
+    else if (e.floor >= e.maxFloor || e.floor >= X.floors(e.loc)) why = 'xwMax';
+    else if (e.cond.boss && e.lastBoss) why = 'xwBoss';
+    else if (e.cond.down && ms.some((a) => a.hp <= 0)) why = 'xwDown';
+    else if (X.hpRatio() < e.cond.hp) why = 'xwHp';
+    if (why) {
+      xlog(why, { p: Math.round(e.cond.hp * 100) }, 'warn');
+      X.goHome();
+    } else {
+      e.floor++;
+      e.phase = 'travel';
+      e.t = e.tt = X.travelTime(e.floor);
+      xlog('xDeeper', { f: e.floor });
+    }
+    G.UI.dirty();
   };
 
   X.goHome = function () {
@@ -311,14 +332,15 @@
     const e = G.S.exp;
     if (!e) return;
     G.E.addAll(e.loot);
+    for (const it of e.items || []) G.S.items.push(it);
     for (const a of X.members()) {
       if (a.hp <= 0) G.T.wound(a, 90);
       else a.st = 'idle';
     }
     G.log(ok ? 'logExpBack' : 'logExpFail', { f: e.cleared, l: { k: 'loc_' + e.loc }, loot: e.loot }, ok ? 'good' : 'bad');
-    G.S.lastExp = { ok, loc: e.loc, floor: e.cleared, loot: e.loot, log: e.log.slice(-14) };
+    if (ok && e.items && e.items.length) G.log('logExpItems', { n: e.items.length }, 'epic');
+    G.S.lastExp = { ok, loc: e.loc, floor: e.cleared, loot: e.loot, items: (e.items || []).length, log: e.log.slice(-14) };
     G.S.exp = null;
-    G.UI.closeDecision();
     G.UI.dirty();
     G.save();
   };

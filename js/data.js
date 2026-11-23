@@ -59,32 +59,37 @@
     { mult: 2.5, cost: 1800, color: '#ff9a3c', w: 1, tav: 6 },
   ];
 
-  // Навыки по классам, у каждого до 3 рангов
+  // Навыки по классам: у каждого класса атака, защита, лечение, добыча и особый навык; до 3 рангов
   D.SKILL_MAX = 3;
+  D.SKILL_CATS = { atk: 'i_atk', def: 'i_def', heal: 'i_heal', loot: 'i_chest', spec: 'i_star' };
   D.SKILLS = {
     warrior: [
-      { id: 'w1', icon: 'i_hp', eff: { hp: 0.1 } },
-      { id: 'w2', icon: 'i_atk', eff: { atk: 0.1 } },
-      { id: 'w3', icon: 'i_def', eff: { def: 0.15 } },
-      { id: 'w4', icon: 'i_shield2', eff: { guard: 0.05 } },
+      { id: 'w1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
+      { id: 'w2', cat: 'def', icon: 'i_def', eff: { def: 0.15, hp: 0.05 } },
+      { id: 'w3', cat: 'heal', icon: 'i_heal', eff: { regen: 0.03 } },
+      { id: 'w4', cat: 'loot', icon: 'i_chest', eff: { loot: 0.06 } },
+      { id: 'w5', cat: 'spec', icon: 'i_shield2', eff: { guard: 0.05 } },
     ],
     archer: [
-      { id: 'a1', icon: 'i_atk', eff: { atk: 0.12 } },
-      { id: 'a2', icon: 'i_boot', eff: { flee: 0.06 } },
-      { id: 'a3', icon: 'it_bow:0', eff: { volley: 0.12 } },
-      { id: 'a4', icon: 'i_hp', eff: { hp: 0.1 } },
+      { id: 'a1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.1, crit: 0.05 } },
+      { id: 'a2', cat: 'def', icon: 'i_boot', eff: { dodge: 0.06 } },
+      { id: 'a3', cat: 'heal', icon: 'i_heal', eff: { regen: 0.02, hp: 0.05 } },
+      { id: 'a4', cat: 'loot', icon: 'i_chest', eff: { drop: 0.15, flee: 0.05 } },
+      { id: 'a5', cat: 'spec', icon: 'it_bow:0', eff: { volley: 0.12 } },
     ],
     mage: [
-      { id: 'm1', icon: 'i_atk', eff: { atk: 0.12 } },
-      { id: 'm2', icon: 'i_fire', eff: { splash: 0.2 } },
-      { id: 'm3', icon: 'i_def', eff: { hp: 0.08, def: 0.15 } },
-      { id: 'm4', icon: 'r_crystal', eff: { loot: 0.06 } },
+      { id: 'm1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
+      { id: 'm2', cat: 'def', icon: 'i_def', eff: { def: 0.15, hp: 0.08 } },
+      { id: 'm3', cat: 'heal', icon: 'i_heal', eff: { aura: 0.015 } },
+      { id: 'm4', cat: 'loot', icon: 'r_crystal', eff: { loot: 0.08 } },
+      { id: 'm5', cat: 'spec', icon: 'i_fire', eff: { splash: 0.2 } },
     ],
     priest: [
-      { id: 'p1', icon: 'i_heal', eff: { heal: 0.2 } },
-      { id: 'p2', icon: 'i_atk', eff: { atk: 0.1 } },
-      { id: 'p3', icon: 'i_hp', eff: { hp: 0.1, def: 0.1 } },
-      { id: 'p4', icon: 'i_star', eff: { save: 0.1 } },
+      { id: 'p1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
+      { id: 'p2', cat: 'def', icon: 'i_shield2', eff: { partyDef: 0.08 } },
+      { id: 'p3', cat: 'heal', icon: 'i_heal', eff: { heal: 0.2 } },
+      { id: 'p4', cat: 'loot', icon: 'i_gem', eff: { drop: 0.15, loot: 0.04 } },
+      { id: 'p5', cat: 'spec', icon: 'i_star', eff: { save: 0.1 } },
     ],
   };
 
@@ -150,18 +155,21 @@
   // ---------- король ----------
   D.KING_MAX = 30;
   D.kingXp = (L) => Math.round(60 * Math.pow(1.6, L - 1));
+  // Таланты короля: упор на автоматизацию. max — предел рангов таланта.
   D.TAL_MAX = 5;
   D.TALENTS = [
-    { id: 'strike', br: 'war', icon: 'i_atk', eff: { click: 0.2 } },
-    { id: 'rally', br: 'war', icon: 'i_flag', eff: { defAtk: 0.05 } },
-    { id: 'walls', br: 'war', icon: 'i_def', eff: { gateHp: 0.1 } },
+    { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.08 } },
+    { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1 } },
+    { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.1 } },
+    { id: 'agent', br: 'eco', icon: 'i_scale', max: 3, eff: { agent: 1, trade: 0.1 } },
     { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.08 } },
     { id: 'foreman', br: 'build', icon: 'i_hammer', eff: { boost: 1 } },
     { id: 'thrift', br: 'build', icon: 'r_stone', eff: { buildC: 0.04 } },
-    { id: 'pick', br: 'build', icon: 'i_pick', eff: { gather: 0.2 } },
-    { id: 'tax', br: 'trade', icon: 'r_gold', eff: { tax: 0.1 } },
-    { id: 'trade', br: 'trade', icon: 'i_scale', eff: { trade: 0.06 } },
-    { id: 'store', br: 'trade', icon: 'i_bag', eff: { store: 0.1 } },
+    { id: 'store', br: 'build', icon: 'i_bag', eff: { store: 0.1 } },
+    { id: 'rally', br: 'war', icon: 'i_flag', eff: { defAtk: 0.05 } },
+    { id: 'walls', br: 'war', icon: 'i_def', eff: { gateHp: 0.1 } },
+    { id: 'captain', br: 'war', icon: 'i_map', eff: { captain: 0.06 } },
+    { id: 'medic', br: 'war', icon: 'i_heal', eff: { medic: 0.2 } },
   ];
   D.SPELLS = [
     { id: 'rush', lvl: 2, cd: 300, dur: 60, icon: 'i_coin' },

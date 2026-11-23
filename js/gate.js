@@ -64,7 +64,8 @@
     const advs = G.S.advs.filter((a) => a.st === 'gate' && a.hp > 0).sort((p, q) => order[p.cls] - order[q.cls]);
     const defs = advs.map((a, i) => {
       const s = G.T.stats(a);
-      return { a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - Math.floor(i / 3) * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0 };
+      const sk = (k) => G.T.skillSum(a, k);
+      return { a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - Math.floor(i / 3) * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0, dodge: sk('dodge'), crit: sk('crit'), regen: sk('regen') };
     });
     const queue = W.comp(n);
     B = {
@@ -84,6 +85,14 @@
     lastT = performance.now();
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(frame);
+  };
+
+  // «Дальше»: сразу следующая волна после победы
+  W.canNext = () => !!B && B.state === 'won' && B.n !== 'final' && !W.whyNot();
+  W.next = function () {
+    if (!W.canNext()) return;
+    W.close();
+    W.start(false);
   };
 
   W.close = function () {
@@ -156,6 +165,7 @@
       const wars = alive.filter((d) => d.cls === 'warrior');
       const pool = wars.length ? wars : alive;
       const d = pool[Math.floor(Math.random() * pool.length)];
+      if (d.dodge && Math.random() < d.dodge) { float(d.x, d.y - 18, G.t('dodged'), '#9ad0ff'); return; }
       const dmg = Math.max(1, ((m.atk * 20) / (20 + d.def)) * (1 - B.guardDr));
       d.a.hp = Math.max(0, d.a.hp - dmg);
       d.hit = 0.15;
@@ -226,7 +236,11 @@
     });
 
     const mul = dmgMul();
+    const aura = alive.reduce((s, d) => s + G.T.skillSum(d.a, 'aura'), 0);
     for (const d of alive) {
+      // «Второе дыхание» и аура мага: восстановление здоровья раз в 1,5 с
+      const rg = d.regen + aura;
+      if (rg > 0) d.a.hp = Math.min(d.max, d.a.hp + (d.max * rg * dt) / 1.5);
       d.cd -= dt;
       if (d.hit > 0) d.hit -= dt;
       if (d.swing > 0) d.swing -= dt;
@@ -245,10 +259,10 @@
       }
       if (!tg) { d.cd = 0.2; continue; }
       if (d.cls === 'warrior') {
-        if (tg.x - tg.w / 2 <= d.x + 24) { hitMon(tg, d.atk * mul, '#ffffff'); d.cd = 1.0; d.swing = 0.15; }
+        if (tg.x - tg.w / 2 <= d.x + 24) { const cr = Math.random() < d.crit; hitMon(tg, d.atk * mul * (cr ? 2 : 1), cr ? '#ffd84a' : '#ffffff'); d.cd = 1.0; d.swing = 0.15; }
         else d.cd = 0.15;
       } else if (d.cls === 'archer') {
-        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul, kind: 'arrow', spd: 260 });
+        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * (Math.random() < d.crit ? 2 : 1), kind: 'arrow', spd: 260 });
         if (Math.random() < G.T.skillSum(d.a, 'volley')) B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * mul, kind: 'arrow', spd: 240 });
         d.cd = 1.0;
       } else if (d.cls === 'mage') {

@@ -35,11 +35,12 @@
   };
 
   K.tpTotal = () => G.S.king.lvl - 1;
-  K.tpSpent = () => Object.values(G.S.king.tal).reduce((a, b) => a + b, 0);
+  K.tpSpent = () => D.TALENTS.reduce((a, x) => a + (G.S.king.tal[x.id] || 0), 0); // старые таланты не считаются
+  K.talMax = (x) => x.max || D.TAL_MAX;
   K.tp = () => K.tpTotal() - K.tpSpent();
   K.learn = function (id) {
     const t = D.TALENTS.find((x) => x.id === id);
-    if (!t || K.tp() <= 0 || (G.S.king.tal[id] || 0) >= D.TAL_MAX) return;
+    if (!t || K.tp() <= 0 || (G.S.king.tal[id] || 0) >= K.talMax(t)) return;
     G.S.king.tal[id] = (G.S.king.tal[id] || 0) + 1;
     G.invalidateBonus();
     G.SFX.play('level');

@@ -20,6 +20,7 @@
   };
   const nm = (v) => (!v ? '' : typeof v === 'string' ? v : v.k ? t(v.k) + (v.suffix || '') : G.tn(v));
   const monSpr = (k) => D.MON[k].spr || 'm_' + k;
+  const X_COND = () => G.X.cond();
   function costHtml(c) {
     return `<span class="costs">${Object.keys(c).filter((r) => c[r] > 0).map((r) => `<span class="chip${c[r] > G.E.cap(r) ? ' over' : ''}" data-r="${r}" data-n="${c[r]}">${ic('r_' + r)}${U.fmt(c[r])}</span>`).join('')}</span>`;
   }
@@ -242,13 +243,16 @@
     const mons = Object.entries(pv.counts).map(([k, c]) => `<span class="wm" title="${esc(t('mn_' + k))}">${ic(monSpr(k), 'ic-mon')}<b>${c}</b></span>`).join('');
     const note = why === 'noDefenders' ? t('waveNoDefenders') : why === 'gateBusy' ? t('waveGateBusy') : '';
     el.innerHTML = `<div class="ww">
-      <button class="wbtn" data-action="wave" data-arg="-1" ${n <= 1 ? 'disabled' : ''}>◀</button>
-      <span class="wt">${t('wave')} <b>${n}</b>${n % 5 === 0 ? ` <i class="boss">${t('boss')}</i>` : ''}</span>
-      <button class="wbtn" data-action="wave" data-arg="1" ${n > s.best ? 'disabled' : ''}>▶</button>
-      ${why ? `<span class="wwarn" title="${esc(note)}">${ic(why === 'gateBusy' ? 'i_hammer' : 'i_people')} ${t(why === 'gateBusy' ? 'waveGateBusyShort' : 'waveNoDefShort')}</span>` : `<span class="wmons">${mons}</span>`}
-      <button class="wdef ${why === 'noDefenders' ? 'warnb' : ''}" data-action="goto" data-arg="gate" title="${esc(t('defense'))}">${ic('i_helmet')}${G.S.guards} ${ic('i_people')}${defs}/${G.T.gateMax()}</button>
-      <button class="btn primary small" data-action="fight" ${why ? 'disabled' : ''} title="${esc(note)}">${ic('i_atk')} ${t('toBattle')}</button>
-      ${G.W.finalReady() && !why ? `<button class="btn danger small" data-action="fightFinal">${ic('i_dragon')} ${t('finalBattle')}</button>` : ''}
+      <div class="wsec">
+        <button class="wbtn" data-action="wave" data-arg="-1" ${n <= 1 ? 'disabled' : ''}>◀</button>
+        <span class="wt">${t('wave')} <b>${n}</b>${n % 5 === 0 ? ` <i class="boss">${t('boss')}</i>` : ''}</span>
+        <button class="wbtn" data-action="wave" data-arg="1" ${n > s.best ? 'disabled' : ''}>▶</button>
+      </div>
+      <div class="wsec wmons" title="${esc(t('waveEnemies'))}">${mons}</div>
+      <button class="wsec wdef ${why === 'noDefenders' ? 'warnb' : ''}" data-action="goto" data-arg="gate" title="${esc(t('defense'))}">${ic('i_helmet')} ${t('guardsShort')}: <b>${G.S.guards}</b> · ${ic('i_tower')} ${t('onWallShort')}: <b>${defs}/${G.T.gateMax()}</b></button>
+      <div class="wsec wgo">
+        <button class="btn primary small" data-action="fight" ${why ? 'disabled' : ''} title="${esc(note)}">${why ? `${ic(why === 'gateBusy' ? 'i_hammer' : 'i_lock')} ${t(why === 'gateBusy' ? 'waveGateBusyShort' : 'waveNoDefShort')}` : `${ic('i_atk')} ${t('toBattle')}`}</button>
+        ${G.W.finalReady() && !why ? `<button class="btn danger small" data-action="fightFinal">${ic('i_dragon')} ${t('finalBattle')}</button>` : ''}</div>
     </div>`;
   }
 
@@ -332,6 +336,7 @@
     fight() { G.W.start(false); UI.dirty(); },
     fightFinal() { G.W.start(true); UI.dirty(); },
     bclose() { G.W.close(); },
+    bnext() { G.W.next(); },
     cast(id) { G.K.cast(id); },
     talent(id) { G.K.learn(id); },
     advisor(id) { G.K.hireAdv(id); },
@@ -346,13 +351,13 @@
       else if (UI.party.size < G.X.maxParty) UI.party.add(id);
       UI.dirty();
     },
-    tac(v) { G.S.dng.tactic = v; UI.dirty(); },
     maxf(d) { G.S.dng.maxFloor = U.clamp(G.S.dng.maxFloor + +d, 1, Math.min(999, G.X.floors(G.S.dng.loc))); UI.dirty(); },
-    send() { G.X.start([...UI.party], G.S.dng.loc, G.S.dng.tactic, G.S.dng.maxFloor); UI.party.clear(); },
+    condHp(d) { G.S.dng.hp = U.clamp(Math.round((G.S.dng.hp + +d) * 10) / 10, 0.1, 0.9); UI.dirty(); },
+    condDown() { G.S.dng.down = !G.S.dng.down; UI.dirty(); },
+    condBoss() { G.S.dng.boss = !G.S.dng.boss; UI.dirty(); },
+    condAvoid(v) { G.S.dng.avoid = +v; UI.dirty(); },
+    send() { G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor); UI.party.clear(); },
     recall() { G.X.recall(); },
-    live() { G.S.dng.live = !G.S.dng.live; UI.dirty(); },
-    dec(a) { const [kind, ch] = a.split('|'); G.X.decide(kind, ch, false); },
-    openDec() { UI.openDecision(); },
     mclose() { UI.closeModal(); },
     yes() { const f = UI._yes; UI._yes = null; UI.closeModal(); if (f) f(); },
     exportSave() {
@@ -420,8 +425,13 @@
   }
 
   // ---------- вкладка «Город» ----------
+  // Меню построек: крупные кнопки с названием и уровнем, выбранная выделена
   function navRow() {
-    return `<div class="nav">${D.ORDER.map((k) => `<button class="navb ${UI.sel === k ? 'on' : ''}" data-action="sel" data-arg="${k}" title="${esc(t('bn_' + k))}">${ic(bSprite(k), 'ic2')}${D.B[k].noLevel ? '' : `<em>${G.E.lvl(k) || '–'}</em>`}${G.E.consOf(k) ? '<i class="dot"></i>' : ''}${G.S.decree.build.includes(k) ? '<i class="dq-dot"></i>' : ''}</button>`).join('')}</div>`;
+    return `<div class="bnav">${D.ORDER.map((k) => {
+      const L = G.E.lvl(k), cons = G.E.consOf(k), dq = G.S.decree.build.includes(k);
+      const sub = D.B[k].noLevel ? t('bnDungeon') : cons ? t('busyShort') : L ? t('lv') + ' ' + L : t('notBuilt');
+      return `<button class="bnb ${UI.sel === k ? 'on' : ''} ${L || D.B[k].noLevel ? '' : 'off'}" data-action="sel" data-arg="${k}">${ic(bSprite(k), 'ic3')}<span class="bnt"><b>${t('bn_' + k)}</b><span class="${cons ? 'warn' : 'muted'}">${sub}</span></span>${cons ? `<i class="bn-flag">${ic('i_hammer')}</i>` : dq ? `<i class="bn-flag">${ic('i_scroll')}</i>` : ''}</button>`;
+    }).join('')}</div>`;
   }
 
   function upgradeBox(k) {
@@ -497,7 +507,8 @@
           <div class="small"><span class="good">${t('rateSell', { n: bt, g: U.fmt1(G.E.sellPrice(r) * bt) })}</span> · ${buy ? `<span class="warn">${t('rateBuy', { n: bt, g: U.fmt1(G.E.buyPrice(r) * bt) })}</span>` : `<span class="muted">${t('buyLocked', { l: G.E.BUY_LVL[r] })}</span>`}</div></div>
           <div class="tbtns"><button class="btn small" data-action="sell" data-arg="${r}|${bt}" data-sellr="${r}" data-n="${bt}">−${bt}</button><button class="btn small" data-action="sell" data-arg="${r}|half" data-sellr="${r}" data-n="2">−½</button>${buy ? `<button class="btn small" data-action="buy" data-arg="${r}|${bt}" data-buyr="${r}" data-n="${bt}">+${bt}</button>` : ''}</div></div>`;
       }).join('');
-      return box(ic('i_scale') + ' ' + t('rates'), rows + `<div class="hint">${t('marketHint')}</div>`);
+      const agent = G.bonus('agent') > 0 ? `<div class="small good">${ic('i_scale')} ${t('agentOn', { g: U.fmt(G.S.stats.autoSold || 0) })}</div>` : `<div class="small muted">${t('agentOff')}</div>`;
+      return box(ic('i_scale') + ' ' + t('rates'), rows + agent + `<div class="hint">${t('marketHint')}</div>`);
     },
     forge() {
       return G.PANE.craft() +
@@ -591,7 +602,7 @@
     h += e ? expActive(e) : expSetup(loc);
     if (!e && G.S.lastExp) {
       const R = G.S.lastExp;
-      h += box(ic('i_scroll') + ' ' + t('lastReport'), `<div class="${R.ok ? 'good' : 'bad'}">${R.ok ? t('lastOk', { f: R.floor, l: t('loc_' + R.loc) }) : t('lastFail', { f: R.floor, l: t('loc_' + R.loc) })}</div><div>${lootHtml(R.loot) || '—'}</div><div class="xlog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
+      h += box(ic('i_scroll') + ' ' + t('lastReport'), `<div class="${R.ok ? 'good' : 'bad'}">${R.ok ? t('lastOk', { f: R.floor, l: t('loc_' + R.loc) }) : t('lastFail', { f: R.floor, l: t('loc_' + R.loc) })}</div><div>${lootHtml(R.loot) || '—'}${R.items ? ' · ' + t('itemsN', { n: R.items }) : ''}</div><div class="xlog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
     }
     return h;
   }
@@ -606,12 +617,12 @@
     Dn.maxFloor = Math.min(Dn.maxFloor, G.X.floors(loc));
     let h = box(ic('i_people') + ' ' + t('party') + ` <span class="muted">${UI.party.size}/${G.X.maxParty}</span>`,
       idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`);
-    const tacIcon = { aggressive: 'i_atk', balanced: 'i_scale', careful: 'i_def' };
-    h += box(ic('i_scroll') + ' ' + t('orders'), `<div class="seg">${['aggressive', 'balanced', 'careful'].map((v) => `<button class="btn small ${Dn.tactic === v ? 'primary' : ''}" data-action="tac" data-arg="${v}">${ic(tacIcon[v])} ${t('tac_' + v)}</button>`).join('')}</div>
-      <div class="muted small">${t('tacd_' + Dn.tactic)}</div>
-      <div class="wavesel">${t('maxFloor')}: <button class="btn small" data-action="maxf" data-arg="-1">◀</button><b>${Dn.maxFloor}</b><button class="btn small" data-action="maxf" data-arg="1">▶</button></div>
-      <button class="btn small ${Dn.live ? 'primary' : ''}" data-action="live">${Dn.live ? '✓' : '✗'} ${t('liveDec')}</button>
-      <div class="muted small">${t('liveHint')}</div>`);
+    h += box(ic('i_scroll') + ' ' + t('retreatTitle'), `<div class="hint top">${t('retreatHint')}</div>
+      <div class="cond"><span class="grow">${ic('i_flag')} ${t('maxFloor')}</span><button class="btn small" data-action="maxf" data-arg="-1">◀</button><b>${Dn.maxFloor}</b><button class="btn small" data-action="maxf" data-arg="1">▶</button></div>
+      <div class="cond"><span class="grow">${ic('i_hp')} ${t('condHp')}</span><button class="btn small" data-action="condHp" data-arg="-0.1">◀</button><b>${Math.round(Dn.hp * 100)}%</b><button class="btn small" data-action="condHp" data-arg="0.1">▶</button></div>
+      <div class="cond"><span class="grow">${ic('i_skull')} ${t('condDown')}</span><button class="btn small ${Dn.down ? 'primary' : ''}" data-action="condDown">${Dn.down ? t('yes') : t('no')}</button></div>
+      <div class="cond"><span class="grow">${ic('i_crown')} ${t('condBoss')}</span><button class="btn small ${Dn.boss ? 'primary' : ''}" data-action="condBoss">${Dn.boss ? t('yes') : t('no')}</button></div>
+      <div class="cond"><span class="grow">${ic('i_boot')} ${t('condAvoid')}</span><span class="seg">${[0, 0.3, 0.5, 0.7].map((v) => `<button class="btn small ${Dn.avoid === v ? 'primary' : ''}" data-action="condAvoid" data-arg="${v}">${v ? '< ' + v * 100 + '%' : t('never')}</button>`).join('')}</span></div>`);
     h += `<button class="btn primary big" data-action="send" ${UI.party.size ? '' : 'disabled'}>${ic('i_flag')} ${t('sendParty')}</button>`;
     return h;
   }
@@ -628,10 +639,10 @@
     </div>`;
     let body = `<div class="phase">${ph}</div>`;
     if (e.phase === 'travel' || e.phase === 'ret') body += `${bar('exp')}<div class="muted small" data-b="expT"></div>`;
-    if (e.pend) body += `<button class="btn primary big" data-action="openDec">${ic('i_scroll')} ${t('awaitOrder')}</button>`;
     if (e.phase === 'fight' || e.flog.length) body += `<div class="flog">${e.flog.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`;
-    body += `<div class="kv small">${t('orders')}: <b>${t('tac_' + e.tactic)}</b> · ${t('maxFloor')}: <b>${e.maxFloor}</b></div>`;
-    body += `<div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}</div>`;
+    const c = e.cond || X_COND();
+    body += `<div class="kv small">${t('maxFloor')}: <b>${e.maxFloor}</b> · ${t('condHp')}: <b>${Math.round(c.hp * 100)}%</b>${c.down ? ' · ' + t('condDownShort') : ''}${c.boss ? ' · ' + t('condBossShort') : ''}${c.avoid ? ' · ' + t('condAvoidShort', { p: c.avoid * 100 }) : ''}</div>`;
+    body += `<div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}${e.items && e.items.length ? ` · ${e.items.map((it) => ic('it_' + it.type + ':' + it.ti)).join('')} ${t('itemsN', { n: e.items.length })}` : ''}</div>`;
     if (e.phase !== 'ret') body += `<button class="btn small" data-action="recall" ${e.recall ? 'disabled' : ''}>${e.recall ? t('recalling') : t('recall')}</button>`;
     h += box('', body);
     h += box(ic('i_scroll') + ' ' + t('chronicle'), `<div class="xlog">${e.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
@@ -646,14 +657,23 @@
       (S.cons.length ? S.cons.map((c) => `<div class="job">${ic(bSprite(c.k), 'ic2')}<div class="grow"><div>${t('bn_' + c.k)} → ${G.E.lvl(c.k) + 1}</div>${bar('cons:' + c.k)}<div class="muted small" data-b="consT:${c.k}"></div></div><button class="btn small" data-action="cancelUp" data-arg="${c.k}" title="${esc(t('cancelRefund'))}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('buildersIdle')}</div>`) +
       `<div class="hint">${t('decreeHint')}</div>`);
     // очередь строительства
-    const qList = (q, nameKey, icon, extra) => (dq[q].length ? dq[q].map((x, i) => `<div class="dq">${ic(icon(x), 'ic2')}<span class="grow">${i + 1}. ${t(nameKey + x)}${extra ? extra(x, i) : ''}</span><button class="btn small" data-action="decreeUp" data-arg="${q}|${i}" ${i ? '' : 'disabled'}>▲</button><button class="btn small" data-action="decreeDel" data-arg="${q}|${i}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('decreeEmpty')}</div>`);
-    // уровень, до которого поднимет эта запись очереди
-    const targetLvl = (k, i) => {
+    const qList = (q, nameKey, icon, extra) => (dq[q].length ? dq[q].map((x, i) => `<div class="dq">${ic(icon(x), 'ic2')}<div class="grow">${i + 1}. <b>${t(nameKey + x)}</b>${extra ? extra(x, i) : ''}</div><button class="btn small" data-action="decreeUp" data-arg="${q}|${i}" ${i ? '' : 'disabled'}>▲</button><button class="btn small" data-action="decreeDel" data-arg="${q}|${i}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('decreeEmpty')}</div>`);
+    // для каждой записи: уровень, цена и время этого перехода
+    const fromLvl = (k, i) => {
       let L = G.E.lvl(k) + (G.E.consOf(k) ? 1 : 0);
-      for (let j = 0; j <= i; j++) if (dq.build[j] === k) L++;
-      return ` <span class="muted small">→ ${L}</span>`;
+      for (let j = 0; j < i; j++) if (dq.build[j] === k) L++;
+      return L;
     };
-    h += box(ic('i_scroll') + ' ' + t('decreeBuild'), qList('build', 'bn_', (x) => bSprite(x), targetLvl));
+    const total = {};
+    const buildInfo = (k, i) => {
+      const L = fromLvl(k, i);
+      if (L >= D.MAXLVL) return ` <span class="muted small">${t('maxLevel')}</span>`;
+      const c = G.E.costAt(k, L);
+      for (const r in c) total[r] = (total[r] || 0) + c[r];
+      return ` <span class="muted small">→ ${L + 1}</span><div class="row">${costHtml(c)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.timeAt(k, L))}</span></div>`;
+    };
+    const bq = qList('build', 'bn_', (x) => bSprite(x), buildInfo);
+    h += box(ic('i_scroll') + ' ' + t('decreeBuild'), bq + (dq.build.length ? `<div class="dtotal">${t('decreeTotal')}: ${costHtml(total)}</div>` : ''));
     // добавить стройку
     h += box(ic('i_up') + ' ' + t('decreeAddBuild'), `<div class="dgrid">${D.ORDER.filter((k) => !D.B[k].noLevel).map((k) => {
       const L = G.E.lvl(k), why = G.E.whyNot(k);
@@ -662,8 +682,9 @@
     }).join('')}</div>`);
     // исследования
     const open = D.RESEARCH.filter((r) => !G.R.done(r.id) && !dq.research.includes(r.id) && G.R.state(r.id) !== 'cur');
-    h += box(ic('i_book') + ' ' + t('decreeRes'), qList('research', 'rs_', (x) => G.R.get(x).icon) +
-      (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b>${t('rs_' + r.id)}</b><span class="small muted">${G.R.state(r.id) === 'locked' ? t('needAcad', { l: r.acad }) : t('rsd_' + r.id)}</span></span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
+    const resInfo = (id) => { const r = G.R.get(id); return `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span></div>`; };
+    h += box(ic('i_book') + ' ' + t('decreeRes'), qList('research', 'rs_', (x) => G.R.get(x).icon, resInfo) +
+      (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b>${t('rs_' + r.id)}</b><span class="small muted">${G.R.state(r.id) === 'locked' ? t('needAcad', { l: r.acad }) : t('rsd_' + r.id)}</span>${costHtml(r.cost)}</span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
     return h;
   }
 
@@ -675,10 +696,10 @@
       const open = k.lvl >= sp.lvl;
       return `<div class="spl ${open ? '' : 'locked'}">${ic(sp.icon, 'ic2')}<div class="grow"><b>${t('sp_' + sp.id)}</b> <span class="muted small">${sp.battle ? t('inBattle') : ''}</span><div class="small">${t('spd_' + sp.id, { d: G.K.meteorDmg() })}</div><div class="muted small">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}</div></div>${open ? `<button class="btn small" data-action="cast" data-arg="${sp.id}" data-spell="${sp.id}">${t('cast')} <span data-b="cd:${sp.id}"></span></button>` : `<span class="muted small">${ic('i_lock')} ${t('lv')} ${sp.lvl}</span>`}</div>`;
     }).join(''));
-    const br = ['war', 'build', 'trade'];
+    const br = ['eco', 'build', 'war'];
     h += box(ic('i_star') + ' ' + t('talents') + ` <span class="muted">${tp}</span>`, `<div class="tal3">${br.map((b) => `<div class="tcol"><div class="tbr">${t('br_' + b)}</div>${D.TALENTS.filter((x) => x.br === b).map((x) => {
-      const r = k.tal[x.id] || 0;
-      return `<div class="tal">${ic(x.icon, 'ic2')}<div class="grow"><b>${t('tl_' + x.id)}</b><div class="small muted">${t('tld_' + x.id)}</div>${pips(r, D.TAL_MAX)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < D.TAL_MAX ? '' : 'disabled'}>+</button></div>`;
+      const r = k.tal[x.id] || 0, mx = G.K.talMax(x);
+      return `<div class="tal">${ic(x.icon, 'ic2')}<div class="grow"><b>${t('tl_' + x.id)}</b><div class="small muted">${t('tld_' + x.id)}</div>${pips(r, mx)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < mx ? '' : 'disabled'}>+</button></div>`;
     }).join('')}</div>`).join('')}</div>`);
     h += box(ic('i_people') + ' ' + t('council'), `<div class="advs">${D.ADVISORS.map((a) => {
       const l = G.K.advLvl(a.id), open = G.K.advOpen(a);
@@ -781,7 +802,8 @@
     $('#stage').classList.toggle('in-battle', on);
     $('#battle').classList.toggle('hidden', !on);
     if (on) {
-      $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>`;
+      $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
+        <span class="grow"></span><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button>`;
       $('#battle-foot').innerHTML = `<div class="hint">${t('battleHint', { d: G.W.kingDmg() })}</div>`;
     }
     UI.slotsDirty = true;
@@ -800,7 +822,10 @@
     let h;
     if (r.win) h = `<div class="res-win">${r.final ? t('finalVictory') : t('victory')}</div><div>${lootHtml({ gold: r.gold, bone: r.bone })} · ${t('xpEach', { n: r.xp })}${r.wounded ? ' · ' + t('woundedN', { n: r.wounded }) : ''}</div>`;
     else h = `<div class="res-lose">${t('defeat')}</div><div>${t('plundered')}: ${lootHtml(r.lost) || '—'}${r.broken ? ' · ' + t('brokenB', { b: t('bn_' + r.broken) }) : ''}${r.dead.length ? ' · ' + t('deadN', { names: r.dead.map((n) => esc(nm(n))).join(', ') }) : ''}</div>`;
-    $('#battle-foot').innerHTML = h + `<button class="btn primary" data-action="bclose">${t('backToCity')}</button>`;
+    $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
+    $('#bh-city').disabled = false;
+    $('#bh-next').disabled = !G.W.canNext();
+    $('#bh-next').title = G.W.canNext() ? '' : t(r.win ? 'nextNeedDef' : 'nextAfterLoss');
     if (r.win && r.final) setTimeout(() => UI.story('won'), 600);
   };
 

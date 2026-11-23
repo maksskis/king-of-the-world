@@ -126,7 +126,7 @@
     const R = D.ARAR[a.rar], s = G.T.stats(a), sp = G.T.sp(a);
     const skills = D.SKILLS[a.cls].map((sk) => {
       const r = (a.sk && a.sk[sk.id]) || 0;
-      return `<div class="skill">${ic(sk.icon, 'ic2')}<div class="grow"><b>${t('sk_' + sk.id)}</b> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
+      return `<div class="skill cat-${sk.cat}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b>${t('sk_' + sk.id)}</b> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
     }).join('');
     const xpw = Math.min(100, (a.xp / G.T.xpNeed(a.lvl)) * 100).toFixed(1);
     const canDismiss = a.st !== 'dungeon' && !(G.W.active() && a.st === 'gate');

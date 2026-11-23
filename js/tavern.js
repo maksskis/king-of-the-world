@@ -141,7 +141,7 @@
   T.deathChance = (base) => Math.max(0.02, base - G.bonus('save'));
   T.wound = function (a, sec) {
     a.st = 'wounded';
-    a.wt = sec / (G.bonus('recover') ? 2 : 1);
+    a.wt = sec / ((G.bonus('recover') ? 2 : 1) * (1 + G.bonus('medic')));
     a.hp = 0;
   };
 
@@ -163,7 +163,7 @@
         }
       } else if (a.st === 'idle' || (a.st === 'gate' && !inBattle)) {
         const mx = T.stats(a).hp;
-        if (a.hp < mx) a.hp = Math.min(mx, a.hp + mx * 0.03 * dt);
+        if (a.hp < mx) a.hp = Math.min(mx, a.hp + mx * 0.03 * (1 + G.bonus('medic')) * dt);
       }
     }
   };
