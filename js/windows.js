@@ -156,7 +156,8 @@
     return `<div class="box charbox" style="--rc:${R.color}">
       <div class="chead"><div class="por big" style="--rc:${R.color}">${ic('c_' + a.cls, 'ic4')}</div>
         <div class="grow"><h2 style="color:${R.color}">${esc(nm(a.name))}</h2>
-          <div>${ic('c_' + a.cls)} ${t('cl_' + a.cls)} · <b style="color:${R.color}">${t('ar_' + a.rar)}</b> · ${t('lv')} <b>${a.lvl}</b></div>
+          <div>${ic('c_' + a.cls)} ${t('cl_' + a.cls)} · <b style="color:${R.color}">${t('ar_' + a.rar)}</b> · ${t('lv')} <b>${a.lvl}</b>${a.prest ? ` · <b class="gold">★${a.prest}</b>` : ''}</div>
+          ${a.prest ? `<div class="small good">${t('prestTitle', { n: a.prest, p: Math.round(D.PREST_BONUS * a.prest * 100) })}</div>` : ''}
           <div class="stats big">${ic('i_hp')}<span data-b="hp:${a.id}"></span> ${ic('i_atk')}${s.atk} ${ic('i_def')}${s.def}</div>
           ${bar('hp:' + a.id, 'hp')}
           <div class="bar xp"><i style="width:${xpw}%"></i></div><div class="small muted">${t('xp')}: ${Math.floor(a.xp)} / ${G.T.xpNeed(a.lvl)}</div>

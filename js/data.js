@@ -315,8 +315,8 @@
     { ru: 'Западные горы', en: 'The Western mountains' },
     { ru: 'Заморские острова', en: 'The Overseas isles' },
   ];
-  // Герой переходит к наследнику: уровень втрое ниже, но не выше 6-го
-  D.heirLvl = (L) => Math.max(1, Math.min(6, Math.round(L / 3)));
+  // Престиж героя: уровень сбрасывается, навыки остаются, каждая звезда даёт +15% к здоровью, атаке и защите
+  D.PREST_BONUS = 0.15;
   D.PERK_MAX = 10;
   D.PERKS = [
     { id: 'prod', icon: 'i_pick', eff: { prod: 0.1 } },

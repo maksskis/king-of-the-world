@@ -114,12 +114,14 @@
     const L = D.LANDS[epoch % D.LANDS.length], n = Math.floor(epoch / D.LANDS.length);
     return n ? { ru: L.ru + ' ' + (n + 1), en: L.en + ' ' + (n + 1) } : L;
   };
-  // Герои уходят с наследником: уровень втрое ниже (до 6-го), навыки сброшены,
-  // надетые вещи перекованы в железо той же редкости
+  // Герои уходят с наследником и тоже проходят престиж: уровень сбрасывается до 1-го,
+  // навыки остаются (не тратят новые очки), +1 звезда престижа; надетые вещи перекованы в железо той же редкости
   K.carryHeroes = function (old) {
     const advs = [], items = [];
     for (const a of old.advs) {
-      advs.push({ id: a.id, name: a.name, cls: a.cls, rar: a.rar, lvl: D.heirLvl(a.lvl), xp: 0, hp: 0, st: 'idle', wt: 0, sk: {}, cost: a.cost });
+      const sk = Object.assign({}, a.sk || {});
+      const kept = Object.values(sk).reduce((x, y) => x + y, 0);
+      advs.push({ id: a.id, name: a.name, cls: a.cls, rar: a.rar, lvl: 1, xp: 0, hp: 0, st: 'idle', wt: 0, sk, skFree: kept, prest: (a.prest || 0) + 1, cost: a.cost });
     }
     for (const it of old.items) {
       if (!it.eq || it.eq === '__lost') continue;

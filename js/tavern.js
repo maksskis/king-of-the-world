@@ -63,7 +63,8 @@
     for (const s of D.SKILLS[a.cls]) if (a.sk && a.sk[s.id] && s.eff[key]) v += a.sk[s.id] * s.eff[key];
     return v;
   };
-  T.sp = (a) => a.lvl - 1 - Object.values(a.sk || {}).reduce((x, y) => x + y, 0);
+  T.sp = (a) => a.lvl - 1 + (a.skFree || 0) - Object.values(a.sk || {}).reduce((x, y) => x + y, 0); // skFree — ранги, сохранённые престижем
+  T.prestMul = (a) => 1 + D.PREST_BONUS * (a.prest || 0);
   T.learn = function (id, sid) {
     const a = T.get(id);
     if (!a || T.sp(a) <= 0) return;
@@ -84,6 +85,8 @@
     for (const it of G.S.items) {
       if (it.eq === a.id) { atk += G.F.stat(it, 'atk'); def += G.F.stat(it, 'def'); hp += G.F.stat(it, 'hp'); }
     }
+    const pm = T.prestMul(a); // звёзды престижа
+    hp *= pm; atk *= pm; def *= pm;
     hp *= 1 + T.skillSum(a, 'hp');
     atk *= 1 + T.skillSum(a, 'atk');
     def *= 1 + T.skillSum(a, 'def');

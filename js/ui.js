@@ -48,7 +48,7 @@
   function advTile(a, action, arg, on) {
     const R = D.ARAR[a.rar];
     return `<button class="atile ${on ? 'on' : ''} st-${a.st}" data-action="${action}" data-arg="${arg}" style="--rc:${R.color}">
-      <div class="por">${ic('c_' + a.cls, 'ic3')}<em>${a.lvl}</em>${G.T.sp(a) > 0 ? '<i class="sp">+</i>' : ''}</div>
+      <div class="por">${ic('c_' + a.cls, 'ic3')}<em>${a.lvl}</em>${G.T.sp(a) > 0 ? '<i class="sp">+</i>' : ''}${a.prest ? `<i class="prest" title="${esc(t('prestTitle', { n: a.prest, p: Math.round(D.PREST_BONUS * a.prest * 100) }))}">★${a.prest}</i>` : ''}</div>
       <div class="an" style="color:${R.color}">${esc(nm(a.name))}</div>
       <div class="muted small">${t('cl_' + a.cls)}</div>
       ${bar('hp:' + a.id, 'hp')}
@@ -1026,7 +1026,7 @@
   };
   UI.epochStory = function () {
     const land = G.tn(G.K.land(G.S.dyn.epoch));
-    const heroes = G.S.advs.map((a) => `<span style="color:${D.ARAR[a.rar].color}">${esc(nm(a.name))}</span> (${t('cl_' + a.cls)}, ${t('lv')} ${a.lvl})`).join(', ');
+    const heroes = G.S.advs.map((a) => `<span style="color:${D.ARAR[a.rar].color}">${esc(nm(a.name))}</span> (${t('cl_' + a.cls)}, ★${a.prest || 0})`).join(', ');
     UI.modal(`<div class="story">${ic('i_crown', 'story-img')}<h2>${t('story_epoch', { land })}</h2><p>${t('storyd_epoch', { land })}</p><p>${heroes ? t('storyHeroes', { h: heroes }) : t('storyNoHeroes')}</p></div><div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'story');
     G.SFX.play('win');
   };
