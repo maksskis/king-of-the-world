@@ -600,30 +600,6 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 .dcard:disabled { opacity: 0.5; cursor: default; }
 .dcard b { display: block; font-size: 13px; }
 .dcard .ic2 { width: 30px; height: 30px; flex: none; }
-.bnav { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-bottom: 12px; }
-.bnb {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px 4px 4px;
-  font: inherit;
-  text-align: left;
-  color: var(--text);
-  background: var(--panel);
-  border: 2px solid var(--line);
-  border-radius: 8px;
-  cursor: pointer;
-}
-.bnb .ic3 { width: 44px; height: 44px; flex: none; }
-.bnb:hover { border-color: var(--line2); background: var(--panel2); }
-.bnb.on { border-color: var(--gold); background: #3a2c14; box-shadow: 0 0 0 2px rgba(247, 201, 72, 0.35); }
-.bnb.on b { color: var(--gold); }
-.bnb.off .ic3 { opacity: 0.6; }
-.bnt { display: flex; flex-direction: column; min-width: 0; font-size: 12px; line-height: 1.25; }
-.bnt b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bn-flag { position: absolute; top: 3px; right: 4px; line-height: 0; }
-.bn-flag .ic { width: 16px; height: 16px; }
 .cond { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 5px 0; border-top: 1px dashed var(--line); }
 .cond:first-of-type { border-top: 0; }
 .cond b { min-width: 34px; text-align: center; }
@@ -753,6 +729,34 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
 .cond.off { opacity: 0.45; }
 .cond .cnote { display: block; margin-left: 20px; }
 .pushwarn { margin: 2px 0 6px; padding: 6px 8px; border: 1px dashed rgba(240, 120, 100, 0.5); border-radius: 6px; }
+
+/* Окно здания: всплывает рядом с картой, поверх панели вкладок */
+#side { position: relative; }
+#bpop {
+  position: absolute;
+  z-index: 5;
+  top: 64px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  overflow: auto;
+  padding: 12px;
+  background: #1d1626;
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: -8px 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+#bpop.pop-in { animation: popIn 0.16s ease-out; }
+#bpop .bhead .bimg { width: 72px; height: 72px; }
+#bpop .bhead h2 { margin: 0; }
+#bpop .bhead .desc { margin: 4px 0 0; }
+#bpop .popx { flex: none; }
+#bpop .popact { width: 100%; justify-content: center; margin: 2px 0 10px; }
+@keyframes popIn { from { opacity: 0; transform: translateX(-14px) scale(0.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 960px) {
+  #bpop { position: relative; top: auto; left: auto; right: auto; bottom: auto; margin: 8px; max-height: none; }
+  #bpop:not(.hidden) + #panel { display: none; }
+}
 
 /* Подсказка при наведении на здание */
 #tip {

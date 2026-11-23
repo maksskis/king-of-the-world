@@ -1,6 +1,6 @@
 (function () {
   const UI = (G.UI = {
-    tab: 'city', sel: 'castle', _d: true, slotsDirty: true, logDirty: true, party: new Set(), pdown: false,
+    tab: 'decree', pop: null, _d: true, slotsDirty: true, logDirty: true, party: new Set(), pdown: false,
     lastTab: '', craft: { type: 'sword', ti: 0 }, armF: 'all', win: null, winArg: null,
     selAdv: null, selItem: null, pick: null, wallTier: -1,
   });
@@ -105,6 +105,7 @@
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
+      else if (e.key === 'Escape' && UI.pop) UI.closePop();
     });
     $('#brand-icon').src = G.SPR.url('i_crown');
     applyStatic();
@@ -143,14 +144,13 @@
       e.preventDefault();
       UI.slotClick(el.dataset.k, e, el);
     });
-    // двойной клик по зданию — сразу его вкладка
-    box.addEventListener('dblclick', (e) => {
-      const el = e.target.closest('.slot');
-      if (el) UI.openBuilding(el.dataset.k);
+    // клик по пустому месту карты закрывает окно здания
+    $('#map').addEventListener('pointerdown', (e) => {
+      if (!e.target.closest('.slot, #wave-w')) UI.closePop();
     });
     box.addEventListener('pointermove', (e) => {
       const el = e.target.closest('.slot');
-      if (!el || e.pointerType === 'touch') { hideTip(); return; }
+      if (!el || e.pointerType === 'touch' || UI.pop === el.dataset.k) { hideTip(); return; }
       UI.tipK = el.dataset.k;
       placeTip(e);
       renderTip();
@@ -158,10 +158,17 @@
     box.addEventListener('pointerleave', hideTip);
   }
 
-  UI.openBuilding = function (k) {
-    UI.tab = k === 'dungeon' ? 'exp' : 'city';
-    UI.sel = k;
-    UI.pick = null;
+  // Окно здания над картой. Катакомбы открывают вкладку «Походы».
+  UI.openPop = function (k) {
+    if (k === 'dungeon') { UI.tab = 'exp'; UI.pop = null; }
+    else UI.pop = k;
+    hideTip();
+    UI.slotsDirty = true;
+    UI.dirty();
+  };
+  UI.closePop = function () {
+    if (!UI.pop) return;
+    UI.pop = null;
     UI.slotsDirty = true;
     UI.dirty();
   };
@@ -226,7 +233,7 @@
       const img = el.firstElementChild;
       if (img.dataset.key !== key) { img.src = G.SPR.url(key); img.dataset.key = key; }
       el.querySelector('.slot-label').innerHTML = esc(t('bn_' + k)) + (d.noLevel || !L ? '' : ` <b>${L}</b>`);
-      el.classList.toggle('sel', UI.tab === 'city' && UI.sel === k);
+      el.classList.toggle('sel', UI.pop === k);
       el.classList.toggle('unbuilt', L === 0 && !d.noLevel);
       const cons = !!G.E.consOf(k);
       el.classList.toggle('building', cons);
@@ -260,8 +267,7 @@
     set('warehouse', D.MAT.some((r) => G.S.seen[r] && G.E.full(r)) ? ic('i_bag') + '!' : '');
   }
 
-  // Клик по зданию: добыча или помощь стройке. Вкладка не меняется;
-  // выбор здания для панели — только когда открыта вкладка «Город».
+  // Клик по зданию: добыча или помощь стройке, заодно открывается окно здания
   UI.slotClick = function (k, e, el) {
     if (G.W.active()) return;
     const L = G.E.lvl(k), d = D.B[k];
@@ -275,7 +281,7 @@
       else { text = t('full'); icon = 'i_bag'; }
     } else if (k === 'forge' && G.F.boost()) { text = t('hammerHit'); icon = 'i_anvil'; G.SFX.play('hit'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
-    if (UI.tab === 'city' && UI.sel !== k) { UI.sel = k; UI.dirty(); UI.slotsDirty = true; }
+    if (e.type === 'pointerdown' && UI.pop !== k) UI.openPop(k);
   };
 
   function fxFloat(e, text, icon) {
@@ -356,9 +362,11 @@
     sound() { G.S.sound = !G.S.sound; applyStatic(); G.SFX.play('click'); },
     settings() { UI.openSettings(); },
     goals() { UI.open('goals'); },
-    tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
-    sel(k) { UI.sel = k; UI.pick = null; UI.slotsDirty = true; UI.dirty(); },
-    goto(k) { UI.tab = 'city'; UI.sel = k; UI.pick = null; UI.slotsDirty = true; UI.dirty(); },
+    tab(a) { UI.tab = a; UI.pop = null; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
+    sel(k) { UI.openPop(k); },
+    goto(k) { UI.openPop(k); },
+    popClose() { UI.closePop(); },
+    gather(k, el, e) { UI.slotClick(k, e, $(`.slot[data-k="${k}"]`)); },
     up(k) { G.E.startUpgrade(k); },
     cancelUp(k) { G.E.cancelUpgrade(k); },
     decreeAdd(k) { G.E.decreeAdd(k); UI.slotsDirty = true; },
@@ -455,12 +463,13 @@
   UI.render = function () {
     UI._d = false;
     const p = $('#panel');
-    const key = UI.tab + ':' + UI.sel;
+    const key = UI.tab;
     const st = UI.lastTab === key ? p.scrollTop : 0;
-    p.innerHTML = (PANEL[UI.tab] || PANEL.city)();
+    p.innerHTML = (PANEL[UI.tab] || PANEL.decree)();
     p.scrollTop = st;
     UI.lastTab = key;
     renderTabs();
+    renderPop();
     renderGoal();
     renderWave();
     renderSpells();
@@ -478,11 +487,10 @@
     const S = G.S;
     const dq = S.decree.build.length + S.decree.research.length;
     const tabs = [
-      ['city', 'tabCity', 'i_tower', S.cons.length ? ic('i_hammer') + S.cons.length : ''],
+      ['decree', 'tabDecree', 'i_scroll', (S.cons.length ? ic('i_hammer') + S.cons.length : '') + (S.cons.length && dq ? ' · ' : '') + (dq ? String(dq) : '')],
       ['guild', 'tabGuild', 'i_people', G.E.lvl('tavern') ? S.advs.length + '/' + G.T.maxAdvs() : ''],
       ['armory', 'tabArmory', 'i_def', S.items.length ? String(S.items.length) : ''],
       ['exp', 'tabExp', 'i_map', S.exp ? (S.exp.pend ? '!' : ic('i_flag') + (S.exp.phase === 'ret' ? S.exp.cleared : S.exp.floor)) : ''],
-      ['decree', 'tabDecree', 'i_scroll', dq ? String(dq) : ''],
       ['king', 'tabKing', 'i_crown', G.K.tp() > 0 ? '+' + G.K.tp() : ''],
     ];
     $('#tabs').innerHTML = tabs.map(([k, lab, i, b]) => `<button class="tab ${UI.tab === k ? 'on' : ''}" data-action="tab" data-arg="${k}">${ic(i)}<span>${t(lab)}</span>${b ? `<em>${b}</em>` : ''}</button>`).join('');
@@ -495,16 +503,7 @@
     el.innerHTML = `${ic('i_star')} <b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> <span>${t('goal' + i)}</span> <span class="muted">${lootHtml(D.GOALS[i].reward)}</span> <span class="more">${t('allGoals')} ›</span>`;
   }
 
-  // ---------- вкладка «Город» ----------
-  // Меню построек: крупные кнопки с названием и уровнем, выбранная выделена
-  function navRow() {
-    return `<div class="bnav">${D.ORDER.map((k) => {
-      const L = G.E.lvl(k), cons = G.E.consOf(k), dq = G.S.decree.build.includes(k);
-      const sub = D.B[k].noLevel ? t('bnDungeon') : cons ? t('busyShort') : L ? t('lv') + ' ' + L : t('notBuilt');
-      return `<button class="bnb ${UI.sel === k ? 'on' : ''} ${L || D.B[k].noLevel ? '' : 'off'}" data-action="sel" data-arg="${k}">${ic(bSprite(k), 'ic3')}<span class="bnt"><b>${t('bn_' + k)}</b><span class="${cons ? 'warn' : 'muted'}">${sub}</span></span>${cons ? `<i class="bn-flag">${ic('i_hammer')}</i>` : dq ? `<i class="bn-flag">${ic('i_scroll')}</i>` : ''}</button>`;
-    }).join('')}</div>`;
-  }
-
+  // ---------- окно здания ----------
   function upgradeBox(k) {
     const c = G.E.consOf(k), L = G.E.lvl(k);
     if (c) {
@@ -610,16 +609,41 @@
     },
   };
 
-  function cityPanel() {
-    const k = UI.sel;
-    if (k === 'dungeon') return navRow() + expBody();
+  // Кнопка быстрого действия в окне: добыть, помочь стройке или ударить молотом
+  function popAction(k) {
+    const d = D.B[k], L = G.E.lvl(k);
+    if (G.E.consOf(k)) return G.E.boostSec() > 0 ? `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_hammer')} ${t('helpBuild', { n: U.fmt1(G.E.boostSec()) })}</button>` : '';
+    if (L > 0 && d.click) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_pick')} ${t('gatherBtn')} <b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + d.click)}</button>`;
+    if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn')}</button>`;
+    return '';
+  }
+  function popPanel(k) {
     const L = G.E.lvl(k);
-    let h = navRow();
-    h += `<div class="bhead">${ic(bSprite(k), 'bimg')}<div><h2>${t('bn_' + k)}</h2><div class="lvl">${L ? t('levelOf', { l: L, m: D.MAXLVL }) : t('notBuilt')}</div><p class="desc">${t('bd_' + k)}</p></div></div>`;
-    h += upgradeBox(k);
+    let h = `<div class="bhead">${ic(bSprite(k), 'bimg')}<div class="grow"><h2>${t('bn_' + k)}</h2><div class="lvl">${L ? t('levelOf', { l: L, m: D.MAXLVL }) : t('notBuilt')}</div><p class="desc">${t('bd_' + k)}</p></div>
+      <button class="btn small popx" data-action="popClose" title="${esc(t('close'))}">${ic('i_x')}</button></div>`;
+    h += popAction(k);
     // здание на перестройке недоступно; замок и склад показывают справку
     if (L > 0 && BP[k] && (!G.E.busy(k) || k === 'castle' || k === 'warehouse')) h += BP[k]();
+    h += upgradeBox(k);
     return h;
+  }
+  // Окно всплывает рядом с картой, поверх панели вкладок, и не закрывает здания
+  function renderPop() {
+    const el = $('#bpop'), k = UI.pop;
+    if (!k || !D.B[k]) { el.classList.add('hidden'); el.innerHTML = ''; el._k = null; return; }
+    const same = el._k === k, s = el.scrollTop;
+    el.innerHTML = popPanel(k);
+    el.classList.remove('hidden');
+    el.style.top = window.innerWidth > 960 ? $('#tabs').offsetHeight + 6 + 'px' : '';
+    el.scrollTop = same ? s : 0;
+    if (!same) {
+      el.classList.remove('pop-in');
+      void el.offsetWidth;
+      el.classList.add('pop-in');
+      // на узком экране окно под картой — прокручиваем к нему
+      if (window.innerWidth <= 960) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    el._k = k;
   }
 
   // ---------- вкладка «Гильдия»: авантюристы, снаряжение, навыки ----------
@@ -797,7 +821,7 @@
     return h;
   }
 
-  const PANEL = { city: cityPanel, guild: guildPanel, armory: armoryPanel, exp: expBody, decree: decreePanel, king: kingPanel };
+  const PANEL = { guild: guildPanel, armory: armoryPanel, exp: expBody, decree: decreePanel, king: kingPanel };
 
   // ---------- окна (только цели, решения, настройки, подтверждения) ----------
   UI.open = function (kind, arg) {
@@ -965,16 +989,14 @@
     const h = (g && g.h) || {};
     const want = new Set();
     const add = (sel) => { for (const el of $$(sel)) want.add(el); };
-    if (h.b) {
-      add(`.slot[data-k="${h.b}"]`);
-      const home = h.tab || (h.b === 'dungeon' ? 'exp' : 'city');
-      const there = UI.tab === home || (UI.tab === 'city' && UI.sel === h.b);
-      if (!there) add(`.tab[data-arg="${home}"]`);
-      if (UI.tab === 'city' && UI.sel !== h.b) add(`.bnb[data-arg="${h.b}"]`);
-    } else if (h.tab && UI.tab !== h.tab) add(`.tab[data-arg="${h.tab}"]`);
+    const tabShown = h.tab && UI.tab === h.tab && !UI.pop;
+    if (h.b && UI.pop !== h.b && !tabShown) add(`.slot[data-k="${h.b}"]`);
+    if (h.tab && !tabShown) add(`.tab[data-arg="${h.tab}"]`);
+    // кнопки действия ищем там, где они сейчас видны: в окне здания или в панели вкладки
+    const scope = h.tab ? '#panel' : '#bpop';
     for (const a of [].concat(h.act || [])) {
       const arg = h.arg && a !== 'send' && a !== 'pickParty' ? h.arg : a === 'up' || a === 'worker' ? h.b : null;
-      add(arg ? `#panel [data-action="${a}"][data-arg="${arg}"]` : `#panel [data-action="${a}"], #wave-w [data-action="${a}"]`);
+      add(arg ? `${scope} [data-action="${a}"][data-arg="${arg}"]` : `${scope} [data-action="${a}"], #wave-w [data-action="${a}"]`);
     }
     for (const el of $$('.goal-hl')) if (!want.has(el)) el.classList.toggle('goal-hl', false);
     for (const el of want) el.classList.toggle('goal-hl', true);

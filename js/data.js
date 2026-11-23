@@ -268,7 +268,7 @@
   const R = (S, id) => !!S.research.done[id];
   // h — что подсвечивать для цели: здание на карте (b), вкладку (tab), кнопку действия (act, arg)
   D.GOALS = [
-    { h: { b: 'castle' }, test: (S) => S.stats.clicks >= 10, reward: { gold: 10 } },
+    { h: { b: 'castle', act: 'gather' }, test: (S) => S.stats.clicks >= 10, reward: { gold: 10 } },
     { h: { b: 'lumber', act: 'up' }, test: (S) => S.b.lumber.lvl >= 1, reward: { wood: 15 } },
     { h: { b: 'lumber', act: 'worker' }, test: (S) => S.b.lumber.w >= 1, reward: { gold: 15 } },
     { h: { b: 'quarry', act: 'up' }, test: (S) => S.b.quarry.lvl >= 1, reward: { stone: 20 } },
