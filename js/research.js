@@ -66,14 +66,24 @@
     R.tickDecree();
   };
 
-  // Указ об исследованиях: следующее по списку начинается само
+  // Почему запись указа пока нельзя начать: нужен уровень Академии, другое исследование или склад побольше
+  R.waitReason = function (id) {
+    const r = R.get(id);
+    if (R.state(id) !== 'locked') return G.E.fits(r.cost) ? '' : 'storage';
+    return G.E.lvl('academy') < r.acad ? 'academy' : 'req';
+  };
+
+  // Указ об исследованиях: первое доступное по списку начинается само.
+  // Недоступные пока записи пропускаются, а если не хватает только ресурсов — указ ждёт их.
   R.tickDecree = function () {
     const q = G.S.decree.research;
-    while (q.length && !G.S.research.cur && G.E.usable('academy')) {
-      const id = q[0];
+    let i = 0;
+    while (i < q.length && !G.S.research.cur && G.E.usable('academy')) {
+      const id = q[i];
       const st = R.state(id);
-      if (st === 'done' || st === 'cur') { q.shift(); continue; }
-      if (st === 'open' && G.E.can(R.get(id).cost)) { R.start(id); q.shift(); }
+      if (st === 'done' || st === 'cur') { q.splice(i, 1); G.UI.dirty(); continue; }
+      if (R.waitReason(id)) { i++; continue; }
+      if (G.E.can(R.get(id).cost)) { R.start(id); q.splice(i, 1); }
       break;
     }
   };

@@ -768,7 +768,8 @@
       const c = G.E.costAt(k, L);
       for (const r in c) total[r] = (total[r] || 0) + c[r];
       // здание не может обогнать Замок: учитываем улучшения Замка выше по очереди
-      const wait = k !== 'castle' && L + 1 > fromLvl('castle', i) ? ` <span class="warn small">${ic('i_lock')} ${t('needCastleShort', { l: L + 1 })}</span>` : '';
+      const skip = (txt) => ` <span class="warn small" title="${t('skipHint')}">${ic('i_lock')} ${txt} · ${t('skipped')}</span>`;
+      const wait = k !== 'castle' && L + 1 > fromLvl('castle', i) ? skip(t('needCastleShort', { l: L + 1 })) : !G.E.fits(c) ? skip(t('needStorageShort')) : '';
       return ` <span class="muted small">→ ${L + 1}</span>${wait}<div class="row">${costHtml(c)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.timeAt(k, L))}</span></div>`;
     };
     const bq = qList('build', 'bn_', (x) => bSprite(x), buildInfo);
@@ -781,7 +782,7 @@
     }).join('')}</div>`);
     // исследования
     const open = D.RESEARCH.filter((r) => !G.R.done(r.id) && !dq.research.includes(r.id) && G.R.state(r.id) !== 'cur');
-    const resInfo = (id) => { const r = G.R.get(id); return `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span></div>`; };
+    const resInfo = (id) => { const r = G.R.get(id); return `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span>${G.PANE.resWait(id)}</div>`; };
     h += box(ic('i_book') + ' ' + t('decreeRes'), qList('research', 'rs_', (x) => G.R.get(x).icon, resInfo) +
       (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b>${t('rs_' + r.id)}</b><span class="small muted">${G.R.state(r.id) === 'locked' ? t('needAcad', { l: r.acad }) : t('rsd_' + r.id)}</span>${costHtml(r.cost)}</span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
     return h;

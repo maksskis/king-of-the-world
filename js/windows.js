@@ -107,7 +107,7 @@
     const q = G.S.decree.research;
     const queue = q.length ? q.map((id, i) => {
       const r = G.R.get(id), st = G.R.state(id);
-      const note = st === 'locked' ? `<span class="warn small">${ic('i_lock')} ${r.req && !G.R.done(r.req) ? t('needRes', { r: t('rs_' + r.req) }) : t('needAcad', { l: r.acad })}</span>` : '';
+      const note = P.resWait(id);
       return `<div class="dq">${ic(r.icon, 'ic2')}<div class="grow">${i + 1}. <b>${t('rs_' + id)}</b><div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span>${note}</div></div>
         <button class="btn small" data-action="decreeUp" data-arg="research|${i}" ${i ? '' : 'disabled'} title="${t('prioUp')}">▲</button><button class="btn small" data-action="decreeDown" data-arg="research|${i}" ${i < q.length - 1 ? '' : 'disabled'} title="${t('prioDown')}">▼</button><button class="btn small" data-action="decreeDel" data-arg="research|${i}" title="${t('cancel')}">${ic('i_x')}</button></div>`;
     }).join('') : `<div class="muted small">${t('acadQueueEmpty')}</div>`;
@@ -129,6 +129,15 @@
     return `<div class="box"><h3>${ic('i_book')} ${t('researchNow')}</h3>${top}</div>
       <div class="box"><h3>${ic('i_scroll')} ${t('acadQueue')} <span class="muted">${q.length}/12</span></h3><div class="hint top">${t('acadQueueHint')}</div>${queue}</div>
       <div class="box"><h3>${ic('i_book')} ${t('researchTitle')}</h3><div class="hint top">${t('researchHint')}</div>${groups}</div>`;
+  };
+
+  // Пометка у записи указа, которую указ пока пропускает
+  P.resWait = function (id) {
+    const { ic, t } = h();
+    const r = G.R.get(id), why = G.R.waitReason(id);
+    if (!why) return '';
+    const txt = why === 'academy' ? t('needAcad', { l: r.acad }) : why === 'req' ? t('needRes', { r: t('rs_' + r.req) }) : t('needStorageShort');
+    return `<span class="warn small" title="${t('skipHint')}">${ic('i_lock')} ${txt} · ${t('skipped')}</span>`;
   };
 
   // ---------- карточка авантюриста (во вкладке «Гильдия») ----------
