@@ -42,6 +42,7 @@
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();
+    G.K.xp(0); // опыт по старой кривой сразу даёт уровни
     let rep = null;
     if (loaded) {
       const away = (Date.now() - (loaded.lastSave || Date.now())) / 1000;

@@ -177,7 +177,7 @@
 
   // ---------- король ----------
   D.KING_MAX = 30;
-  D.kingXp = (L) => Math.round(60 * Math.pow(1.6, L - 1));
+  D.kingXp = (L) => Math.round(50 * Math.pow(1.35, L - 1));
   // Таланты короля: упор на автоматизацию. max — предел рангов таланта.
   D.TAL_MAX = 5;
   D.TALENTS = [
@@ -187,6 +187,8 @@
     { id: 'example', br: 'hand', icon: 'i_crown', eff: { clickProd: 1 } },
     { id: 'mentor', br: 'hand', icon: 'i_book', eff: { resBoost: 0.5 } },
     { id: 'hammer', br: 'hand', icon: 'i_anvil', eff: { forgeBoost: 0.5 } },
+    { id: 'autoclick', br: 'hand', icon: 'i_pick', max: 3, eff: { autoClick: 1 } },
+    { id: 'wisdom', br: 'hand', icon: 'i_book', eff: { kingXp: 0.2 } },
     { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.08 } },
     { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1 } },
     { id: 'settlers', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1, smiths: 1 } },

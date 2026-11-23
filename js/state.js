@@ -15,7 +15,7 @@
       decree: { build: [], research: [] }, // указы — очереди приоритетов
       research: { done: {}, act: [] }, // act: идущие исследования [{id, t, total}]
       folk: 0, folkT: 0, // жители и таймер прихода следующего
-      king: { lvl: 1, xp: 0, tools: 0, tal: {}, cd: {}, buff: {} },
+      king: { lvl: 1, xp: 0, tools: 0, tal: {}, cd: {}, buff: {}, auto: true }, // auto — автоклик включён
       advisors: {},
       items: [],
       advs: [],

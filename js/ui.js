@@ -112,6 +112,17 @@
       placeGtip(e);
     });
     document.addEventListener('mousemove', (e) => { if (UI.gtip) placeGtip(e); });
+    // автоклик: здание под мышкой на карте или кнопка «Добыть» в его окне
+    document.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      const sl = e.target.closest && e.target.closest('#slots .slot');
+      const gb = !sl && e.target.closest && e.target.closest('#bpop [data-action="gather"]');
+      UI.auto = sl ? { k: sl.dataset.k, btn: false } : gb ? { k: gb.dataset.arg, btn: true } : null;
+      UI.autoPos = { clientX: e.clientX, clientY: e.clientY };
+    });
+    document.addEventListener('pointerleave', () => { UI.auto = null; });
+    window.addEventListener('blur', () => { UI.auto = null; });
+    setInterval(autoTick, 50);
     document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') hideGtip(); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
@@ -187,6 +198,23 @@
     tip.style.left = Math.max(4, x) + 'px';
     tip.style.top = Math.max(4, y) + 'px';
   }
+  // ---------- автоклик (талант «Королевская сноровка») ----------
+  UI.autoRate = () => (G.bonus('autoClick') > 0 ? 1 + G.bonus('autoClick') : 0); // кликов в секунду
+  function autoTick() {
+    const rate = UI.autoRate();
+    if (!rate || !G.S.king.auto || !UI.auto || G.W.active() || document.hidden) { UI.autoAcc = 0; return; }
+    UI.autoAcc = (UI.autoAcc || 0) + 0.05 * rate;
+    while (UI.autoAcc >= 1) {
+      UI.autoAcc -= 1;
+      const el = $(`.slot[data-k="${UI.auto.k}"]`);
+      if (!el) return;
+      // с кнопки «Добыть» цифры всплывают над самим зданием на карте
+      let pos = UI.autoPos;
+      if (UI.auto.btn) { const r = el.getBoundingClientRect(); pos = { clientX: r.left + r.width / 2, clientY: r.top + r.height * 0.4 }; }
+      UI.slotClick(UI.auto.k, Object.assign({ type: 'auto' }, pos), el);
+    }
+  }
+
   // ---------- общая подсказка ----------
   function hideGtip() {
     UI.gtip = null;
@@ -210,6 +238,7 @@
       return `<b>${ic('r_' + id)} ${t('res_' + id)}</b><div>${t('tipHave')}: <b>${U.fmt(G.S.res[id] || 0)}</b> / ${U.fmt(G.E.cap(id))}${rate ? ` · <span class="good">+${U.fmt1(rate)}/${t('sec')}</span>` : ''}</div><div class="muted">${t('rd_' + id)}</div>`;
     }
     if (type === 'b') return tipHtml(id, false);
+    if (key === 'auto') return `<b>${ic('i_pick')} ${t('autoTitle')}: ${G.S.king.auto ? t('on') : t('off')}</b><div>${t('autoTip', { n: UI.autoRate() })}</div>`;
     if (key === 'folk') {
       const n = G.E.folk(), cap = G.E.homes();
       return `<b>${ic('c_folk')} ${t('folk')}: ${n} / ${cap}</b><div>${t('folkTax')}: <span class="good">+${U.fmt1(G.E.folkTax() * (1 + G.bonus('tax')))}/${t('sec')}</span></div>`
@@ -407,6 +436,10 @@
     $('#folk').innerHTML = `${ic('c_folk', 'ic2')}<div class="rcol"><div><span class="fl">${t('folk')}</span> <b data-b="folk"></b></div><div class="rline"><div class="rbar"><i data-w="folkW"></i></div><span class="rr">${ic('r_gold')}<span data-b="folkR"></span></span></div></div>`;
     $('#kbadge').innerHTML = `${ic('c_king', 'ic2')}<span class="kl">${t('lv')} <b data-b="klvl"></b></span>${bar('kxp', 'xp')}${G.K.tp() > 0 ? '<i class="sp">+</i>' : ''}`;
     $('#kbadge').title = t('king') + ' · ' + t('lv') + ' ' + k.lvl;
+    const ab = $('#autobtn');
+    ab.classList.toggle('hidden', !UI.autoRate());
+    ab.classList.toggle('on', !!k.auto);
+    ab.innerHTML = `${ic('i_pick')} ${t('autoShort')} <b>${k.auto ? t('on') : t('off')}</b>`;
   }
 
   // ---------- действия ----------
@@ -429,6 +462,7 @@
       UI.dirty();
     },
     sound() { G.S.sound = !G.S.sound; applyStatic(); G.SFX.play('click'); },
+    autoToggle() { G.S.king.auto = !G.S.king.auto; G.SFX.play('click'); UI.dirty(); },
     settings() { UI.openSettings(); },
     goals() { UI.open('goals'); },
     tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },

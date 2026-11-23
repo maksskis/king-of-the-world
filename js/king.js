@@ -23,7 +23,7 @@
   K.xp = function (n) {
     const k = G.S.king;
     if (k.lvl >= D.KING_MAX) return;
-    k.xp += n * (1 + G.bonus('xp'));
+    k.xp += n * (1 + G.bonus('xp') + G.bonus('kingXp'));
     while (k.lvl < D.KING_MAX && k.xp >= K.need()) {
       k.xp -= K.need();
       k.lvl++;

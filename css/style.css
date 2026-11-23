@@ -777,6 +777,11 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
 .wnode .wsq { position: absolute; top: -8px; right: -8px; display: inline-flex; align-items: center; gap: 1px; padding: 0 4px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--k, #1b1424); background: var(--gold); border-radius: 8px; }
 .wnode .wsq .ic { width: 11px; height: 11px; }
 
+/* Кнопка автоклика рядом с королём */
+#autobtn { display: flex; align-items: center; gap: 4px; padding: 4px 8px; font: inherit; font-size: 13px; color: var(--muted); background: var(--panel2); border: 1px solid var(--line2); border-radius: 6px; cursor: pointer; }
+#autobtn.on { color: var(--text); border-color: var(--gold); box-shadow: 0 0 0 1px rgba(247, 201, 72, 0.4) inset; }
+#autobtn.on b { color: var(--good); }
+
 /* Жители рядом с королём */
 #folk { display: flex; align-items: center; gap: 6px; padding: 3px 8px; background: var(--panel2); border: 1px solid var(--line2); border-radius: 6px; cursor: help; }
 #folk .fl { color: var(--muted); font-size: 12px; }
