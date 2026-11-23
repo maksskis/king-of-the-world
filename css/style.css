@@ -766,6 +766,14 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   #bpop { border-left: 0; border-top: 2px solid var(--line); }
 }
 
+/* Земли эпохи: оттенок карты и подпись у названия */
+#land { margin-left: 8px; font-family: inherit; font-size: 14px; color: var(--muted); }
+#stage.land-1 #mapbg { filter: saturate(0.55) brightness(1.12) hue-rotate(-12deg); }
+#stage.land-2 #mapbg { filter: sepia(0.45) saturate(1.15) hue-rotate(-15deg); }
+#stage.land-3 #mapbg { filter: hue-rotate(28deg) saturate(0.85) brightness(0.9); }
+#stage.land-4 #mapbg { filter: grayscale(0.4) brightness(0.95); }
+#stage.land-5 #mapbg { filter: hue-rotate(-40deg) saturate(1.25); }
+
 /* Отряды в походах */
 .squads { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
 .squads .sqt { width: 100%; font-weight: 600; }

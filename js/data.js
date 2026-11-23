@@ -291,7 +291,7 @@
       },
     },
     lair: {
-      icon: 'i_dragon', pos: [80, 24], floors: 8, diff: 6, unlock: 'dragon', final: true, bigParty: true,
+      icon: 'i_dragon', pos: [80, 24], floors: 8, diff: 6, unlock: 'dragon', final: true,
       pool: () => ['orc', 'wolf', 'drowned', 'bat'],
       boss: (f) => (f === 8 ? 'guardian' : 'troll'),
       loot(f, boss) {
@@ -306,6 +306,17 @@
   D.LOC_ORDER = ['catacombs', 'mine', 'lair'];
 
   // ---------- династия ----------
+  // Земли, которые осваивает каждый следующий наследник; карта подкрашивается под край
+  D.LANDS = [
+    { ru: 'Королевство', en: 'The Kingdom' },
+    { ru: 'Северные земли', en: 'The Northern lands' },
+    { ru: 'Восточные степи', en: 'The Eastern steppes' },
+    { ru: 'Южные топи', en: 'The Southern marshes' },
+    { ru: 'Западные горы', en: 'The Western mountains' },
+    { ru: 'Заморские острова', en: 'The Overseas isles' },
+  ];
+  // Герой переходит к наследнику: уровень втрое ниже, но не выше 6-го
+  D.heirLvl = (L) => Math.max(1, Math.min(6, Math.round(L / 3)));
   D.PERK_MAX = 10;
   D.PERKS = [
     { id: 'prod', icon: 'i_pick', eff: { prod: 0.1 } },

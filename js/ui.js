@@ -128,14 +128,25 @@
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
     });
     $('#brand-icon').src = G.SPR.url('i_crown');
+    applyLand();
     applyStatic();
     UI.render();
   };
+
+  // Земли эпохи: подпись у названия игры и оттенок карты
+  function applyLand() {
+    const ep = G.S.dyn.epoch;
+    for (let i = 1; i < D.LANDS.length; i++) $('#stage').classList.toggle('land-' + i, ep > 0 && ep % D.LANDS.length === i);
+    let el = $('#land');
+    if (!el) { el = document.createElement('span'); el.id = 'land'; $('#brand').appendChild(el); }
+    el.textContent = ep > 0 ? '· ' + G.tn(G.K.land(ep)) : '';
+  }
 
   function applyStatic() {
     for (const el of $$('[data-i18n]')) el.textContent = t(el.dataset.i18n);
     document.title = t('title');
     document.documentElement.lang = G.LANG;
+    if ($('#land')) applyLand();
     $('#lang-btn').textContent = G.LANG === 'ru' ? 'EN' : 'RU';
     $('#snd-btn').innerHTML = ic(G.S.sound ? 'i_snd' : 'i_mute');
   }
@@ -781,11 +792,11 @@
 
   // ---------- вкладка «Гильдия»: авантюристы, снаряжение, навыки ----------
   function guildPanel() {
-    if (G.E.lvl('tavern') < 1) return box('', t('needTavern'), 'muted');
+    if (G.E.lvl('tavern') < 1 && !G.S.advs.length) return box('', t('needTavern'), 'muted');
     const A = G.S.advs;
     if (!G.T.get(UI.selAdv)) UI.selAdv = A[0] ? A[0].id : null;
     let h = box(ic('i_people') + ' ' + t('guild') + ` <span class="muted">${A.length}/${G.T.maxAdvs()}</span>`,
-      `<div class="muted small">${A.length ? t('guildTip') : t('guildEmpty')}</div><div class="row"><button class="btn small" data-action="goto" data-arg="tavern">${ic('i_people')} ${t('toTavern')}</button></div>`);
+      `${G.E.lvl('tavern') < 1 ? `<div class="warn small">${t('heirsWait')}</div>` : ''}<div class="muted small">${A.length ? t('guildTip') : t('guildEmpty')}</div><div class="row"><button class="btn small" data-action="goto" data-arg="tavern">${ic('i_people')} ${t('toTavern')}</button></div>`);
     h += `<div class="tiles">${A.map((a) => advTile(a, 'char', a.id, a.id === UI.selAdv)).join('')}</div>`;
     if (UI.selAdv) h += G.PANE.char(UI.selAdv);
     return h;
@@ -859,7 +870,7 @@
     const sf = G.X.startFloor(loc), so = G.X.startOptions(loc), si = so.indexOf(sf);
     const mf = Math.max(Dn.maxFloor, sf), push = Dn.hp <= 0, off = push ? 'disabled' : '';
     const sc = G.X.scale(loc, UI.party.size);
-    const big = D.LOCS[loc].bigParty ? `<div class="hint top">${t('lairScale', { m: pmax, k: U.fmt1(sc.hp), a: U.fmt1(sc.atk), l: U.fmt1(sc.loot) })}</div>` : '';
+    const big = pmax > G.X.maxParty ? `<div class="hint top">${t('partyScale', { m: pmax, k: U.fmt1(sc.hp), a: U.fmt1(sc.atk), l: U.fmt1(sc.loot) })}</div>` : '';
     let h = box(ic('i_people') + ' ' + t('party') + ` <span class="muted">${UI.party.size}/${pmax}</span>`, big +
       (idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`));
     h += box(ic('i_scroll') + ' ' + t('retreatTitle'), `<div class="hint top">${t('retreatHint')}</div>
@@ -957,8 +968,8 @@
         ${!open ? `<div class="small">${ic('i_lock')} ${t('needCastleLvl', { l: a.castle })}</div>` : l >= D.ADV_MAX ? `<div class="small good">${t('maxLevel')}</div>` : btn(l ? t('promote') : t('hireAdv'), 'advisor', a.id, { cost: G.K.advCost(a.id), cls: 'small' })}</div></div>`;
     }).join('')}</div>`);
     const dyn = G.S.dyn;
-    let dh = `<div class="small">${t('epoch')}: <b>${dyn.epoch + 1}</b> · ${t('legacyPts')}: <b>${dyn.pts}</b></div>`;
-    if (G.S.camp.won) dh += `<div class="row">${btn(ic('i_crown') + ' ' + t('abdicate', { n: G.K.legacyGain() }), 'abdicate', '', { cls: 'danger' })}</div><div class="hint">${t('abdicateHint')}</div>`;
+    let dh = `<div class="small">${t('epoch')}: <b>${dyn.epoch + 1}</b> · ${esc(G.tn(G.K.land(dyn.epoch)))} · ${t('legacyPts')}: <b>${dyn.pts}</b></div>`;
+    if (G.S.camp.won) dh += `<div class="row">${btn(ic('i_crown') + ' ' + t('abdicate', { n: G.K.legacyGain() }), 'abdicate', '', { cls: 'danger' })}</div><div class="hint">${t('abdicateHint', { land: G.tn(G.K.land(dyn.epoch + 1)) })}</div>`;
     else dh += `<div class="muted small">${ic('i_lock')} ${t('dynastyLocked')}</div>`;
     dh += `<div class="perks">${D.PERKS.map((p) => {
       const r = G.K.perkRank(p.id);
@@ -1012,6 +1023,12 @@
   };
   UI.offlineReport = function (rep) {
     UI.modal(`<h2>${t('welcomeBack')}</h2><p>${t('awayFor', { t: U.fmtTime(rep.sec) })}</p>${box('', lootHtml(rep.gain) || t('nothing'))}<div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'offline');
+  };
+  UI.epochStory = function () {
+    const land = G.tn(G.K.land(G.S.dyn.epoch));
+    const heroes = G.S.advs.map((a) => `<span style="color:${D.ARAR[a.rar].color}">${esc(nm(a.name))}</span> (${t('cl_' + a.cls)}, ${t('lv')} ${a.lvl})`).join(', ');
+    UI.modal(`<div class="story">${ic('i_crown', 'story-img')}<h2>${t('story_epoch', { land })}</h2><p>${t('storyd_epoch', { land })}</p><p>${heroes ? t('storyHeroes', { h: heroes }) : t('storyNoHeroes')}</p></div><div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'story');
+    G.SFX.play('win');
   };
   UI.story = function (id) {
     UI.modal(`<div class="story">${ic(id === 'awake' ? 'm_dragon' : 'i_crown', 'story-img')}<h2>${t('story_' + id)}</h2><p>${t('storyd_' + id)}</p></div><div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'story');

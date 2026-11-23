@@ -109,15 +109,42 @@
     G.invalidateBonus();
     G.UI.dirty();
   };
+  // Название земли эпохи: после шести краёв названия идут по кругу с номером
+  K.land = (epoch) => {
+    const L = D.LANDS[epoch % D.LANDS.length], n = Math.floor(epoch / D.LANDS.length);
+    return n ? { ru: L.ru + ' ' + (n + 1), en: L.en + ' ' + (n + 1) } : L;
+  };
+  // Герои уходят с наследником: уровень втрое ниже (до 6-го), навыки сброшены,
+  // надетые вещи перекованы в железо той же редкости
+  K.carryHeroes = function (old) {
+    const advs = [], items = [];
+    for (const a of old.advs) {
+      advs.push({ id: a.id, name: a.name, cls: a.cls, rar: a.rar, lvl: D.heirLvl(a.lvl), xp: 0, hp: 0, st: 'idle', wt: 0, sk: {}, cost: a.cost });
+    }
+    for (const it of old.items) {
+      if (!it.eq || it.eq === '__lost') continue;
+      if (it.eq !== 'king' && !advs.some((a) => a.id === it.eq)) continue;
+      const ni = G.F.make(it.type, 0, it.rar);
+      ni.eq = it.eq;
+      items.push(ni);
+    }
+    return { advs, items };
+  };
+
   K.abdicate = function () {
     if (!G.S.camp.won) return;
     const dyn = G.S.dyn;
     dyn.pts += K.legacyGain();
     dyn.epoch++;
     const lang = G.S.lang, sound = G.S.sound;
+    const heirs = K.carryHeroes(G.S);
     G.S = G.newState(dyn);
     G.S.lang = lang;
     G.S.sound = sound;
+    G.S.advs = heirs.advs;
+    G.S.items = heirs.items;
+    for (const a of G.S.advs) a.hp = G.T.stats(a).hp;
+    G.S.story = 'epoch'; // после перезагрузки — рассказ о новых землях
     G.invalidateBonus();
     const st = K.perkRank('start');
     if (st) G.E.addAll({ gold: 100 * st, wood: 100 * st, stone: 100 * st });

@@ -54,6 +54,7 @@
     G.UI.dirty();
     G.UI.refresh();
     if (rep && rep.sec > 60) G.UI.offlineReport(rep);
+    if (G.S.story === 'epoch') { G.S.story = null; G.UI.epochStory(); }
 
     let last = performance.now();
     setInterval(() => {

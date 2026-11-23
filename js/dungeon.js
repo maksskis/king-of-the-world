@@ -9,11 +9,11 @@
   X.maxSquads = () => (G.E.lvl('tavern') < 1 ? 0 : 1 + Math.floor((G.E.lvl('tavern') - 1) / 3));
   X.nextSquadLvl = () => { const L = G.E.lvl('tavern'); return L < 4 ? 4 : L < 7 ? 7 : 0; };
   // Размер отряда: 4, а в Логово дракона — сколько вмещает Гильдия
-  X.partyMax = (loc) => (D.LOCS[loc] && D.LOCS[loc].bigParty ? Math.max(X.maxParty, G.T.maxAdvs()) : X.maxParty);
-  // Логово сложнее для большого отряда: здоровье и урон врагов растут быстрее числа героев,
+  X.partyMax = () => Math.max(1, G.T.maxAdvs()); // во всех локациях — сколько вмещает Гильдия
+  // Отряд больше 4 героев делает врагов сильнее: здоровье и урон растут быстрее числа героев,
   // а ударов за ход больше (на 5–8 героев — вдвое, на 9 — втрое). Добыча растёт вместе с отрядом.
   X.scale = (loc, n) => {
-    const k = D.LOCS[loc] && D.LOCS[loc].bigParty ? Math.max(1, n / X.maxParty) : 1;
+    const k = Math.max(1, n / X.maxParty);
     return { k, hp: Math.pow(k, 1.3), atk: Math.pow(k, 1.2), hits: Math.ceil(k - 1e-9), loot: k };
   };
   X.list = () => G.S.exps;
