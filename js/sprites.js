@@ -468,10 +468,10 @@
     wallPlanks(b, 6, 28, 36, 13, P.wood, P.woodD);
     windowLit(b, 9, 31, 5, 4); windowLit(b, 33, 31, 5, 4);
     b.rect(20, 31, 8, 10, P.woodD); b.px(26, 36, P.gold);
-    b.rect(18, 19, 1, 6, P.woodD); b.rect(16, 24, 7, 5, P.woodL); b.rect(18, 25, 3, 3, P.gold); b.px(21, 26, P.goldD);
+    b.rect(18, 19, 1, 6, P.woodD); b.rect(16, 24, 7, 5, P.blueD); b.line(17, 24, 21, 28, P.ironL); b.line(21, 24, 17, 28, P.ironL); b.rect(18, 25, 3, 2, P.gold); b.px(19, 27, P.gold);
     b.rect(42, 36, 5, 6, P.woodD); b.rect(42, 37, 5, 1, P.ironD); b.rect(42, 40, 5, 1, P.ironD);
     if (t >= 3) { b.rect(20, 9, 8, 6, P.plaster); b.poly([[19, 9], [24, 5], [29, 9]], P.roofD); b.rect(22, 11, 4, 3, P.glow); b.rect(23, 11, 1, 3, P.woodD); b.px(5, 18, P.glowL); b.px(42, 18, P.glowL); b.rect(1, 36, 5, 6, P.woodD); b.rect(1, 37, 5, 1, P.ironD); }
-    if (t >= 4) { b.rect(10, 0, 1, 8, P.woodD); b.poly([[11, 0], [17, 1.5], [11, 3]], P.purple); b.px(13, 1, P.gold); for (const x of [9, 27, 35]) { b.rect(x, 24, 4, 1, P.leaf); b.px(x, 23, P.redL); b.px(x + 2, 23, P.gold); b.px(x + 3, 23, P.redL); } b.rect(18, 25, 3, 3, P.goldL); }
+    if (t >= 4) { b.rect(10, 0, 1, 8, P.woodD); b.poly([[11, 0], [17, 1.5], [11, 3]], P.purple); b.px(13, 1, P.gold); for (const x of [9, 27, 35]) { b.rect(x, 24, 4, 1, P.leaf); b.px(x, 23, P.redL); b.px(x + 2, 23, P.gold); b.px(x + 3, 23, P.redL); } b.rect(18, 25, 3, 2, P.goldL); b.px(19, 27, P.goldL); }
   } };
   DEF.b_barracks = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
