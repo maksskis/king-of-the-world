@@ -246,7 +246,7 @@
     let h = `<b>${t('bn_' + k)}</b>`;
     if (k === 'dungeon') {
       h += ` · ${t('deepest')}: ${G.X.best('catacombs')}`;
-      if (G.S.exp) h += `<div class="warn">${ic('i_flag')} ${t('tipExp', { f: G.S.exp.phase === 'ret' ? G.S.exp.cleared : G.S.exp.floor })}</div>`;
+      for (const e of G.S.exps) h += `<div class="warn">${ic('i_flag')} ${t('tipSquad', { l: t('loc_' + e.loc), f: e.phase === 'ret' ? e.cleared : e.floor })}</div>`;
     } else {
       h += ` · ${L ? t('lv') + ' ' + L : t('notBuilt')}`;
       const c = G.E.consOf(k);
@@ -308,6 +308,14 @@
     }
   }
 
+  // Значок походов: этаж единственного отряда или число отрядов
+  function squadBadge() {
+    const ex = G.S.exps;
+    if (!ex.length) return '';
+    if (ex.length > 1) return ic('i_flag') + '×' + ex.length;
+    return ic('i_flag') + (ex[0].phase === 'ret' ? ex[0].cleared : ex[0].floor);
+  }
+
   function updateBadges() {
     const S = G.S;
     const set = (k, html) => {
@@ -320,7 +328,7 @@
     set('mine', fullB('mine', 'iron'));
     set('castle', fullB('castle', 'gold'));
     set('forge', S.forge.q.length ? ic('i_anvil') + S.forge.q.length : '');
-    set('dungeon', S.exp ? (S.exp.pend ? '!' : ic('i_flag') + (S.exp.phase === 'ret' ? S.exp.cleared : S.exp.floor)) : '');
+    set('dungeon', squadBadge());
     set('tavern', G.E.usable('tavern') && S.tavern.cands.length && S.advs.length < G.T.maxAdvs() ? ic('i_people') + S.tavern.cands.length : '');
     set('academy', S.research.act.length ? ic('i_book') + (S.research.act.length > 1 ? S.research.act.length : '') : '');
     set('gate', G.W.active() ? ic('i_atk') : G.W.finalReady() ? ic('i_dragon') + '!' : '');
@@ -417,8 +425,7 @@
       UI.slotsDirty = true;
       UI.logDirty = true;
       $('#resbar').dataset.sig = '';
-      if (UI.win === 'decision') UI.openDecision();
-      else if (UI.win === 'settings') UI.openSettings();
+      if (UI.win === 'settings') UI.openSettings();
       UI.dirty();
     },
     sound() { G.S.sound = !G.S.sound; applyStatic(); G.SFX.play('click'); },
@@ -484,10 +491,11 @@
     research(id) { G.R.start(id); },
     resQueue(id) { G.R.enqueue(id); },
     resCancel(id) { G.R.cancel(id); },
-    loc(id) { if (!G.S.exp) { G.S.dng.loc = id; G.S.dng.maxFloor = Math.min(G.S.dng.maxFloor, G.X.floors(id)); UI.dirty(); } },
+    loc(id) { G.S.dng.loc = id; G.S.dng.maxFloor = Math.min(G.S.dng.maxFloor, G.X.floors(id)); UI.expView = 'new'; UI.dirty(); },
+    squad(id) { UI.expView = id; UI.dirty(); },
     pickParty(id) {
       if (UI.party.has(id)) UI.party.delete(id);
-      else if (UI.party.size < G.X.maxParty) UI.party.add(id);
+      else if (UI.party.size < G.X.partyMax(G.S.dng.loc)) UI.party.add(id);
       UI.dirty();
     },
     maxf(d) { const Dn = G.S.dng; Dn.maxFloor = U.clamp(Math.max(Dn.maxFloor, G.X.startFloor(Dn.loc)) + +d, G.X.startFloor(Dn.loc), Math.min(999, G.X.floors(Dn.loc))); UI.dirty(); },
@@ -501,8 +509,8 @@
     condDown() { G.S.dng.down = !G.S.dng.down; UI.dirty(); },
     condBoss() { G.S.dng.boss = !G.S.dng.boss; UI.dirty(); },
     condAvoid(v) { G.S.dng.avoid = +v; UI.dirty(); },
-    send() { G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc)); UI.party.clear(); },
-    recall() { G.X.recall(); },
+    send() { const e = G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc)); UI.party.clear(); if (e) UI.expView = e.id; },
+    recall(id) { G.X.recall(id); },
     mclose() { UI.closeModal(); },
     yes() { const f = UI._yes; UI._yes = null; UI.closeModal(); if (f) f(); },
     exportSave() {
@@ -556,7 +564,7 @@
       ['decree', 'tabDecree', 'i_scroll', (S.cons.length ? ic('i_hammer') + S.cons.length : '') + (S.cons.length && dq ? ' · ' : '') + (dq ? String(dq) : '')],
       ['guild', 'tabGuild', 'i_people', G.E.lvl('tavern') ? S.advs.length + '/' + G.T.maxAdvs() : ''],
       ['armory', 'tabArmory', 'i_def', S.items.length ? String(S.items.length) : ''],
-      ['exp', 'tabExp', 'i_map', S.exp ? (S.exp.pend ? '!' : ic('i_flag') + (S.exp.phase === 'ret' ? S.exp.cleared : S.exp.floor)) : ''],
+      ['exp', 'tabExp', 'i_map', squadBadge()],
       ['king', 'tabKing', 'i_crown', G.K.tp() > 0 ? '+' + G.K.tp() : ''],
     ];
     $('#tabs').innerHTML = tabs.map(([k, lab, i, b]) => `<button class="tab ${UI.tab === k ? 'on' : ''}" data-action="tab" data-arg="${k}">${ic(i)}<span>${t(lab)}</span>${b ? `<em>${b}</em>` : ''}</button>`).join('');
@@ -771,25 +779,32 @@
 
   // ---------- вкладка «Походы» ----------
   function worldMap() {
-    const cur = G.S.exp ? G.S.exp.loc : G.S.dng.loc;
+    const view = G.X.get(UI.expView);
+    const cur = view ? view.loc : G.S.dng.loc;
     const nodes = D.LOC_ORDER.map((id) => {
       const L = D.LOCS[id], open = G.X.locOpen(id);
-      const best = G.X.best(id);
+      const best = G.X.best(id), here = G.S.exps.filter((e) => e.loc === id).length;
       return `<button class="wnode ${cur === id ? 'on' : ''} ${open ? '' : 'locked'}" data-action="loc" data-arg="${id}" style="left:${L.pos[0]}%;top:${L.pos[1]}%" ${open ? '' : 'disabled'}>
-        ${ic(L.icon, 'ic3')}<span class="wn">${t('loc_' + id)}</span><span class="wb">${open ? `${ic('i_flag')}${best}${L.floors ? '/' + L.floors : ''}` : ic('i_lock')}</span></button>`;
+        ${ic(L.icon, 'ic3')}<span class="wn">${t('loc_' + id)}</span><span class="wb">${open ? `${ic('i_flag')}${best}${L.floors ? '/' + L.floors : ''}` : ic('i_lock')}</span>${here ? `<i class="wsq">${ic('i_people')}${here}</i>` : ''}</button>`;
     }).join('');
     return `<div class="wmap" style="background-image:url(${G.SPR.worldBg()})"><span class="wcap" style="left:12%;top:74%">${ic('i_crown', 'ic2')}<span class="wn">${t('capital')}</span></span>${nodes}</div>`;
   }
 
   function expBody() {
     if (G.E.lvl('tavern') < 1) return box('', t('needTavernDungeon'), 'muted');
-    const e = G.S.exp;
+    const ex = G.S.exps, max = G.X.maxSquads();
+    if (UI.expView !== 'new' && !G.X.get(UI.expView)) UI.expView = ex.length ? ex[0].id : 'new';
+    const e = G.X.get(UI.expView);
     const loc = e ? e.loc : G.S.dng.loc;
     let h = worldMap();
+    // отряды: по одной кнопке на каждый поход и «Новый отряд»
+    h += `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic(D.LOCS[x.loc].icon, 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('loc_' + x.loc)} · ${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}<button class="sqb new ${e ? '' : 'on'}" data-action="squad" data-arg="new">${ic('i_flag', 'ic2')}<span><b>${t('squadNew')}</b><span class="small muted">${ex.length < max ? t('squadFree', { n: max - ex.length }) : t('squadNone')}</span></span></button></div>`;
     const L = D.LOCS[loc];
     h += `<div class="lochead">${ic(L.icon, 'ic3')}<div><h2>${t('loc_' + loc)}</h2><div class="desc">${t('locd_' + loc)}</div><div class="muted small">${t('deepest')}: <b>${G.X.best(loc)}</b>${L.floors ? ' / ' + L.floors : ''} · ${t('difficulty')}: <b>×${U.fmt1(L.diff * G.K.epochMul())}</b></div></div></div>`;
     if (!G.X.locOpen(loc)) return h + box('', `${ic('i_lock')} ${t('locLocked', { r: t('rs_' + L.unlock) })}`, 'muted');
-    h += e ? expActive(e) : expSetup(loc);
+    if (e) h += expActive(e);
+    else if (ex.length >= max) h += box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
+    else h += expSetup(loc);
     if (!e && G.S.lastExp) {
       const R = G.S.lastExp;
       h += box(ic('i_scroll') + ' ' + t('lastReport'), `<div class="${R.ok ? 'good' : 'bad'}">${R.ok ? t('lastOk', { f: R.floor, l: t('loc_' + R.loc) }) : t('lastFail', { f: R.floor, l: t('loc_' + R.loc) })}</div><div>${lootHtml(R.loot) || '—'}${R.items ? ' · ' + t('itemsN', { n: R.items }) : ''}</div><div class="xlog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
@@ -803,12 +818,16 @@
       const a = G.T.get(id);
       if (!a || a.st !== 'idle') UI.party.delete(id);
     }
+    const pmax = G.X.partyMax(loc);
+    for (const id of [...UI.party].slice(pmax)) UI.party.delete(id);
     const Dn = G.S.dng;
     Dn.maxFloor = Math.min(Dn.maxFloor, G.X.floors(loc));
     const sf = G.X.startFloor(loc), so = G.X.startOptions(loc), si = so.indexOf(sf);
     const mf = Math.max(Dn.maxFloor, sf), push = Dn.hp <= 0, off = push ? 'disabled' : '';
-    let h = box(ic('i_people') + ' ' + t('party') + ` <span class="muted">${UI.party.size}/${G.X.maxParty}</span>`,
-      idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`);
+    const sc = G.X.scale(loc, UI.party.size);
+    const big = D.LOCS[loc].bigParty ? `<div class="hint top">${t('lairScale', { m: pmax, k: U.fmt1(sc.hp), a: U.fmt1(sc.atk), l: U.fmt1(sc.loot) })}</div>` : '';
+    let h = box(ic('i_people') + ' ' + t('party') + ` <span class="muted">${UI.party.size}/${pmax}</span>`, big +
+      (idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`));
     h += box(ic('i_scroll') + ' ' + t('retreatTitle'), `<div class="hint top">${t('retreatHint')}</div>
       <div class="cond"><span class="grow">${ic('i_stairs')} ${t('startFloor')}<span class="small muted cnote">${so.length > 1 ? t('startHint') : t('startLocked')}</span></span><button class="btn small" data-action="startf" data-arg="-1" ${si > 0 ? '' : 'disabled'}>◀</button><b>${sf}</b><button class="btn small" data-action="startf" data-arg="1" ${si < so.length - 1 ? '' : 'disabled'}>▶</button></div>
       <div class="cond"><span class="grow">${ic('i_flag')} ${t('maxFloor')}</span><button class="btn small" data-action="maxf" data-arg="-5">−5</button><button class="btn small" data-action="maxf" data-arg="-1">◀</button><b>${mf}</b><button class="btn small" data-action="maxf" data-arg="1">▶</button><button class="btn small" data-action="maxf" data-arg="5">+5</button></div>
@@ -822,22 +841,22 @@
   }
 
   function expActive(e) {
-    const ms = G.X.members();
+    const ms = G.X.members(e);
     const fl = e.phase === 'ret' ? e.cleared : e.floor;
     const ph = { travel: t('phTravel', { f: e.floor }), enc: t('phEnc'), fight: t('phFight', { r: e.round }), after: t('phAfter'), ret: t('phRet') }[e.phase];
     const showFoe = e.enemy && (e.phase === 'enc' || e.phase === 'fight');
     let h = `<div class="scene ${e.phase === 'fight' ? 'fighting' : ''}" style="background-image:url(${G.SPR.dungeonBg(e.loc)})">
       <div class="sfloor">${t('floor')} <b>${fl}</b></div>
       <div class="party">${ms.map((a) => `<div class="fig ${a.hp <= 0 ? 'down' : ''}">${ic('c_' + a.cls, 'ic3')}${bar('hp:' + a.id, 'hp')}</div>`).join('')}</div>
-      ${showFoe ? `<div class="foe">${ic(monSpr(e.enemy.key), 'ic4')}<div class="fn">${esc(nm(G.X.enemyName(e.enemy)))}</div>${bar('ehp', 'hp')}<div class="small" data-b="ehp"></div></div>` : `<div class="walk">${ic('i_flag', 'ic2')}<span>${ph}</span></div>`}
+      ${showFoe ? `<div class="foe">${ic(monSpr(e.enemy.key), 'ic4')}<div class="fn">${esc(nm(G.X.enemyName(e.enemy)))}</div>${bar('ehp:' + e.id, 'hp')}<div class="small" data-b="ehp:${e.id}"></div></div>` : `<div class="walk">${ic('i_flag', 'ic2')}<span>${ph}</span></div>`}
     </div>`;
     let body = `<div class="phase">${ph}</div>`;
-    if (e.phase === 'travel' || e.phase === 'ret') body += `${bar('exp')}<div class="muted small" data-b="expT"></div>`;
+    if (e.phase === 'travel' || e.phase === 'ret') body += `${bar('exp:' + e.id)}<div class="muted small" data-b="expT:${e.id}"></div>`;
     if (e.phase === 'fight' || e.flog.length) body += `<div class="flog">${e.flog.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`;
     const c = e.cond || X_COND();
     body += `<div class="kv small">${e.start > 1 ? t('startFloor') + ': <b>' + e.start + '</b> · ' : ''}${t('maxFloor')}: <b>${e.maxFloor}</b> · ${c.push ? `<b class="bad">${t('condPushShort')}</b>` : `${t('condHp')}: <b>${Math.round(c.hp * 100)}%</b>`}${c.down ? ' · ' + t('condDownShort') : ''}${c.boss ? ' · ' + t('condBossShort') : ''}${c.avoid ? ' · ' + t('condAvoidShort', { p: c.avoid * 100 }) : ''}</div>`;
     body += `<div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}${e.items && e.items.length ? ` · ${e.items.map((it) => ic('it_' + it.type + ':' + it.ti)).join('')} ${t('itemsN', { n: e.items.length })}` : ''}</div>`;
-    if (e.phase !== 'ret') body += `<button class="btn small" data-action="recall" ${e.recall ? 'disabled' : ''}>${e.recall ? t('recalling') : t('recall')}</button>`;
+    if (e.phase !== 'ret') body += `<button class="btn small" data-action="recall" data-arg="${e.id}" ${e.recall ? 'disabled' : ''}>${e.recall ? t('recalling') : t('recall')}</button>`;
     h += box('', body);
     h += box(ic('i_scroll') + ' ' + t('chronicle'), `<div class="xlog">${e.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
     return h;
@@ -943,11 +962,7 @@
     $('#modal').classList.add('hidden');
     UI.win = null;
     UI.winArg = null;
-    if (G.S.exp && G.S.exp.pend) setTimeout(() => UI.openDecision(), 0);
     UI.dirty();
-  };
-  UI.closeDecision = function () {
-    if (UI.win === 'decision') { $('#modal').classList.add('hidden'); UI.win = null; }
   };
   UI.confirm = function (text, yes) {
     UI._yes = yes;
@@ -967,30 +982,6 @@
   UI.story = function (id) {
     UI.modal(`<div class="story">${ic(id === 'awake' ? 'm_dragon' : 'i_crown', 'story-img')}<h2>${t('story_' + id)}</h2><p>${t('storyd_' + id)}</p></div><div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'story');
     G.SFX.play(id === 'awake' ? 'horn' : 'win');
-  };
-
-  UI.openDecision = function () {
-    const e = G.S.exp;
-    if (!e || !e.pend) return;
-    const ms = G.X.members();
-    const party = `<div class="dparty">${ms.map((a) => `<div class="fig ${a.hp <= 0 ? 'down' : ''}">${ic('c_' + a.cls, 'ic3')}<div class="small">${esc(nm(a.name))}</div>${bar('hp:' + a.id, 'hp')}</div>`).join('')}</div>`;
-    const choice = (arg, icon, title, desc, p, flee) => `<button class="choice" data-action="dec" data-arg="${arg}">${ic(icon, 'ic2')}<b>${title}</b><span class="small">${desc}</span>${p === undefined ? '' : `<span class="pct ${p >= 0.7 ? 'good' : p >= 0.4 ? 'mid' : 'bad'}">${flee ? t('escape') : t('winChance')}: ${Math.round(p * 100)}%</span>`}</button>`;
-    let h;
-    if (e.pend.kind === 'enc') {
-      const en = e.enemy;
-      h = `<h2>${t('decEncTitle', { f: en.f, l: t('loc_' + e.loc) })}</h2>
-        <div class="enc">${ic(monSpr(en.key), 'ic4')}<div><div class="nm">${esc(nm(G.X.enemyName(en)))}</div><div class="small">${ic('i_hp')} ${U.fmt(en.hp)} ${ic('i_atk')} ${U.fmt1(en.atk)}</div>${en.boss ? `<div class="warn small">${t('bossFloor')}</div>` : ''}</div></div>
-        ${party}
-        <div class="choices">${choice('enc|attack', 'i_atk', t('ch_attack'), t('chd_attack'), G.X.chance('attack'))}${choice('enc|defend', 'i_def', t('ch_defend'), t('chd_defend'), G.X.chance('defend'))}${choice('enc|flee', 'i_boot', t('ch_flee'), t('chd_flee'), G.X.fleeChance(), true)}</div>`;
-    } else {
-      const nf = e.floor + 1;
-      h = `<h2>${t('decAfterTitle', { f: e.floor })}</h2>${party}
-        <div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}</div>
-        <div class="muted small">${t('nextFloor', { f: nf })}${nf % 5 === 0 ? ' — ' + t('bossFloor') : ''}</div>
-        <div class="choices">${choice('after|deeper', 'i_flag', t('ch_deeper'), t('chd_deeper'))}${choice('after|return', 'i_chest', t('ch_return'), t('chd_return'))}</div>`;
-    }
-    h += `<div class="countdown">${ic('i_clock')} ${t('autoIn')} <b data-b="decT"></b> · ${t('autoOrder')}: <b>${t('ch_' + G.X.autoChoice(e.pend.kind))}</b></div>`;
-    UI.modal(h, 'decision');
   };
 
   // ---------- бой у ворот ----------
@@ -1058,9 +1049,8 @@
     tavT: () => U.fmtTime(G.S.tavern.t),
     hp: (id) => { const a = G.T.get(id); return a ? Math.ceil(a.hp) + '/' + G.T.stats(a).hp : ''; },
     wt: (id) => { const a = G.T.get(id); return a && a.st === 'wounded' ? U.fmtTime(a.wt) : ''; },
-    expT: () => (G.S.exp ? U.fmtTime(G.S.exp.t) : ''),
-    ehp: () => { const e = G.S.exp; return e && e.enemy ? U.fmt(Math.max(0, e.phase === 'fight' ? e.ehp : e.enemy.hp)) + '/' + U.fmt(e.enemy.max) : ''; },
-    decT: () => { const e = G.S.exp; return e && e.pend ? U.fmtTime((e.pend.dl - Date.now()) / 1000) : ''; },
+    expT: (id) => { const e = G.X.get(id); return e ? U.fmtTime(e.t) : ''; },
+    ehp: (id) => { const e = G.X.get(id); return e && e.enemy ? U.fmt(Math.max(0, e.phase === 'fight' ? e.ehp : e.enemy.hp)) + '/' + U.fmt(e.enemy.max) : ''; },
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
     folkR: () => { const v = G.E.folkTax() * (1 + G.bonus('tax')); return v ? '+' + U.fmt1(v) : ''; },
@@ -1073,8 +1063,9 @@
     cons: (k) => { const c = G.E.consOf(k); return c ? 1 - c.t / c.total : 0; },
     forge: () => { const j = G.S.forge.q[0]; return j ? 1 - j.t / j.total : 0; },
     hp: (id) => { const a = G.T.get(id); return a ? a.hp / G.T.stats(a).hp : 0; },
-    exp: () => { const e = G.S.exp; return e && e.tt ? 1 - e.t / e.tt : 0; },
-    ehp: () => { const e = G.S.exp; return e && e.enemy ? (e.phase === 'fight' ? e.ehp : e.enemy.hp) / e.enemy.max : 0; },
+    exp: (id) => { const e = G.X.get(id); return e && e.tt ? 1 - e.t / e.tt : 0; },
+    hpp: (id) => { const e = G.X.get(id); return e ? G.X.hpRatio(e) : 0; },
+    ehp: (id) => { const e = G.X.get(id); return e && e.enemy ? (e.phase === 'fight' ? e.ehp : e.enemy.hp) / e.enemy.max : 0; },
     rsch: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? 1 - c.t / c.total : 0; },
     folkW: () => (G.E.homes() ? G.E.folk() / G.E.homes() : 0),
     kxp: () => G.S.king.xp / G.K.need(),

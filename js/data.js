@@ -289,7 +289,7 @@
       },
     },
     lair: {
-      icon: 'i_dragon', pos: [80, 24], floors: 8, diff: 6, unlock: 'dragon', final: true,
+      icon: 'i_dragon', pos: [80, 24], floors: 8, diff: 6, unlock: 'dragon', final: true, bigParty: true,
       pool: () => ['orc', 'wolf', 'drowned', 'bat'],
       boss: (f) => (f === 8 ? 'guardian' : 'troll'),
       loot(f, boss) {

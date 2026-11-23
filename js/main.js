@@ -38,6 +38,7 @@
     const loaded = G.load();
     G.S = loaded || G.newState();
     G.R.sanitize();
+    G.X.sanitize();
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();
@@ -52,7 +53,6 @@
     G.UI.dirty();
     G.UI.refresh();
     if (rep && rep.sec > 60) G.UI.offlineReport(rep);
-    else if (G.S.exp && G.S.exp.pend) G.UI.openDecision();
 
     let last = performance.now();
     setInterval(() => {

@@ -23,7 +23,7 @@
       tavern: { cands: [], t: 0 },
       forge: { q: [] },
       gate: { best: 0, sel: 1 },
-      exp: null,
+      exps: [], // отряды в походах
       lastExp: null,
       dng: { best: {}, maxFloor: 3, start: 1, loc: 'catacombs', hp: 0.4, down: true, boss: false, avoid: 0.3 },
       camp: { awake: false, won: false },

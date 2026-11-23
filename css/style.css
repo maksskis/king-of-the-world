@@ -766,6 +766,17 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   #bpop { border-left: 0; border-top: 2px solid var(--line); }
 }
 
+/* Отряды в походах */
+.squads { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
+.squads .sqt { width: 100%; font-weight: 600; }
+.sqb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 8px; min-width: 150px; flex: 1; font: inherit; text-align: left; color: var(--text); background: var(--panel2); border: 2px solid var(--line); border-radius: 8px; cursor: pointer; }
+.sqb > span { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.2; }
+.sqb .bar { width: 100%; margin: 0; }
+.sqb.on { border-color: var(--gold); background: #2c2215; }
+.sqb.new:not(.on) { border-style: dashed; }
+.wnode .wsq { position: absolute; top: -8px; right: -8px; display: inline-flex; align-items: center; gap: 1px; padding: 0 4px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--k, #1b1424); background: var(--gold); border-radius: 8px; }
+.wnode .wsq .ic { width: 11px; height: 11px; }
+
 /* Жители рядом с королём */
 #folk { display: flex; align-items: center; gap: 6px; padding: 3px 8px; background: var(--panel2); border: 1px solid var(--line2); border-radius: 6px; cursor: help; }
 #folk .fl { color: var(--muted); font-size: 12px; }

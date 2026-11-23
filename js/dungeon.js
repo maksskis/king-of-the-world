@@ -5,6 +5,31 @@
   const D = G.D;
   const ROUND = 0.8, MAX_ROUNDS = 40;
   X.maxParty = 4;
+  // Сколько отрядов в походе одновременно: 1, с 4-го уровня Гильдии — 2, с 7-го — 3
+  X.maxSquads = () => (G.E.lvl('tavern') < 1 ? 0 : 1 + Math.floor((G.E.lvl('tavern') - 1) / 3));
+  X.nextSquadLvl = () => { const L = G.E.lvl('tavern'); return L < 4 ? 4 : L < 7 ? 7 : 0; };
+  // Размер отряда: 4, а в Логово дракона — сколько вмещает Гильдия
+  X.partyMax = (loc) => (D.LOCS[loc] && D.LOCS[loc].bigParty ? Math.max(X.maxParty, G.T.maxAdvs()) : X.maxParty);
+  // Логово сложнее для большого отряда: здоровье и урон врагов растут быстрее числа героев,
+  // а ударов за ход больше (на 5–8 героев — вдвое, на 9 — втрое). Добыча растёт вместе с отрядом.
+  X.scale = (loc, n) => {
+    const k = D.LOCS[loc] && D.LOCS[loc].bigParty ? Math.max(1, n / X.maxParty) : 1;
+    return { k, hp: Math.pow(k, 1.3), atk: Math.pow(k, 1.2), hits: Math.ceil(k - 1e-9), loot: k };
+  };
+  X.list = () => G.S.exps;
+  X.get = (id) => G.S.exps.find((e) => e.id === id) || null;
+  // Старые сохранения: один поход в G.S.exp
+  X.sanitize = function () {
+    if (!Array.isArray(G.S.exps)) G.S.exps = [];
+    if (G.S.exp) { G.S.exps.push(G.S.exp); G.S.exp = null; }
+    for (const e of G.S.exps) {
+      if (!e.id) e.id = G.U.uid();
+      if (!e.n) e.n = e.party.length;
+      if (e.pend) e.pend = null;
+      if (!e.cond) e.cond = X.cond();
+      if (!e.items) e.items = [];
+    }
+  };
   X.travelTime = (f) => Math.round(Math.min(12, 4 + 0.4 * f));
   X.returnTime = (f) => Math.round(Math.min(15, 5 + 0.4 * f));
 
@@ -29,22 +54,24 @@
     return X.startOptions(id).filter((f) => f <= want).pop();
   };
 
-  X.enemy = function (locId, f) {
+  X.enemy = function (locId, f, n) {
     const L = D.LOCS[locId];
     const boss = f % 5 === 0 || f === L.floors;
     const key = boss ? L.boss(f) : G.U.pick(L.pool(f));
     const count = boss ? 1 : G.U.randInt(2, 4);
     const diff = L.diff * G.K.epochMul();
     const hp = Math.round(60 * Math.pow(1.26, f - 1) * diff * (boss ? 3.5 : 1) * (count / 3));
-    const atk = Math.round(9 * Math.pow(1.19, f - 1) * Math.pow(diff, 0.8) * (boss ? 1.6 : 1) * (0.7 + count * 0.1) * 10) / 10;
-    return { key, count, hp, max: hp, atk, boss, f };
+    const sc = X.scale(locId, n || X.maxParty);
+    const hpS = Math.round(hp * sc.hp);
+    const atk = Math.round(9 * Math.pow(1.19, f - 1) * Math.pow(diff, 0.8) * (boss ? 1.6 : 1) * (0.7 + count * 0.1) * sc.atk * 10) / 10;
+    return { key, count, hp: hpS, max: hpS, atk, boss, f, hits: sc.hits };
   };
   X.enemyName = function (en) {
     if (en.boss) return { k: 'mn_' + en.key };
     return { k: 'mp_' + en.key, suffix: ' ×' + en.count };
   };
 
-  X.members = () => (G.S.exp ? G.S.exp.party.map(G.T.get).filter(Boolean) : []);
+  X.members = (e) => (e ? e.party.map(G.T.get).filter(Boolean) : []);
   // Снимок бойцов с учётом навыков и таланта «Командир походов»
   function snap(members) {
     const cap = 1 + G.bonus('captain');
@@ -58,13 +85,11 @@
       };
     });
   }
-  function xlog(k, p, c) {
-    const e = G.S.exp;
+  function xlog(e, k, p, c) {
     e.log.push({ k, p: p || {}, c: c || 'info' });
     if (e.log.length > 40) e.log.shift();
   }
-  function flog(k, p, c) {
-    const e = G.S.exp;
+  function flog(e, k, p, c) {
     e.flog.push({ k, p: p || {}, c: c || 'info' });
     if (e.flog.length > 9) e.flog.shift();
   }
@@ -92,7 +117,7 @@
     const stun = Math.min(0.4, 1 - alive.reduce((s, p) => s * (1 - p.stun), 1)) * (en.boss ? 0.5 : 1);
     const bound = stun > 0 && Math.random() < stun;
     if (bound && out) out.push(['fr_stun', { name: binder.a.name }, 'good']);
-    const hits = bound ? 0 : en.boss ? 1 : Math.min(en.count, 2);
+    const hits = bound ? 0 : (en.boss ? 1 : Math.min(en.count, 2)) * (en.hits || 1);
     for (let h = 0; h < hits; h++) {
       const al = P.filter((p) => p.hp > 0);
       if (!al.length) break;
@@ -133,22 +158,21 @@
     }
     return false;
   };
-  X.chance = function (stance, en) {
-    en = en || (G.S.exp && G.S.exp.enemy);
-    if (!en) return 0;
-    const ps = snap(X.members());
+  X.chance = function (stance, en, e) {
+    if (!en || !e) return 0;
+    const ps = snap(X.members(e));
     let w = 0;
     for (let i = 0; i < 40; i++) if (X.sim(ps, en, stance)) w++;
     return w / 40;
   };
-  X.fleeChance = function () {
-    const ms = X.members().filter((a) => a.hp > 0);
+  X.fleeChance = function (e) {
+    const ms = X.members(e).filter((a) => a.hp > 0);
     const arch = ms.filter((a) => a.cls === 'archer' || a.cls === 'rogue').length;
-    return G.U.clamp(0.65 + 0.08 * arch + G.T.partySum(ms, 'flee') - 0.02 * G.S.exp.floor, 0.2, 0.95);
+    return G.U.clamp(0.65 + 0.08 * arch + G.T.partySum(ms, 'flee') - 0.02 * e.floor, 0.2, 0.95);
   };
-  X.hpRatio = function () {
+  X.hpRatio = function (e) {
     let h = 0, m = 0;
-    for (const a of X.members()) { h += Math.max(0, a.hp); m += G.T.stats(a).hp; }
+    for (const a of X.members(e)) { h += Math.max(0, a.hp); m += G.T.stats(a).hp; }
     return m ? h / m : 0;
   };
 
@@ -160,67 +184,67 @@
   };
 
   X.start = function (ids, loc, maxFloor, startFloor) {
-    if (G.S.exp || !X.locOpen(loc)) return;
-    const party = ids.map(G.T.get).filter((a) => a && a.st === 'idle' && a.hp > 0).slice(0, X.maxParty);
-    if (!party.length) return;
+    if (X.list().length >= X.maxSquads() || !X.locOpen(loc)) return null;
+    const party = ids.map(G.T.get).filter((a) => a && a.st === 'idle' && a.hp > 0).slice(0, X.partyMax(loc));
+    if (!party.length) return null;
     for (const a of party) a.st = 'dungeon';
     const f0 = X.startOptions(loc).includes(startFloor) ? startFloor : 1;
     const t = X.travelTime(f0);
-    G.S.exp = {
-      loc, party: party.map((a) => a.id), maxFloor: Math.max(f0, Math.min(maxFloor, X.floors(loc))), cond: X.cond(),
+    const e = {
+      id: G.U.uid(), loc, party: party.map((a) => a.id), n: party.length, maxFloor: Math.max(f0, Math.min(maxFloor, X.floors(loc))), cond: X.cond(),
       floor: f0, cleared: f0 - 1, start: f0, phase: 'travel', t, tt: t, enemy: null, stance: null, ehp: 0, rt: 0, round: 0,
       fell: [], flog: [], loot: {}, items: [], log: [], recall: false,
     };
-    xlog(f0 > 1 ? 'xStartAt' : 'xStart', { n: party.length, l: { k: 'loc_' + loc }, f: f0 });
+    G.S.exps.push(e);
+    xlog(e, f0 > 1 ? 'xStartAt' : 'xStart', { n: party.length, l: { k: 'loc_' + loc }, f: f0 });
     G.log('logExpStart', { n: party.length, l: { k: 'loc_' + loc } }, 'info');
     G.SFX.play('horn');
     G.UI.dirty();
+    return e;
   };
 
   X.tick = function (dt) {
-    const e = G.S.exp;
-    if (!e) return;
-    if (e.pend) e.pend = null; // старые сохранения с ожиданием приказа
-    if (!e.cond) e.cond = X.cond();
-    if (!e.items) e.items = [];
+    if (!Array.isArray(G.S.exps) || G.S.exp) X.sanitize();
+    for (const e of [...G.S.exps]) tickOne(e, dt);
+  };
+  function tickOne(e, dt) {
     if (e.phase === 'travel') {
-      for (const a of X.members()) {
+      for (const a of X.members(e)) {
         if (a.hp > 0) { const mx = G.T.stats(a).hp; a.hp = Math.min(mx, a.hp + mx * 0.01 * dt); }
       }
       e.t -= dt;
-      if (e.t <= 0) X.engage();
+      if (e.t <= 0) X.engage(e);
     } else if (e.phase === 'fight') {
       e.rt += dt;
-      while (G.S.exp && G.S.exp.phase === 'fight' && e.rt >= ROUND) { e.rt -= ROUND; X.round(); }
+      while (X.get(e.id) && e.phase === 'fight' && e.rt >= ROUND) { e.rt -= ROUND; X.round(e); }
     } else if (e.phase === 'ret') {
       e.t -= dt;
-      if (e.t <= 0) X.finish(true);
-    } else if (e.phase === 'enc') X.engage();
-    else if (e.phase === 'after') X.afterFloor();
-  };
+      if (e.t <= 0) X.finish(e, true);
+    } else if (e.phase === 'enc') X.engage(e);
+    else if (e.phase === 'after') X.afterFloor(e);
+  }
 
   // Встреча с врагом: отряд сам выбирает тактику или уходит, если бой безнадёжен
-  X.engage = function () {
-    const e = G.S.exp;
-    e.enemy = e.enemy || X.enemy(e.loc, e.floor);
+  X.engage = function (e) {
+    e.enemy = e.enemy || X.enemy(e.loc, e.floor, e.n);
     e.phase = 'enc';
-    xlog('xEnc', { f: e.floor, m: X.enemyName(e.enemy) });
-    const ca = X.chance('attack'), cd = X.chance('defend');
+    xlog(e, 'xEnc', { f: e.floor, m: X.enemyName(e.enemy) });
+    const ca = X.chance('attack', e.enemy, e), cd = X.chance('defend', e.enemy, e);
     const best = Math.max(ca, cd);
     let stance = ca >= cd ? 'attack' : 'defend';
     if (e.cond.avoid > 0 && best < e.cond.avoid) {
-      if (Math.random() < X.fleeChance()) {
-        xlog('xAvoid', { p: Math.round(best * 100) }, 'warn');
+      if (Math.random() < X.fleeChance(e)) {
+        xlog(e, 'xAvoid', { p: Math.round(best * 100) }, 'warn');
         e.enemy = null;
-        X.goHome();
+        X.goHome(e);
         G.UI.dirty();
         return;
       }
-      xlog('xFleeFail', {}, 'bad');
-      for (const a of X.members()) {
+      xlog(e, 'xFleeFail', {}, 'bad');
+      for (const a of X.members(e)) {
         if (a.hp <= 0) continue;
-        const s = G.T.stats(a);
-        a.hp = Math.max(0, a.hp - (e.enemy.atk * 0.5 * 20) / (20 + s.def));
+        const st = G.T.stats(a);
+        a.hp = Math.max(0, a.hp - (e.enemy.atk * 0.5 * 20) / (20 + st.def));
       }
       stance = 'defend';
     }
@@ -231,13 +255,12 @@
     e.round = 0;
     e.fell = [];
     e.flog = [];
-    flog('fr_start', { m: X.enemyName(e.enemy), s: { k: 'ch_' + stance }, p: Math.round(best * 100) }, 'warn');
+    flog(e, 'fr_start', { m: X.enemyName(e.enemy), s: { k: 'ch_' + stance }, p: Math.round(best * 100) }, 'warn');
     G.UI.dirty();
   };
 
-  X.round = function () {
-    const e = G.S.exp;
-    const ms = X.members();
+  X.round = function (e) {
+    const ms = X.members(e);
     const ps = snap(ms);
     const before = ps.map((p) => p.hp);
     const out = [];
@@ -247,17 +270,17 @@
       p.a.hp = p.hp;
       if (before[i] > 0 && p.hp <= 0 && !e.fell.includes(p.a.id)) e.fell.push(p.a.id);
     });
-    for (const [k, p, c] of out) flog(k, p, c);
+    for (const [k, p, c] of out) flog(e, k, p, c);
     G.SFX.play('hit');
     G.UI.dirty();
-    if (e.ehp <= 0) X.endFight(true);
-    else if (!ms.some((a) => a.hp > 0)) X.endFight(false);
-    else if (e.round >= MAX_ROUNDS) { xlog('xStalemate', {}, 'warn'); X.goHome(); }
+    if (e.ehp <= 0) X.endFight(e, true);
+    else if (!ms.some((a) => a.hp > 0)) X.endFight(e, false);
+    else if (e.round >= MAX_ROUNDS) { xlog(e, 'xStalemate', {}, 'warn'); X.goHome(e); }
   };
 
   // Добыча предмета: шанс растёт с навыками «добычи», материал — с глубиной
   function dropItem(e, boss) {
-    const ms = X.members();
+    const ms = X.members(e);
     const chance = (boss ? 0.5 : 0.12) * (1 + G.T.partySum(ms, 'drop'));
     if (Math.random() >= chance) return;
     const depth = e.floor * D.LOCS[e.loc].diff;
@@ -266,37 +289,36 @@
     const rar = G.U.weighted(D.IRAR.map((r, i) => r.w * Math.pow(1 + k, i)));
     const it = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
     e.items.push(it);
-    xlog('xItem', { item: G.F.nameObj(it) }, it.rar >= 3 ? 'epic' : 'good');
+    xlog(e, 'xItem', { item: G.F.nameObj(it) }, it.rar >= 3 ? 'epic' : 'good');
   }
 
-  X.endFight = function (win) {
-    const e = G.S.exp;
+  X.endFight = function (e, win) {
     const L = D.LOCS[e.loc];
     const fell = e.fell.map(G.T.get).filter(Boolean);
     const dead = fell.filter(() => Math.random() < G.T.deathChance(win || e.cond.push ? 0.15 : 0.5));
-    for (const a of dead) { xlog('xFallen', { name: a.name }, 'bad'); G.T.kill(a, true); }
+    for (const a of dead) { xlog(e, 'xFallen', { name: a.name }, 'bad'); G.T.kill(a, true); }
     e.party = e.party.filter((id) => G.T.get(id));
     if (!win) {
-      xlog('xWiped', { f: e.floor }, 'bad');
+      xlog(e, 'xWiped', { f: e.floor }, 'bad');
       e.loot = {};
       e.items = [];
-      X.finish(false);
+      X.finish(e, false);
       return;
     }
     const boss = e.enemy.boss;
     e.cleared = e.floor;
     if (e.floor > X.best(e.loc)) G.S.dng.best[e.loc] = e.floor;
-    const ms = X.members();
-    const lootMul = (1 + G.T.partySum(ms, 'loot')) * G.K.epochReward();
+    const ms = X.members(e);
+    const lootMul = (1 + G.T.partySum(ms, 'loot')) * G.K.epochReward() * X.scale(e.loc, e.n).loot;
     const loot = L.loot(e.floor, boss);
     for (const k in loot) { loot[k] = Math.round(loot[k] * lootMul); e.loot[k] = (e.loot[k] || 0) + loot[k]; }
     dropItem(e, boss);
     const xp = Math.round(12 * Math.pow(1.17, e.floor - 1) * L.diff * (boss ? 2 : 1));
     for (const a of ms) if (a.hp > 0) G.T.giveXp(a, xp);
     G.K.xp(4 * e.floor * L.diff);
-    xlog('xWin', { f: e.floor, loot }, 'good');
-    flog('fr_win', { f: e.floor }, 'good');
-    for (const a of fell) if (!dead.includes(a)) xlog('xDowned', { name: a.name }, 'warn');
+    xlog(e, 'xWin', { f: e.floor, loot }, 'good');
+    flog(e, 'fr_win', { f: e.floor }, 'good');
+    for (const a of fell) if (!dead.includes(a)) xlog(e, 'xDowned', { name: a.name }, 'warn');
     e.enemy = null;
     e.lastBoss = boss;
     G.SFX.play('win');
@@ -306,61 +328,58 @@
       G.UI.story('awake');
     }
     e.phase = 'after';
-    X.afterFloor();
+    X.afterFloor(e);
   };
 
   // После этажа: проверяем условия отхода
-  X.afterFloor = function () {
-    const e = G.S.exp;
-    const ms = X.members();
+  X.afterFloor = function (e) {
+    const ms = X.members(e);
     let why = '';
     if (!ms.some((a) => a.hp > 0)) why = 'xwDown';
     else if (e.recall) why = 'xwRecall';
     else if (e.floor >= e.maxFloor || e.floor >= X.floors(e.loc)) why = 'xwMax';
     else if (e.cond.boss && e.lastBoss) why = 'xwBoss';
     else if (e.cond.down && ms.some((a) => a.hp <= 0)) why = 'xwDown';
-    else if (X.hpRatio() < e.cond.hp) why = 'xwHp';
+    else if (X.hpRatio(e) < e.cond.hp) why = 'xwHp';
     if (why) {
-      xlog(why, { p: Math.round(e.cond.hp * 100) }, 'warn');
-      X.goHome();
+      xlog(e, why, { p: Math.round(e.cond.hp * 100) }, 'warn');
+      X.goHome(e);
     } else {
       e.floor++;
       e.phase = 'travel';
       e.t = e.tt = X.travelTime(e.floor);
-      xlog('xDeeper', { f: e.floor });
+      xlog(e, 'xDeeper', { f: e.floor });
     }
     G.UI.dirty();
   };
 
-  X.goHome = function () {
-    const e = G.S.exp;
+  X.goHome = function (e) {
     e.phase = 'ret';
     e.t = e.tt = X.returnTime(Math.max(1, e.cleared));
-    xlog('xReturn', {});
+    xlog(e, 'xReturn', {});
   };
 
-  X.recall = function () {
-    const e = G.S.exp;
+  X.recall = function (id) {
+    const e = X.get(id);
     if (!e || e.phase === 'ret') return;
     e.recall = true;
-    xlog('xRecall', {}, 'warn');
-    if (e.phase === 'travel') X.goHome();
+    xlog(e, 'xRecall', {}, 'warn');
+    if (e.phase === 'travel') X.goHome(e);
     G.UI.dirty();
   };
 
-  X.finish = function (ok) {
-    const e = G.S.exp;
-    if (!e) return;
+  X.finish = function (e, ok) {
+    if (!X.get(e.id)) return;
     G.E.addAll(e.loot);
     for (const it of e.items || []) G.S.items.push(it);
-    for (const a of X.members()) {
+    for (const a of X.members(e)) {
       if (a.hp <= 0) G.T.wound(a, 45);
       else a.st = 'idle';
     }
     G.log(ok ? 'logExpBack' : 'logExpFail', { f: e.cleared, l: { k: 'loc_' + e.loc }, loot: e.loot }, ok ? 'good' : 'bad');
     if (ok && e.items && e.items.length) G.log('logExpItems', { n: e.items.length }, 'epic');
     G.S.lastExp = { ok, loc: e.loc, floor: e.cleared, loot: e.loot, items: (e.items || []).length, log: e.log.slice(-14) };
-    G.S.exp = null;
+    G.S.exps = G.S.exps.filter((x) => x !== e);
     G.UI.dirty();
     G.save();
   };
