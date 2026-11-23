@@ -186,7 +186,25 @@
   };
 
   E.pop = () => D.PROD.reduce((s, k) => s + G.S.b[k].w, 0) + G.S.b.forge.w + G.S.guards + G.S.advs.length;
-  E.tax = () => (E.lvl('castle') * 0.3 + 0.04 * E.pop()) * (1 + G.bonus('tax'));
+  // Жители: жильё — 3 дома за уровень Замка и 1 дом за каждые 2 уровня остальных зданий.
+  // Приходят по одному раз в 15 с (Гильдия и Рынок ускоряют), каждый платит налог.
+  E.homes = () => {
+    let lv = 0;
+    for (const k of D.ORDER) if (k !== 'castle' && !D.B[k].noLevel) lv += E.lvl(k);
+    return Math.floor(E.lvl('castle') * D.FOLK.perCastle + lv / D.FOLK.perLevels + G.bonus('housing'));
+  };
+  E.folk = () => Math.floor(G.S.folk || 0);
+  E.folkEvery = () => D.FOLK.every / (1 + 0.1 * E.lvl('tavern') + 0.1 * E.lvl('market'));
+  E.folkTax = () => E.folk() * D.FOLK.tax;
+  E.tickFolk = function (dt) {
+    const S = G.S, cap = E.homes();
+    if (S.folk > cap) S.folk = cap;
+    if (S.folk >= cap) { S.folkT = 0; return; }
+    S.folkT = (S.folkT || 0) + dt;
+    const every = E.folkEvery();
+    while (S.folkT >= every && S.folk < cap) { S.folkT -= every; S.folk++; }
+  };
+  E.tax = () => (E.lvl('castle') * 0.3 + 0.04 * E.pop() + E.folkTax()) * (1 + G.bonus('tax'));
 
   E.rates = function () {
     const r = { gold: E.tax() };
@@ -217,6 +235,7 @@
   E.tick = function (dt) {
     const r = E.rates();
     for (const k in r) E.add(k, r[k] * dt);
+    E.tickFolk(dt);
     E.autoSell();
     E.tickCons(dt);
     E.tickDecree();

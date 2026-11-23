@@ -766,6 +766,11 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   #bpop { border-left: 0; border-top: 2px solid var(--line); }
 }
 
+/* Жители рядом с королём */
+#folk { display: flex; align-items: center; gap: 6px; padding: 3px 8px; background: var(--panel2); border: 1px solid var(--line2); border-radius: 6px; cursor: help; }
+#folk .fl { color: var(--muted); font-size: 12px; }
+#folk .rr .ic { width: 12px; height: 12px; vertical-align: -2px; }
+
 /* Навыки здания */
 .bskill { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-top: 1px dashed var(--line); }
 .bskill:first-of-type { border-top: 0; }

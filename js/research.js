@@ -6,61 +6,83 @@
   R.done = (id) => !!G.S.research.done[id];
   R.speed = () => (1 + 0.1 * (G.E.lvl('academy') - 1)) * (1 + G.bonus('resSpeed'));
   R.time = (r) => r.t / Math.max(1, R.speed());
+  R.doneCount = () => D.RESEARCH.filter((r) => R.done(r.id)).length;
+
+  // Идущие исследования: список. Сколько сразу — 1, «Совет учёных» добавляет ещё одно.
+  R.slots = () => 1 + G.bonus('resSlots');
+  R.active = () => G.S.research.act;
+  R.cur = (id) => G.S.research.act.find((c) => c.id === id) || null;
+  R.free = () => R.active().length < R.slots();
+
+  // Старые сохранения: одно исследование в cur и записи, которых больше нет в списке
+  R.sanitize = function () {
+    const S = G.S.research;
+    if (!Array.isArray(S.act)) S.act = [];
+    if (S.cur) { if (R.get(S.cur.id)) S.act.push(S.cur); S.cur = null; }
+    S.act = S.act.filter((c) => R.get(c.id));
+    G.S.decree.research = G.S.decree.research.filter((id) => R.get(id));
+  };
 
   // Состояние: done | cur | open | locked
   R.state = function (id) {
     const r = R.get(id);
     if (R.done(id)) return 'done';
-    if (G.S.research.cur && G.S.research.cur.id === id) return 'cur';
+    if (R.cur(id)) return 'cur';
     if (G.E.lvl('academy') < r.acad || (r.req && !R.done(r.req))) return 'locked';
     return 'open';
   };
 
   R.start = function (id) {
-    if (G.S.research.cur || R.state(id) !== 'open' || !G.E.usable('academy')) return false;
+    if (!R.free() || R.state(id) !== 'open' || !G.E.usable('academy')) return false;
     const r = R.get(id);
     if (!G.E.pay(r.cost)) return false;
     const t = R.time(r);
-    G.S.research.cur = { id, t, total: t };
+    G.S.research.act.push({ id, t, total: t });
     G.log('logResStart', { r: { k: 'rs_' + id } }, 'info');
     G.SFX.play('click');
     G.UI.dirty();
     return true;
   };
 
-  // Клик по Академии ускоряет текущее исследование (сильнее с уровнем Академии)
+  // Клик по Академии ускоряет первое из идущих исследований (сильнее с уровнем Академии)
   R.boostSec = () => R.speed() * (1 + G.bonus('resBoost'));
   R.boost = function () {
-    const c = G.S.research.cur;
+    const c = R.active()[0];
     if (!c || !G.E.usable('academy')) return false;
     c.t -= R.boostSec();
     R.tick(0);
     return true;
   };
 
-  R.cancel = function () {
-    const c = G.S.research.cur;
+  R.cancel = function (id) {
+    const c = id ? R.cur(id) : R.active()[0];
     if (!c) return;
     G.E.addAll(R.get(c.id).cost);
-    G.S.research.cur = null;
+    G.S.research.act = R.active().filter((x) => x !== c);
     G.UI.dirty();
   };
 
+  function finish(c) {
+    const r = R.get(c.id);
+    G.S.research.done[c.id] = true;
+    G.invalidateBonus();
+    G.log('logResDone', { r: { k: 'rs_' + c.id } }, 'epic');
+    if (r.eff.loc_mine) G.log('logLocOpen', { l: { k: 'loc_mine' } }, 'epic');
+    if (r.eff.loc_lair) G.log('logLocOpen', { l: { k: 'loc_lair' } }, 'epic');
+    G.K.xp(20 * r.acad);
+    G.SFX.play('level');
+    G.UI.dirty();
+  }
+
   R.tick = function (dt) {
-    const c = G.S.research.cur;
-    if (c && G.E.usable('academy')) {
-      c.t -= dt;
-      if (c.t <= 0) {
-        const r = R.get(c.id);
-        G.S.research.done[c.id] = true;
-        G.S.research.cur = null;
-        G.invalidateBonus();
-        G.log('logResDone', { r: { k: 'rs_' + c.id } }, 'epic');
-        if (r.eff.loc_mine) G.log('logLocOpen', { l: { k: 'loc_mine' } }, 'epic');
-        if (r.eff.loc_lair) G.log('logLocOpen', { l: { k: 'loc_lair' } }, 'epic');
-        G.K.xp(20 * r.acad);
-        G.SFX.play('level');
-        G.UI.dirty();
+    const S = G.S.research;
+    if (!Array.isArray(S.act) || S.cur) R.sanitize();
+    if (S.act.length && G.E.usable('academy')) {
+      for (const c of S.act) c.t -= dt;
+      const ready = S.act.filter((c) => c.t <= 0);
+      if (ready.length) {
+        S.act = S.act.filter((c) => c.t > 0);
+        ready.forEach(finish);
       }
     }
     R.tickDecree();
@@ -73,18 +95,20 @@
     return G.E.lvl('academy') < r.acad ? 'academy' : 'req';
   };
 
-  // Указ об исследованиях: первое доступное по списку начинается само.
+  // Указ об исследованиях: первое доступное по списку начинается само, пока есть свободные места.
   // Недоступные пока записи пропускаются, а если не хватает только ресурсов — указ ждёт их.
   R.tickDecree = function () {
     const q = G.S.decree.research;
     let i = 0;
-    while (i < q.length && !G.S.research.cur && G.E.usable('academy')) {
+    while (i < q.length && R.free() && G.E.usable('academy')) {
       const id = q[i];
+      if (!R.get(id)) { q.splice(i, 1); continue; }
       const st = R.state(id);
       if (st === 'done' || st === 'cur') { q.splice(i, 1); G.UI.dirty(); continue; }
       if (R.waitReason(id)) { i++; continue; }
-      if (G.E.can(R.get(id).cost)) { R.start(id); q.splice(i, 1); }
-      break;
+      if (!G.E.can(R.get(id).cost)) break;
+      R.start(id);
+      q.splice(i, 1);
     }
   };
   R.enqueue = function (id) {

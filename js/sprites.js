@@ -252,6 +252,11 @@
     b.rect(13, 4, 1, 11, P.woodD); b.disc(13.5, 2.6, 1.7, '#7fe7ff'); b.px(12, 5, P.red); b.px(12, 6, P.white);
     b.px(1, 7, '#7fe7ff'); b.px(2, 5, '#7fe7ff');
   } };
+  DEF.c_folk = { w: 16, h: 16, draw(b) {
+    b.rect(3, 12, 2, 3, P.woodD); b.rect(6, 12, 2, 3, P.woodD); b.rect(10, 12, 2, 3, P.woodD); b.rect(12, 12, 2, 3, P.woodD);
+    b.rect(2, 7, 7, 6, P.leafD); b.rect(2, 10, 7, 1, P.woodD); b.disc(5.5, 4.6, 2.3, P.skin); b.rect(3, 2, 5, 1, P.wood); b.rect(4, 1, 3, 1, P.wood); b.px(4, 5, P.k); b.px(6, 5, P.k);
+    b.poly([[9, 8], [14, 8], [14.5, 13], [8.5, 13]], P.red); b.rect(9, 8, 5, 1, P.robe); b.disc(11.5, 5.4, 2.1, P.skin); b.rect(9, 3, 5, 2, P.boneL); b.px(11, 6, P.k); b.px(12, 6, P.k);
+  } };
   DEF.c_king = { w: 16, h: 16, draw(b) {
     b.poly([[3, 7], [13, 7], [14, 14.5], [2, 14.5]], P.red); b.rect(3, 7, 10, 2, P.robe); b.rect(7, 9, 2, 6, P.gold);
     b.disc(8, 4.8, 2.6, P.skin); b.poly([[6, 6], [10, 6], [8, 9]], P.boneD); b.px(7, 5, P.k); b.px(9, 5, P.k);

@@ -13,7 +13,8 @@
       b,
       cons: [], // идущие стройки: {k, t, total}
       decree: { build: [], research: [] }, // указы — очереди приоритетов
-      research: { done: {}, cur: null }, // cur: {id, t, total}
+      research: { done: {}, act: [] }, // act: идущие исследования [{id, t, total}]
+      folk: 0, folkT: 0, // жители и таймер прихода следующего
       king: { lvl: 1, xp: 0, tools: 0, tal: {}, cd: {}, buff: {} },
       advisors: {},
       items: [],

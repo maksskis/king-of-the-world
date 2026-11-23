@@ -37,6 +37,7 @@
   G.init = function () {
     const loaded = G.load();
     G.S = loaded || G.newState();
+    G.R.sanitize();
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();

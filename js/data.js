@@ -44,6 +44,8 @@
   }
   D.ORDER = ['castle', 'lumber', 'quarry', 'mine', 'warehouse', 'market', 'forge', 'tavern', 'barracks', 'academy', 'gate', 'dungeon'];
   D.PROD = ['lumber', 'quarry', 'mine'];
+  // Жители: платят налог; приходят, пока есть свободное жильё
+  D.FOLK = { tax: 0.03, perCastle: 3, perLevels: 2, every: 15 };
 
   // ---------- авантюристы ----------
   D.CLS = {
@@ -213,50 +215,47 @@
   D.advisorCost = (lvl) => ({ gold: Math.round(250 * Math.pow(2.4, lvl)) });
 
   // ---------- исследования (академия) ----------
+  // b — здание, в окне которого виден навык (может быть список)
   D.RESEARCH = [
-    { id: 'tools', acad: 1, icon: 'i_pick', cost: { gold: 120, wood: 80 }, t: 60, eff: { prod: 0.15 } },
-    { id: 'logging', acad: 1, icon: 'r_wood', cost: { gold: 100, stone: 60 }, t: 60, eff: { prod_wood: 0.25 } },
-    { id: 'masonry', acad: 1, icon: 'r_stone', cost: { gold: 100, wood: 60 }, t: 60, eff: { prod_stone: 0.25 } },
-    { id: 'mining', acad: 2, req: 'tools', icon: 'r_iron', cost: { gold: 200, wood: 150, stone: 100 }, t: 150, eff: { prod_iron: 0.25 } },
-    { id: 'builders', acad: 2, icon: 'i_hammer', cost: { gold: 300, wood: 250, stone: 250 }, t: 240, eff: { builders: 1 } },
-    { id: 'bows', acad: 2, icon: 'it_bow:0', cost: { gold: 250, wood: 200, iron: 80 }, t: 200, eff: { guardAtk: 0.25 } },
-    { id: 'gates', acad: 3, icon: 'i_def', cost: { gold: 400, stone: 500, iron: 150 }, t: 360, eff: { gateHp: 0.25 } },
-    { id: 'workshop', acad: 3, req: 'mining', icon: 'i_anvil', cost: { gold: 500, iron: 300, wood: 200 }, t: 420, eff: { forgeQ: 1, craft: 0.2 } },
-    { id: 'runes', acad: 3, icon: 'i_gem', cost: { gold: 600, crystal: 20, stone: 300 }, t: 480, eff: { enchant: 1 } },
-    { id: 'maps', acad: 3, icon: 'i_map', cost: { gold: 500, wood: 300, bone: 20 }, t: 480, eff: { loc_mine: 1 } },
-    { id: 'medicine', acad: 4, icon: 'i_heal', cost: { gold: 800, bone: 40, crystal: 15 }, t: 600, eff: { recover: 1, save: 0.1 } },
-    { id: 'guild', acad: 4, icon: 'i_scale', cost: { gold: 1000, wood: 600, stone: 600 }, t: 600, eff: { trade: 0.15 } },
-    { id: 'storage', acad: 5, icon: 'i_bag', cost: { gold: 1500, wood: 1200, stone: 1200 }, t: 900, eff: { store: 0.25 } },
-    { id: 'guard', acad: 5, req: 'bows', icon: 'i_helmet', cost: { gold: 1500, iron: 800 }, t: 900, eff: { guards: 3 } },
-    { id: 'builders2', acad: 6, req: 'builders', icon: 'i_hammer', cost: { gold: 3000, wood: 3000, stone: 3000 }, t: 1200, eff: { builders: 1 } },
-    { id: 'dragon', acad: 6, req: 'maps', icon: 'i_dragon', cost: { gold: 4000, mithril: 40, crystal: 60 }, t: 1500, eff: { loc_lair: 1 } },
-    // навыки зданий: по два на каждое здание, изучаются в Академии
+    // 1 уровень Академии
+    { id: 'tools', b: 'academy', acad: 1, icon: 'i_pick', cost: { gold: 120, wood: 80 }, t: 60, eff: { prod: 0.15 } },
+    { id: 'logging', b: 'lumber', acad: 1, icon: 'r_wood', cost: { gold: 100, stone: 60 }, t: 60, eff: { prod_wood: 0.25, gather_wood: 0.5 } },
+    { id: 'masonry', b: 'quarry', acad: 1, icon: 'r_stone', cost: { gold: 100, wood: 60 }, t: 60, eff: { prod_stone: 0.25, gather_stone: 0.5 } },
+    // 2
+    { id: 'mining', b: 'mine', acad: 2, req: 'tools', icon: 'r_iron', cost: { gold: 200, wood: 150, stone: 100 }, t: 150, eff: { prod_iron: 0.25, gather_iron: 0.5 } },
+    { id: 'builders', b: 'castle', acad: 2, icon: 'i_hammer', cost: { gold: 300, wood: 250, stone: 250 }, t: 240, eff: { builders: 1 } },
     { id: 'mint', b: 'castle', acad: 2, icon: 'r_gold', cost: { gold: 300, stone: 200 }, t: 200, eff: { tax: 0.2 } },
-    { id: 'treasury', b: 'castle', acad: 4, icon: 'i_chest', cost: { gold: 900, stone: 600, iron: 200 }, t: 600, eff: { goldCap: 0.3 } },
-    { id: 'axes', b: 'lumber', acad: 1, icon: 'i_pick', cost: { gold: 80, wood: 60 }, t: 50, eff: { gather_wood: 0.5 } },
-    { id: 'sawmill', b: 'lumber', acad: 3, req: 'logging', icon: 'i_people', cost: { gold: 500, wood: 400, iron: 100 }, t: 420, eff: { crews_lumber: 1 } },
-    { id: 'chisels', b: 'quarry', acad: 1, icon: 'i_pick', cost: { gold: 80, stone: 60 }, t: 50, eff: { gather_stone: 0.5 } },
-    { id: 'quarrycrew', b: 'quarry', acad: 3, req: 'masonry', icon: 'i_people', cost: { gold: 500, stone: 400, iron: 100 }, t: 420, eff: { crews_quarry: 1 } },
-    { id: 'picks', b: 'mine', acad: 2, icon: 'i_pick', cost: { gold: 200, iron: 80 }, t: 150, eff: { gather_iron: 0.5 } },
-    { id: 'shafts', b: 'mine', acad: 4, req: 'mining', icon: 'i_people', cost: { gold: 900, wood: 500, iron: 300 }, t: 600, eff: { crews_mine: 1 } },
-    { id: 'shelves', b: 'warehouse', acad: 2, icon: 'i_bag', cost: { gold: 250, wood: 250 }, t: 200, eff: { store: 0.15 } },
-    { id: 'vault', b: 'warehouse', acad: 4, icon: 'i_lock', cost: { gold: 800, stone: 600 }, t: 600, eff: { lootProtect: 0.5 } },
-    { id: 'caravans', b: 'market', acad: 3, icon: 'i_scale', cost: { gold: 500, wood: 300 }, t: 420, eff: { trade: 0.1 } },
-    { id: 'contracts', b: 'market', acad: 5, req: 'guild', icon: 'i_scroll', cost: { gold: 1500, wood: 800, stone: 800 }, t: 900, eff: { buyC: 0.25 } },
     { id: 'bellows', b: 'forge', acad: 2, icon: 'i_fire', cost: { gold: 250, wood: 200, iron: 100 }, t: 200, eff: { craft: 0.25 } },
-    { id: 'smelting', b: 'forge', acad: 5, req: 'workshop', icon: 'i_anvil', cost: { gold: 1500, iron: 1000, stone: 500 }, t: 900, eff: { forgeC: 0.2 } },
-    { id: 'recruiters', b: 'tavern', acad: 2, icon: 'i_coin', cost: { gold: 300, wood: 200 }, t: 200, eff: { hireC: 0.25 } },
-    { id: 'training', b: 'tavern', acad: 4, icon: 'i_star', cost: { gold: 900, iron: 300, bone: 30 }, t: 600, eff: { advXp: 0.25 } },
-    { id: 'drill', b: 'barracks', acad: 3, req: 'bows', icon: 'i_flag', cost: { gold: 600, iron: 300 }, t: 480, eff: { guardSpd: 0.25 } },
-    { id: 'muster', b: 'barracks', acad: 4, icon: 'i_helmet', cost: { gold: 800, iron: 400 }, t: 600, eff: { guardC: 0.25 } },
-    { id: 'library', b: 'academy', acad: 3, icon: 'i_book', cost: { gold: 600, wood: 400, stone: 300 }, t: 480, eff: { resSpeed: 0.25 } },
-    { id: 'scholars', b: 'academy', acad: 5, icon: 'i_people', cost: { gold: 1500, crystal: 30 }, t: 900, eff: { resBoost: 1 } },
-    { id: 'spikes', b: 'gate', acad: 3, icon: 'i_atk', cost: { gold: 500, wood: 400, iron: 150 }, t: 420, eff: { thorns: 0.5 } },
-    { id: 'masons', b: 'gate', acad: 6, req: 'gates', icon: 'i_hammer', cost: { gold: 3000, stone: 3000, iron: 800 }, t: 1200, eff: { gateRegen: 0.008 } },
+    // 3
+    { id: 'bows', b: 'barracks', acad: 3, icon: 'it_bow:0', cost: { gold: 400, wood: 300, iron: 120 }, t: 300, eff: { guardAtk: 0.25 } },
+    { id: 'gates', b: 'gate', acad: 3, icon: 'i_def', cost: { gold: 400, stone: 500, iron: 150 }, t: 360, eff: { gateHp: 0.25 } },
+    { id: 'workshop', b: 'forge', acad: 3, req: 'mining', icon: 'i_anvil', cost: { gold: 500, iron: 300, wood: 200 }, t: 420, eff: { forgeQ: 1, craft: 0.2 } },
+    { id: 'maps', b: 'academy', acad: 3, icon: 'i_map', cost: { gold: 500, wood: 300, bone: 20 }, t: 480, eff: { loc_mine: 1 } },
+    // 4
+    { id: 'council', b: 'academy', acad: 4, icon: 'i_people', cost: { gold: 1000, wood: 600, stone: 600, crystal: 10 }, t: 600, eff: { resSlots: 1 } },
+    { id: 'storage', b: 'warehouse', acad: 4, icon: 'i_bag', cost: { gold: 1000, wood: 800, stone: 800 }, t: 600, eff: { store: 0.25 } },
+    { id: 'training', b: 'tavern', acad: 4, icon: 'i_star', cost: { gold: 900, iron: 300, bone: 30 }, t: 600, eff: { hireC: 0.25, advXp: 0.25 } },
+    { id: 'runes', b: 'forge', acad: 4, icon: 'i_gem', cost: { gold: 800, crystal: 20, stone: 400 }, t: 600, eff: { enchant: 1 } },
+    // 5
+    { id: 'medicine', b: 'tavern', acad: 5, icon: 'i_heal', cost: { gold: 1200, bone: 50, crystal: 20 }, t: 800, eff: { recover: 1, save: 0.1 } },
+    { id: 'guild', b: 'market', acad: 5, icon: 'i_scale', cost: { gold: 1300, wood: 800, stone: 800 }, t: 800, eff: { trade: 0.15 } },
+    { id: 'workcamps', b: ['lumber', 'quarry', 'mine'], acad: 5, icon: 'i_people', cost: { gold: 1500, wood: 1000, stone: 1000, iron: 300 }, t: 900, eff: { crews: 1 } },
+    { id: 'library', b: 'academy', acad: 5, icon: 'i_book', cost: { gold: 1400, wood: 800, stone: 600 }, t: 800, eff: { resSpeed: 0.25 } },
+    // 6
+    { id: 'guard', b: 'barracks', acad: 6, req: 'bows', icon: 'i_helmet', cost: { gold: 2500, iron: 1200 }, t: 1200, eff: { guards: 3, guardSpd: 0.25 } },
+    { id: 'treasury', b: 'castle', acad: 6, icon: 'i_chest', cost: { gold: 2500, stone: 1500, iron: 500 }, t: 1200, eff: { goldCap: 0.3 } },
+    { id: 'dragon', b: 'academy', acad: 6, req: 'maps', icon: 'i_dragon', cost: { gold: 4000, mithril: 40, crystal: 60 }, t: 1500, eff: { loc_lair: 1 } },
+    { id: 'spikes', b: 'gate', acad: 6, icon: 'i_atk', cost: { gold: 2200, wood: 1500, iron: 600 }, t: 1100, eff: { thorns: 0.5 } },
+    // 7
+    { id: 'builders2', b: 'castle', acad: 7, req: 'builders', icon: 'i_hammer', cost: { gold: 5000, wood: 5000, stone: 5000 }, t: 1800, eff: { builders: 1 } },
+    { id: 'contracts', b: 'market', acad: 7, req: 'guild', icon: 'i_scroll', cost: { gold: 5000, wood: 3000, stone: 3000 }, t: 1600, eff: { buyC: 0.25 } },
+    { id: 'smelting', b: 'forge', acad: 7, req: 'workshop', icon: 'i_anvil', cost: { gold: 5000, iron: 3000, stone: 1500 }, t: 1600, eff: { forgeC: 0.2 } },
+    { id: 'scholars', b: 'academy', acad: 7, icon: 'i_people', cost: { gold: 5000, crystal: 80 }, t: 1600, eff: { resBoost: 1 } },
+    // 8
+    { id: 'vault', b: 'warehouse', acad: 8, req: 'storage', icon: 'i_lock', cost: { gold: 9000, stone: 8000 }, t: 2400, eff: { store: 0.15, lootProtect: 0.5 } },
+    { id: 'masons', b: 'gate', acad: 8, req: 'gates', icon: 'i_hammer', cost: { gold: 9000, stone: 9000, iron: 2500 }, t: 2400, eff: { gateRegen: 0.008 } },
   ];
-  // к какому зданию относятся прежние исследования (показываются в окне здания)
-  const RES_B = { tools: 'academy', logging: 'lumber', masonry: 'quarry', mining: 'mine', builders: 'castle', bows: 'barracks', gates: 'gate', workshop: 'forge', runes: 'forge', maps: 'academy', medicine: 'tavern', guild: 'market', storage: 'warehouse', guard: 'barracks', builders2: 'castle', dragon: 'academy' };
-  for (const r of D.RESEARCH) if (!r.b) r.b = RES_B[r.id];
+  D.resIn = (r, k) => [].concat(r.b).includes(k);
 
   // ---------- подземелья (карта мира) ----------
   const L = (f, m) => ({ gold: Math.round(12 * Math.pow(1.2, f - 1) * m.g), bone: Math.round((1 + f * 0.6) * m.b) });

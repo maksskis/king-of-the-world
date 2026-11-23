@@ -210,13 +210,18 @@
       return `<b>${ic('r_' + id)} ${t('res_' + id)}</b><div>${t('tipHave')}: <b>${U.fmt(G.S.res[id] || 0)}</b> / ${U.fmt(G.E.cap(id))}${rate ? ` · <span class="good">+${U.fmt1(rate)}/${t('sec')}</span>` : ''}</div><div class="muted">${t('rd_' + id)}</div>`;
     }
     if (type === 'b') return tipHtml(id, false);
+    if (key === 'folk') {
+      const n = G.E.folk(), cap = G.E.homes();
+      return `<b>${ic('c_folk')} ${t('folk')}: ${n} / ${cap}</b><div>${t('folkTax')}: <span class="good">+${U.fmt1(G.E.folkTax() * (1 + G.bonus('tax')))}/${t('sec')}</span></div>`
+        + `<div>${n < cap ? t('folkNext', { s: Math.ceil(G.E.folkEvery() - (G.S.folkT || 0)) }) : t('folkFull')}</div><div class="muted">${t('folkHint', { e: U.fmt1(G.E.folkEvery()) })}</div>`;
+    }
     if (type === 's') {
       const r = G.R.get(id);
       if (!r) return '';
       const st = G.R.state(id), q = G.S.decree.research.indexOf(id);
-      let h = `<b>${t('rs_' + id)}</b>${r.b ? ` · <span class="muted">${t('bn_' + r.b)}</span>` : ''}<div>${t('rsd_' + id)}</div>`;
+      let h = `<b>${t('rs_' + id)}</b>${r.b ? ` · <span class="muted">${[].concat(r.b).map((b) => t('bn_' + b)).join(', ')}</span>` : ''}<div>${t('rsd_' + id)}</div>`;
       if (st === 'done') h += `<div class="good">${ic('i_check')} ${t('researched')}</div>`;
-      else if (st === 'cur') h += `<div class="warn">${t('researching')} ${U.fmtTime(G.S.research.cur.t)}</div>`;
+      else if (st === 'cur') h += `<div class="warn">${t('researching')} ${U.fmtTime(G.R.cur(id).t)}</div>`;
       else {
         h += `<div class="row">${costHtml(r.cost)}<span class="muted">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span></div>`;
         const why = G.R.waitReason(id);
@@ -317,7 +322,7 @@
     set('forge', S.forge.q.length ? ic('i_anvil') + S.forge.q.length : '');
     set('dungeon', S.exp ? (S.exp.pend ? '!' : ic('i_flag') + (S.exp.phase === 'ret' ? S.exp.cleared : S.exp.floor)) : '');
     set('tavern', G.E.usable('tavern') && S.tavern.cands.length && S.advs.length < G.T.maxAdvs() ? ic('i_people') + S.tavern.cands.length : '');
-    set('academy', S.research.cur ? ic('i_book') : '');
+    set('academy', S.research.act.length ? ic('i_book') + (S.research.act.length > 1 ? S.research.act.length : '') : '');
     set('gate', G.W.active() ? ic('i_atk') : G.W.finalReady() ? ic('i_dragon') + '!' : '');
     set('warehouse', D.MAT.some((r) => G.S.seen[r] && G.E.full(r)) ? ic('i_bag') + '!' : '');
   }
@@ -391,6 +396,7 @@
 
   function renderKingBadge() {
     const k = G.S.king;
+    $('#folk').innerHTML = `${ic('c_folk', 'ic2')}<div class="rcol"><div><span class="fl">${t('folk')}</span> <b data-b="folk"></b></div><div class="rline"><div class="rbar"><i data-w="folkW"></i></div><span class="rr">${ic('r_gold')}<span data-b="folkR"></span></span></div></div>`;
     $('#kbadge').innerHTML = `${ic('c_king', 'ic2')}<span class="kl">${t('lv')} <b data-b="klvl"></b></span>${bar('kxp', 'xp')}${G.K.tp() > 0 ? '<i class="sp">+</i>' : ''}`;
     $('#kbadge').title = t('king') + ' · ' + t('lv') + ' ' + k.lvl;
   }
@@ -477,7 +483,7 @@
     abdicate() { UI.confirm(t('confirmAbdicate', { n: G.K.legacyGain() }), () => G.K.abdicate()); },
     research(id) { G.R.start(id); },
     resQueue(id) { G.R.enqueue(id); },
-    resCancel() { G.R.cancel(); },
+    resCancel(id) { G.R.cancel(id); },
     loc(id) { if (!G.S.exp) { G.S.dng.loc = id; G.S.dng.maxFloor = Math.min(G.S.dng.maxFloor, G.X.floors(id)); UI.dirty(); } },
     pickParty(id) {
       if (UI.party.has(id)) UI.party.delete(id);
@@ -678,7 +684,7 @@
     if (G.E.consOf(k)) return G.E.boostSec() > 0 ? `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_hammer')} ${t('helpBuild', { n: U.fmt1(G.E.boostSec()) })}</button>` : '';
     if (L > 0 && d.click) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_pick')} ${t('gatherBtn')} <b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + d.click)}</button>`;
     if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn')}</button>`;
-    if (k === 'academy' && L > 0 && G.S.research.cur) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_book')} ${t('resBoostBtn', { n: U.fmt1(G.R.boostSec()) })}</button>`;
+    if (k === 'academy' && L > 0 && G.R.active().length) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_book')} ${t('resBoostBtn', { n: U.fmt1(G.R.boostSec()) })}</button>`;
     return '';
   }
   function popPanel(k) {
@@ -693,19 +699,19 @@
   }
   // Навыки здания: его исследования в Академии — изучить отсюда или поставить в указ
   function skillsBox(k) {
-    const list = D.RESEARCH.filter((r) => r.b === k);
+    const list = D.RESEARCH.filter((r) => D.resIn(r, k));
     if (!list.length) return '';
-    const AL = G.E.lvl('academy'), cur = G.S.research.cur;
+    const AL = G.E.lvl('academy'), busyAll = !G.R.free();
     const rows = list.map((r) => {
       const st = G.R.state(r.id), q = G.S.decree.research.indexOf(r.id);
       let act;
       if (st === 'done') act = `<div class="good small">${ic('i_check')} ${t('researched')}</div>`;
-      else if (st === 'cur') act = `${bar('rsch')}<div class="muted small" data-b="rschT"></div>`;
+      else if (st === 'cur') act = `${bar('rsch:' + r.id)}<div class="muted small" data-b="rschT:${r.id}"></div>`;
       else {
         const why = G.R.waitReason(r.id);
         act = `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span></div><div class="row">`;
         if (!AL) act += `<span class="warn small">${ic('i_lock')} ${t('needAcademyShort')}</span>`;
-        else if (st === 'open') act += btn(t('study'), 'research', r.id, { cost: r.cost, chips: false, cls: 'small primary', lock: !!cur || !G.E.usable('academy') });
+        else if (st === 'open') act += btn(t('study'), 'research', r.id, { cost: r.cost, chips: false, cls: 'small primary', lock: busyAll || !G.E.usable('academy') });
         else act += `<span class="warn small">${ic('i_lock')} ${resWaitText(r, why)}</span>`;
         if (AL) act += ` <button class="btn small" data-action="resQueue" data-arg="${r.id}" ${q >= 0 ? 'disabled' : ''}>${ic('i_scroll')} ${q >= 0 ? t('queuedPos', { n: q + 1 }) : t('toDecree')}</button>`;
         act += '</div>';
@@ -1055,7 +1061,9 @@
     expT: () => (G.S.exp ? U.fmtTime(G.S.exp.t) : ''),
     ehp: () => { const e = G.S.exp; return e && e.enemy ? U.fmt(Math.max(0, e.phase === 'fight' ? e.ehp : e.enemy.hp)) + '/' + U.fmt(e.enemy.max) : ''; },
     decT: () => { const e = G.S.exp; return e && e.pend ? U.fmtTime((e.pend.dl - Date.now()) / 1000) : ''; },
-    rschT: () => { const c = G.S.research.cur; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
+    rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
+    folk: () => G.E.folk() + '/' + G.E.homes(),
+    folkR: () => { const v = G.E.folkTax() * (1 + G.bonus('tax')); return v ? '+' + U.fmt1(v) : ''; },
     cd: (id) => { const v = G.S.king.cd[id] || 0; const b = id === 'rush' ? G.S.king.buff.rush : id === 'rallyS' ? G.S.king.buff.rally : 0; return b > 0 ? U.fmtTime(b) : v > 0 ? U.fmtTime(v) : ''; },
     klvl: () => String(G.S.king.lvl),
     kxpT: () => U.fmt(G.S.king.xp) + ' / ' + U.fmt(G.K.need()),
@@ -1067,7 +1075,8 @@
     hp: (id) => { const a = G.T.get(id); return a ? a.hp / G.T.stats(a).hp : 0; },
     exp: () => { const e = G.S.exp; return e && e.tt ? 1 - e.t / e.tt : 0; },
     ehp: () => { const e = G.S.exp; return e && e.enemy ? (e.phase === 'fight' ? e.ehp : e.enemy.hp) / e.enemy.max : 0; },
-    rsch: () => { const c = G.S.research.cur; return c ? 1 - c.t / c.total : 0; },
+    rsch: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? 1 - c.t / c.total : 0; },
+    folkW: () => (G.E.homes() ? G.E.folk() / G.E.homes() : 0),
     kxp: () => G.S.king.xp / G.K.need(),
   };
 
