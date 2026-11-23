@@ -229,7 +229,33 @@
     { id: 'guard', acad: 5, req: 'bows', icon: 'i_helmet', cost: { gold: 1500, iron: 800 }, t: 900, eff: { guards: 3 } },
     { id: 'builders2', acad: 6, req: 'builders', icon: 'i_hammer', cost: { gold: 3000, wood: 3000, stone: 3000 }, t: 1200, eff: { builders: 1 } },
     { id: 'dragon', acad: 6, req: 'maps', icon: 'i_dragon', cost: { gold: 4000, mithril: 40, crystal: 60 }, t: 1500, eff: { loc_lair: 1 } },
+    // навыки зданий: по два на каждое здание, изучаются в Академии
+    { id: 'mint', b: 'castle', acad: 2, icon: 'r_gold', cost: { gold: 300, stone: 200 }, t: 200, eff: { tax: 0.2 } },
+    { id: 'treasury', b: 'castle', acad: 4, icon: 'i_chest', cost: { gold: 900, stone: 600, iron: 200 }, t: 600, eff: { goldCap: 0.3 } },
+    { id: 'axes', b: 'lumber', acad: 1, icon: 'i_pick', cost: { gold: 80, wood: 60 }, t: 50, eff: { gather_wood: 0.5 } },
+    { id: 'sawmill', b: 'lumber', acad: 3, req: 'logging', icon: 'i_people', cost: { gold: 500, wood: 400, iron: 100 }, t: 420, eff: { crews_lumber: 1 } },
+    { id: 'chisels', b: 'quarry', acad: 1, icon: 'i_pick', cost: { gold: 80, stone: 60 }, t: 50, eff: { gather_stone: 0.5 } },
+    { id: 'quarrycrew', b: 'quarry', acad: 3, req: 'masonry', icon: 'i_people', cost: { gold: 500, stone: 400, iron: 100 }, t: 420, eff: { crews_quarry: 1 } },
+    { id: 'picks', b: 'mine', acad: 2, icon: 'i_pick', cost: { gold: 200, iron: 80 }, t: 150, eff: { gather_iron: 0.5 } },
+    { id: 'shafts', b: 'mine', acad: 4, req: 'mining', icon: 'i_people', cost: { gold: 900, wood: 500, iron: 300 }, t: 600, eff: { crews_mine: 1 } },
+    { id: 'shelves', b: 'warehouse', acad: 2, icon: 'i_bag', cost: { gold: 250, wood: 250 }, t: 200, eff: { store: 0.15 } },
+    { id: 'vault', b: 'warehouse', acad: 4, icon: 'i_lock', cost: { gold: 800, stone: 600 }, t: 600, eff: { lootProtect: 0.5 } },
+    { id: 'caravans', b: 'market', acad: 3, icon: 'i_scale', cost: { gold: 500, wood: 300 }, t: 420, eff: { trade: 0.1 } },
+    { id: 'contracts', b: 'market', acad: 5, req: 'guild', icon: 'i_scroll', cost: { gold: 1500, wood: 800, stone: 800 }, t: 900, eff: { buyC: 0.25 } },
+    { id: 'bellows', b: 'forge', acad: 2, icon: 'i_fire', cost: { gold: 250, wood: 200, iron: 100 }, t: 200, eff: { craft: 0.25 } },
+    { id: 'smelting', b: 'forge', acad: 5, req: 'workshop', icon: 'i_anvil', cost: { gold: 1500, iron: 1000, stone: 500 }, t: 900, eff: { forgeC: 0.2 } },
+    { id: 'recruiters', b: 'tavern', acad: 2, icon: 'i_coin', cost: { gold: 300, wood: 200 }, t: 200, eff: { hireC: 0.25 } },
+    { id: 'training', b: 'tavern', acad: 4, icon: 'i_star', cost: { gold: 900, iron: 300, bone: 30 }, t: 600, eff: { advXp: 0.25 } },
+    { id: 'drill', b: 'barracks', acad: 3, req: 'bows', icon: 'i_flag', cost: { gold: 600, iron: 300 }, t: 480, eff: { guardSpd: 0.25 } },
+    { id: 'muster', b: 'barracks', acad: 4, icon: 'i_helmet', cost: { gold: 800, iron: 400 }, t: 600, eff: { guardC: 0.25 } },
+    { id: 'library', b: 'academy', acad: 3, icon: 'i_book', cost: { gold: 600, wood: 400, stone: 300 }, t: 480, eff: { resSpeed: 0.25 } },
+    { id: 'scholars', b: 'academy', acad: 5, icon: 'i_people', cost: { gold: 1500, crystal: 30 }, t: 900, eff: { resBoost: 1 } },
+    { id: 'spikes', b: 'gate', acad: 3, icon: 'i_atk', cost: { gold: 500, wood: 400, iron: 150 }, t: 420, eff: { thorns: 0.5 } },
+    { id: 'masons', b: 'gate', acad: 6, req: 'gates', icon: 'i_hammer', cost: { gold: 3000, stone: 3000, iron: 800 }, t: 1200, eff: { gateRegen: 0.008 } },
   ];
+  // к какому зданию относятся прежние исследования (показываются в окне здания)
+  const RES_B = { tools: 'academy', logging: 'lumber', masonry: 'quarry', mining: 'mine', builders: 'castle', bows: 'barracks', gates: 'gate', workshop: 'forge', runes: 'forge', maps: 'academy', medicine: 'tavern', guild: 'market', storage: 'warehouse', guard: 'barracks', builders2: 'castle', dragon: 'academy' };
+  for (const r of D.RESEARCH) if (!r.b) r.b = RES_B[r.id];
 
   // ---------- подземелья (карта мира) ----------
   const L = (f, m) => ({ gold: Math.round(12 * Math.pow(1.2, f - 1) * m.g), bone: Math.round((1 + f * 0.6) * m.b) });
@@ -283,6 +309,18 @@
     { id: 'start', icon: 'i_chest', eff: { start: 1 } },
     { id: 'xp', icon: 'i_star', eff: { xp: 0.1 } },
     { id: 'cap', icon: 'i_bag', eff: { store: 0.1 } },
+    { id: 'build', icon: 'i_clock', eff: { buildT: 0.05 } },
+    { id: 'tax', icon: 'r_gold', eff: { tax: 0.1 } },
+    { id: 'trade', icon: 'i_scale', eff: { trade: 0.05 } },
+    { id: 'craft', icon: 'i_anvil', eff: { craft: 0.1 } },
+    { id: 'hero', icon: 'i_people', eff: { advXp: 0.1 } },
+    { id: 'hire', icon: 'i_coin', eff: { hireC: 0.05 } },
+    { id: 'guards', icon: 'i_helmet', eff: { guardAtk: 0.1 } },
+    { id: 'walls', icon: 'i_def', eff: { gateHp: 0.1 } },
+    { id: 'captain', icon: 'i_map', eff: { captain: 0.04 } },
+    { id: 'medic', icon: 'i_heal', eff: { medic: 0.1, save: 0.02 } },
+    { id: 'research', icon: 'i_book', eff: { resSpeed: 0.1 } },
+    { id: 'crit', icon: 'i_star', eff: { clickCrit: 0.01 } },
   ];
 
   // ---------- цели (обучение и кампания) ----------

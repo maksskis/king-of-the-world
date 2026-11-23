@@ -23,7 +23,7 @@
   const monSpr = (k) => D.MON[k].spr || 'm_' + k;
   const X_COND = () => G.X.cond();
   function costHtml(c) {
-    return `<span class="costs">${Object.keys(c).filter((r) => c[r] > 0).map((r) => `<span class="chip${c[r] > G.E.cap(r) ? ' over' : ''}" data-r="${r}" data-n="${c[r]}">${ic('r_' + r)}${U.fmt(c[r])}</span>`).join('')}</span>`;
+    return `<span class="costs">${Object.keys(c).filter((r) => c[r] > 0).map((r) => `<span class="chip${c[r] > G.E.cap(r) ? ' over' : ''}" data-r="${r}" data-n="${c[r]}" data-tip="r:${r}">${ic('r_' + r)}${U.fmt(c[r])}</span>`).join('')}</span>`;
   }
   function btn(label, action, arg, o) {
     o = o || {};
@@ -33,7 +33,7 @@
   }
   function lootHtml(o) {
     if (!o) return '';
-    return Object.keys(o).filter((r) => o[r] > 0).map((r) => `<span class="loot">${ic('r_' + r)}${U.fmt(o[r])}</span>`).join(' ');
+    return Object.keys(o).filter((r) => o[r] > 0).map((r) => `<span class="loot" data-tip="r:${r}">${ic('r_' + r)}${U.fmt(o[r])}</span>`).join(' ');
   }
   const bar = (key, cls) => `<div class="bar ${cls || ''}"><i data-w="${key}"></i></div>`;
   const box = (title, body, cls) => `<div class="box ${cls || ''}">${title ? `<h3>${title}</h3>` : ''}${body}</div>`;
@@ -104,6 +104,15 @@
     $('#modal').addEventListener('click', (e) => {
       if (e.target.id === 'modal' && UI.win !== 'decision' && UI.win !== 'story') UI.closeModal();
     });
+    // всплывающая подсказка для всего, у чего есть data-tip: ресурсы, записи указов, карточки зданий
+    document.addEventListener('mouseover', (e) => {
+      const el = e.target.closest && e.target.closest('[data-tip]');
+      if (!el) { if (UI.gtip) hideGtip(); return; }
+      if (UI.gtip !== el.dataset.tip) { UI.gtip = el.dataset.tip; renderGtip(); }
+      placeGtip(e);
+    });
+    document.addEventListener('mousemove', (e) => { if (UI.gtip) placeGtip(e); });
+    document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') hideGtip(); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
     });
@@ -178,7 +187,56 @@
     tip.style.left = Math.max(4, x) + 'px';
     tip.style.top = Math.max(4, y) + 'px';
   }
-  function tipHtml(k) {
+  // ---------- общая подсказка ----------
+  function hideGtip() {
+    UI.gtip = null;
+    $('#gtip').classList.add('hidden');
+  }
+  function placeGtip(e) {
+    const el = $('#gtip'), w = el.offsetWidth, h = el.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 16;
+    if (x + w > window.innerWidth - 6) x = e.clientX - w - 12;
+    if (y + h > window.innerHeight - 6) y = e.clientY - h - 12;
+    el.style.left = Math.max(6, x) + 'px';
+    el.style.top = Math.max(6, y) + 'px';
+  }
+  function resWaitText(r, why) {
+    return why === 'academy' ? t('needAcad', { l: r.acad }) : why === 'req' ? t('needRes', { r: t('rs_' + r.req) }) : t('needStorageShort');
+  }
+  function gtipHtml(key) {
+    const i = key.indexOf(':'), type = key.slice(0, i), id = key.slice(i + 1);
+    if (type === 'r') {
+      const rate = UI._rates && UI._rates[id];
+      return `<b>${ic('r_' + id)} ${t('res_' + id)}</b><div>${t('tipHave')}: <b>${U.fmt(G.S.res[id] || 0)}</b> / ${U.fmt(G.E.cap(id))}${rate ? ` · <span class="good">+${U.fmt1(rate)}/${t('sec')}</span>` : ''}</div><div class="muted">${t('rd_' + id)}</div>`;
+    }
+    if (type === 'b') return tipHtml(id, false);
+    if (type === 's') {
+      const r = G.R.get(id);
+      if (!r) return '';
+      const st = G.R.state(id), q = G.S.decree.research.indexOf(id);
+      let h = `<b>${t('rs_' + id)}</b>${r.b ? ` · <span class="muted">${t('bn_' + r.b)}</span>` : ''}<div>${t('rsd_' + id)}</div>`;
+      if (st === 'done') h += `<div class="good">${ic('i_check')} ${t('researched')}</div>`;
+      else if (st === 'cur') h += `<div class="warn">${t('researching')} ${U.fmtTime(G.S.research.cur.t)}</div>`;
+      else {
+        h += `<div class="row">${costHtml(r.cost)}<span class="muted">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span></div>`;
+        const why = G.R.waitReason(id);
+        if (why) h += `<div class="warn">${ic('i_lock')} ${resWaitText(r, why)}</div>`;
+      }
+      if (q >= 0) h += `<div class="muted">${ic('i_scroll')} ${t('queuedPos', { n: q + 1 })}</div>`;
+      return h;
+    }
+    return '';
+  }
+  function renderGtip() {
+    if (!UI.gtip) return;
+    const el = $('#gtip'), html = gtipHtml(UI.gtip);
+    if (!html) { hideGtip(); return; }
+    if (el._h !== html) { el.innerHTML = html; el._h = html; }
+    el.classList.remove('hidden');
+  }
+
+  // Подсказка здания: уровень, цена и время улучшения, что мешает, рабочие и место в указе
+  function tipHtml(k, hint) {
     const d = D.B[k], L = G.E.lvl(k);
     let h = `<b>${t('bn_' + k)}</b>`;
     if (k === 'dungeon') {
@@ -199,8 +257,13 @@
         }
       }
       if (d.prod && L) h += `<div class="muted">${ic('i_people')} ${G.S.b[k].w}/${G.E.maxWorkers(k)} · +${U.fmt1(G.S.b[k].w * G.E.workerRate(k))}/${t('sec')}</div>`;
+      // значок указа на карте: какие места в очереди занимает здание и до какого уровня
+      let lv = L + (G.E.consOf(k) ? 1 : 0);
+      const pos = [];
+      G.S.decree.build.forEach((x, i) => { if (x === k) { lv++; pos.push(`№${i + 1} → ${lv}`); } });
+      if (pos.length) h += `<div class="warn">${ic('i_scroll')} ${t('tipDecree', { n: pos.join(', ') })}</div>`;
     }
-    return h + `<div class="muted tiphint">${t('tipOpen')}</div>`;
+    return h + (hint === false ? '' : `<div class="muted tiphint">${t('tipOpen')}</div>`);
   }
   function renderTip() {
     if (!UI.tipK) return;
@@ -622,9 +685,35 @@
     h += popAction(k);
     // здание на перестройке недоступно; замок и склад показывают справку
     if (L > 0 && BP[k] && (!G.E.busy(k) || k === 'castle' || k === 'warehouse')) h += BP[k]();
+    if (k !== 'academy') h += skillsBox(k);
     h += upgradeBox(k);
     return h;
   }
+  // Навыки здания: его исследования в Академии — изучить отсюда или поставить в указ
+  function skillsBox(k) {
+    const list = D.RESEARCH.filter((r) => r.b === k);
+    if (!list.length) return '';
+    const AL = G.E.lvl('academy'), cur = G.S.research.cur;
+    const rows = list.map((r) => {
+      const st = G.R.state(r.id), q = G.S.decree.research.indexOf(r.id);
+      let act;
+      if (st === 'done') act = `<div class="good small">${ic('i_check')} ${t('researched')}</div>`;
+      else if (st === 'cur') act = `${bar('rsch')}<div class="muted small" data-b="rschT"></div>`;
+      else {
+        const why = G.R.waitReason(r.id);
+        act = `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span></div><div class="row">`;
+        if (!AL) act += `<span class="warn small">${ic('i_lock')} ${t('needAcademyShort')}</span>`;
+        else if (st === 'open') act += btn(t('study'), 'research', r.id, { cost: r.cost, chips: false, cls: 'small primary', lock: !!cur || !G.E.usable('academy') });
+        else act += `<span class="warn small">${ic('i_lock')} ${resWaitText(r, why)}</span>`;
+        if (AL) act += ` <button class="btn small" data-action="resQueue" data-arg="${r.id}" ${q >= 0 ? 'disabled' : ''}>${ic('i_scroll')} ${q >= 0 ? t('queuedPos', { n: q + 1 }) : t('toDecree')}</button>`;
+        act += '</div>';
+      }
+      return `<div class="bskill st-${st}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${act}</div></div>`;
+    }).join('');
+    const done = list.filter((r) => G.R.done(r.id)).length;
+    return box(ic('i_book') + ' ' + t('bSkills') + ` <span class="muted">${done}/${list.length}</span>`, `<div class="hint top">${t('bSkillsHint')}</div>${rows}`);
+  }
+
   // Окно здания: всегда на виду, при выборе другого здания плавно сменяется
   function renderPop() {
     const el = $('#bpop');
@@ -754,7 +843,7 @@
       (S.cons.length ? S.cons.map((c) => `<div class="job">${ic(bSprite(c.k), 'ic2')}<div class="grow"><div>${t('bn_' + c.k)} → ${G.E.lvl(c.k) + 1}</div>${bar('cons:' + c.k)}<div class="muted small" data-b="consT:${c.k}"></div></div><button class="btn small" data-action="cancelUp" data-arg="${c.k}" title="${esc(t('cancelRefund'))}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('buildersIdle')}</div>`) +
       `<div class="hint">${t('decreeHint')}</div>`);
     // очередь строительства
-    const qList = (q, nameKey, icon, extra) => (dq[q].length ? dq[q].map((x, i) => `<div class="dq">${ic(icon(x), 'ic2')}<div class="grow">${i + 1}. <b>${t(nameKey + x)}</b>${extra ? extra(x, i) : ''}</div><button class="btn small" data-action="decreeUp" data-arg="${q}|${i}" ${i ? '' : 'disabled'}>▲</button><button class="btn small" data-action="decreeDown" data-arg="${q}|${i}" ${i < dq[q].length - 1 ? '' : 'disabled'}>▼</button><button class="btn small" data-action="decreeDel" data-arg="${q}|${i}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('decreeEmpty')}</div>`);
+    const qList = (q, nameKey, icon, extra) => (dq[q].length ? dq[q].map((x, i) => `<div class="dq" data-tip="${q === 'build' ? 'b' : 's'}:${x}">${ic(icon(x), 'ic2')}<div class="grow">${i + 1}. <b>${t(nameKey + x)}</b>${extra ? extra(x, i) : ''}</div><button class="btn small" data-action="decreeUp" data-arg="${q}|${i}" ${i ? '' : 'disabled'}>▲</button><button class="btn small" data-action="decreeDown" data-arg="${q}|${i}" ${i < dq[q].length - 1 ? '' : 'disabled'}>▼</button><button class="btn small" data-action="decreeDel" data-arg="${q}|${i}">${ic('i_x')}</button></div>`).join('') : `<div class="muted small">${t('decreeEmpty')}</div>`);
     // для каждой записи: уровень, цена и время этого перехода
     const fromLvl = (k, i) => {
       let L = G.E.lvl(k) + (G.E.consOf(k) ? 1 : 0);
@@ -778,13 +867,13 @@
     h += box(ic('i_up') + ' ' + t('decreeAddBuild'), `<div class="dgrid">${D.ORDER.filter((k) => !D.B[k].noLevel).map((k) => {
       const L = G.E.lvl(k), why = G.E.whyNot(k);
       const max = L >= D.MAXLVL;
-      return `<button class="dcard" data-action="decreeAdd" data-arg="${k}" ${max ? 'disabled' : ''}>${ic(bSprite(k), 'ic2')}<span class="grow"><b>${t('bn_' + k)}</b><span class="small muted">${L ? t('lv') + ' ' + L : t('notBuilt')}${why === 'castle' ? ' · ' + t('needCastleShort', { l: L + 1 }) : why === 'storage' ? ' · ' + t('needStorageShort') : ''}</span></span>${max ? '' : ic('i_scroll')}</button>`;
+      return `<button class="dcard" data-action="decreeAdd" data-arg="${k}" data-tip="b:${k}" ${max ? 'disabled' : ''}>${ic(bSprite(k), 'ic2')}<span class="grow"><b>${t('bn_' + k)}</b><span class="small muted">${L ? t('lv') + ' ' + L : t('notBuilt')}${why === 'castle' ? ' · ' + t('needCastleShort', { l: L + 1 }) : why === 'storage' ? ' · ' + t('needStorageShort') : ''}</span></span>${max ? '' : ic('i_scroll')}</button>`;
     }).join('')}</div>`);
     // исследования
     const open = D.RESEARCH.filter((r) => !G.R.done(r.id) && !dq.research.includes(r.id) && G.R.state(r.id) !== 'cur');
     const resInfo = (id) => { const r = G.R.get(id); return `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span>${G.PANE.resWait(id)}</div>`; };
     h += box(ic('i_book') + ' ' + t('decreeRes'), qList('research', 'rs_', (x) => G.R.get(x).icon, resInfo) +
-      (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b>${t('rs_' + r.id)}</b><span class="small muted">${G.R.state(r.id) === 'locked' ? t('needAcad', { l: r.acad }) : t('rsd_' + r.id)}</span>${costHtml(r.cost)}</span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
+      (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b>${t('rs_' + r.id)}</b><span class="small muted">${G.R.state(r.id) === 'locked' ? t('needAcad', { l: r.acad }) : t('rsd_' + r.id)}</span>${costHtml(r.cost)}</span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
     return h;
   }
 
@@ -946,7 +1035,7 @@
     const sig = shown.join(',') + G.LANG;
     if (bar.dataset.sig === sig) return;
     bar.dataset.sig = sig;
-    bar.innerHTML = shown.map((r) => `<div class="res" title="${esc(t('res_' + r))}">${ic('r_' + r)}<div class="rcol"><div><span class="rv" data-b="res:${r}"></span><span class="rc" data-b="cap:${r}"></span></div><div class="rline"><div class="rbar"><i data-w="store:${r}"></i></div><span class="rr" data-b="rate:${r}"></span></div></div></div>`).join('');
+    bar.innerHTML = shown.map((r) => `<div class="res" data-tip="r:${r}">${ic('r_' + r)}<div class="rcol"><div><span class="rv" data-b="res:${r}"></span><span class="rc" data-b="cap:${r}"></span></div><div class="rline"><div class="rbar"><i data-w="store:${r}"></i></div><span class="rr" data-b="rate:${r}"></span></div></div></div>`).join('');
   }
 
   // ---------- живые значения ----------
@@ -1036,5 +1125,6 @@
     updateBadges();
     applyGoal();
     renderTip();
+    renderGtip();
   };
 })();

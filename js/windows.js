@@ -87,7 +87,7 @@
         <div class="small">${ic('c_' + c.cls)} ${t('cl_' + c.cls)} · <b style="color:${R.color}">${t('ar_' + c.rar)}</b></div>
         <div class="stats">${ic('i_hp')}${s.hp} ${ic('i_atk')}${s.atk} ${ic('i_def')}${s.def}</div>
         <div class="small muted">${t('cld_' + c.cls)}</div>
-        ${btn(t('hire'), 'hire', i, { cost: { gold: c.cost }, cls: 'primary small', lock: full })}</div>`;
+        ${btn(t('hire'), 'hire', i, { cost: { gold: G.T.hireCost(c) }, cls: 'primary small', lock: full })}</div>`;
     }).join('');
     return `<div class="box"><h3>${ic('i_people')} ${t('candidates')} <span class="muted">${t('guildSize')}: ${S.advs.length}/${G.T.maxAdvs()}</span></h3>
       ${full ? `<div class="warn small">${t('guildFull')}</div>` : ''}

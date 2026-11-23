@@ -18,7 +18,7 @@
     G.UI.dirty();
   };
 
-  F.cost = (type, ti) => (type === 'armor' ? D.TIERS[ti].acost : D.TIERS[ti].wcost);
+  F.cost = (type, ti) => G.U.scaleCost(type === 'armor' ? D.TIERS[ti].acost : D.TIERS[ti].wcost, Math.max(0.4, 1 - G.bonus('forgeC')));
   F.unlocked = (ti) => lvl() >= D.TIERS[ti].req;
   F.rarOpen = (i) => lvl() >= D.IRAR[i].forge;
 

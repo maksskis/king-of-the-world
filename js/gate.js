@@ -178,6 +178,8 @@
     } else {
       B.gate -= m.atk;
       B.shake = 0.15;
+      // «Колья у ворот»: часть удара возвращается монстру
+      if (G.bonus('thorns') > 0) hitMon(m, m.atk * G.bonus('thorns'), '#c8a060');
       float(30, 74, '-' + Math.ceil(m.atk), '#ff6a6a');
       if (B.gate <= 0) { B.gate = 0; end(false); }
     }
@@ -217,6 +219,8 @@
     }
     let alive = aliveDefs();
     const line = alive.length ? 76 : 42;
+    // «Каменщики на стенах» чинят ворота прямо в бою
+    if (G.bonus('gateRegen') > 0) B.gate = Math.min(B.gateMax, B.gate + B.gateMax * G.bonus('gateRegen') * dt);
 
     for (const m of B.mons) {
       if (m.dead) continue;
@@ -236,7 +240,7 @@
       if (g.cd > 0) return;
       const tg = front();
       if (!tg) { g.cd = 0.2; return; }
-      g.cd = 1.2;
+      g.cd = 1.2 / (1 + G.bonus('guardSpd'));
       B.proj.push({ x: 6 + (i % 6) * 5, y: 6, tg, dmg: gdmg, kind: 'arrow', spd: 240 });
     });
 
@@ -352,7 +356,7 @@
     } else {
       const lost = {};
       for (const r of ['gold', 'wood', 'stone', 'iron']) {
-        const v = Math.floor(G.S.res[r] * 0.15);
+        const v = Math.floor(G.S.res[r] * 0.15 * Math.max(0, 1 - G.bonus('lootProtect')));
         if (v > 0) { G.S.res[r] -= v; lost[r] = v; }
       }
       const cand = ['lumber', 'quarry', 'mine', 'forge', 'tavern', 'barracks', 'market', 'warehouse', 'academy'].filter((k) => G.E.lvl(k) > 1 && !G.E.consOf(k));

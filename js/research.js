@@ -4,7 +4,7 @@
 
   R.get = (id) => D.RESEARCH.find((r) => r.id === id);
   R.done = (id) => !!G.S.research.done[id];
-  R.speed = () => 1 + 0.1 * (G.E.lvl('academy') - 1);
+  R.speed = () => (1 + 0.1 * (G.E.lvl('academy') - 1)) * (1 + G.bonus('resSpeed'));
   R.time = (r) => r.t / Math.max(1, R.speed());
 
   // Состояние: done | cur | open | locked
@@ -29,7 +29,7 @@
   };
 
   // Клик по Академии ускоряет текущее исследование (сильнее с уровнем Академии)
-  R.boostSec = () => R.speed();
+  R.boostSec = () => R.speed() * (1 + G.bonus('resBoost'));
   R.boost = function () {
     const c = G.S.research.cur;
     if (!c || !G.E.usable('academy')) return false;

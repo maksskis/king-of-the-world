@@ -34,6 +34,8 @@
   };
 
   T.refreshCost = () => ({ gold: 20 * Math.max(1, tl()) });
+  // цена найма с навыком «Вербовщики» и наследием династии
+  T.hireCost = (c) => Math.ceil(c.cost * Math.max(0.4, 1 - G.bonus('hireC')));
   T.refresh = function (free) {
     if (!free && (G.E.busy('tavern') || !G.E.pay(T.refreshCost()))) return;
     G.S.tavern.cands = Array.from({ length: T.candCount() }, T.gen);
@@ -44,7 +46,7 @@
   T.hire = function (i) {
     const c = G.S.tavern.cands[i];
     if (!c || G.S.advs.length >= T.maxAdvs() || !G.E.usable('tavern')) return;
-    if (!G.E.pay({ gold: c.cost })) return;
+    if (!G.E.pay({ gold: T.hireCost(c) })) return;
     G.S.tavern.cands.splice(i, 1);
     delete c.cost;
     c.st = 'idle';
@@ -90,7 +92,7 @@
 
   T.xpNeed = (l) => Math.round(40 * Math.pow(1.4, l - 1));
   T.giveXp = function (a, n) {
-    a.xp += n * (1 + G.bonus('xp'));
+    a.xp += n * (1 + G.bonus('xp') + G.bonus('advXp'));
     let up = false;
     while (a.xp >= T.xpNeed(a.lvl)) {
       a.xp -= T.xpNeed(a.lvl);
@@ -172,7 +174,8 @@
   T.maxGuards = () => (G.E.lvl('barracks') > 0 ? 2 * G.E.lvl('barracks') + G.bonus('guards') : 0);
   T.guardCost = function () {
     const n = G.S.guards;
-    return { gold: Math.ceil(30 * Math.pow(1.3, n)), iron: Math.ceil(8 * Math.pow(1.22, n)) };
+    const m = Math.max(0.4, 1 - G.bonus('guardC'));
+    return { gold: Math.ceil(30 * Math.pow(1.3, n) * m), iron: Math.ceil(8 * Math.pow(1.22, n) * m) };
   };
   T.guardDmg = () => 2 * (1 + 0.3 * (G.E.lvl('barracks') - 1)) * (1 + G.bonus('guardAtk') + G.bonus('defAtk'));
   T.hireGuard = function () {

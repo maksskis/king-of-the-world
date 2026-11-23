@@ -10,7 +10,7 @@
   E.cap = function (r) {
     const L = E.lvl('warehouse');
     const base = r === 'gold' ? D.goldCap(L) : D.CAPS[L];
-    return Math.floor(base * (1 + G.bonus('store')));
+    return Math.floor(base * (1 + G.bonus('store') + (r === 'gold' ? G.bonus('goldCap') : 0)));
   };
   E.can = function (cost) {
     for (const r in cost) if ((G.S.res[r] || 0) < cost[r]) return false;
@@ -142,8 +142,9 @@
   E.power = () => (1 + G.S.king.tools) * (1 + G.bonus('gather')) * E.rush();
   E.clickAmount = function (k) {
     const L = E.lvl(k);
-    if (k === 'castle') return E.power() * (1 + 0.5 * (L - 1));
-    return E.power() * (1 + 0.2 * (L - 1));
+    const own = 1 + G.bonus('gather_' + D.B[k].click); // навык здания: «Топоры», «Резцы», «Кирки»
+    if (k === 'castle') return E.power() * (1 + 0.5 * (L - 1)) * own;
+    return E.power() * (1 + 0.2 * (L - 1)) * own;
   };
   // Клик короля по зданию. «Удачный удар» даёт шанс ×5,
   // «Пример короля» добавляет несколько секунд работы этого здания.
@@ -165,7 +166,7 @@
     return n;
   };
 
-  E.maxWorkers = (k) => (E.lvl(k) > 0 ? D.WORKERS[E.lvl(k)] + G.bonus('crews') : 0); // «Бригады» дают места
+  E.maxWorkers = (k) => (E.lvl(k) > 0 ? D.WORKERS[E.lvl(k)] + G.bonus('crews') + G.bonus('crews_' + k) : 0); // «Бригады» и навыки зданий дают места
   E.workerRate = function (k) {
     const L = Math.max(1, E.lvl(k));
     return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * E.rush();
@@ -244,7 +245,7 @@
   E.BUY_LVL = { wood: 1, stone: 1, iron: 2, bone: 3, crystal: 4, mithril: 5 };
   E.batch = (r) => (E.PRICE[r] < 1 ? 100 : 10);
   E.sellPrice = (r) => E.PRICE[r] * (1 + 0.1 * (E.lvl('market') - 1)) * (1 + G.bonus('trade'));
-  E.buyPrice = (r) => (E.PRICE[r] * 2.5 * (1 - 0.04 * (E.lvl('market') - 1))) / (1 + G.bonus('trade'));
+  E.buyPrice = (r) => ((E.PRICE[r] * 2.5 * (1 - 0.04 * (E.lvl('market') - 1))) / (1 + G.bonus('trade'))) * Math.max(0.5, 1 - G.bonus('buyC'));
   E.canBuy = (r) => E.lvl('market') >= E.BUY_LVL[r];
   E.sell = function (r, n) {
     if (!E.usable('market')) return;

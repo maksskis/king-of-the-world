@@ -766,6 +766,31 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   #bpop { border-left: 0; border-top: 2px solid var(--line); }
 }
 
+/* Навыки здания */
+.bskill { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-top: 1px dashed var(--line); }
+.bskill:first-of-type { border-top: 0; }
+.bskill.st-done { opacity: 0.75; }
+.bskill .row { margin-top: 3px; }
+
+/* Общая всплывающая подсказка */
+#gtip {
+  position: fixed;
+  z-index: 60;
+  max-width: 290px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  background: rgba(20, 15, 28, 0.97);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+#gtip b { color: var(--gold); }
+#gtip .ic { vertical-align: -2px; }
+[data-tip] { cursor: help; }
+button[data-tip], .btn[data-tip] { cursor: pointer; }
+
 /* Подсказка при наведении на здание */
 #tip {
   position: absolute;
