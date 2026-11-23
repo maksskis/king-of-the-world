@@ -132,6 +132,31 @@
   }
   function windowLit(b, x, y, w, h) { b.rect(x, y, w, h, P.glow); b.rect(x, y, w, 1, P.glowL); b.rect(x + Math.floor(w / 2), y, 1, h, P.woodD); }
   function crenels(b, x, y, w, c) { for (let i = 0; i < w; i += 3) b.rect(x + i, y, 2, 2, c); }
+  // Серая кирпичная кладка (Замок, Главные ворота): ряды по 2 пикселя через шов, кирпичи по 5 со сдвигом
+  const BRK = { MO: '#43424a', B1: '#8c8b92', B2: '#a4a3aa', B3: '#74737b', BH: '#bebdc4' };
+  function brickWall(b, x, y, w, h, dark) {
+    b.rect(x, y, w, h, BRK.MO);
+    for (let r = 0; r * 3 < h; r++) {
+      const yy = y + r * 3, off = r % 2 ? 3 : 0;
+      for (let c = -1; c * 6 < w + 6; c++) {
+        const x0 = Math.max(x, x + c * 6 + off), x1 = Math.min(x + w, x + c * 6 + off + 5);
+        if (x1 <= x0) continue;
+        const k = (((c * 7 + r * 3) % 5) + 5) % 5;
+        const col = dark ? (k === 0 ? BRK.B1 : BRK.B3) : k === 0 ? BRK.B2 : k === 3 ? BRK.B3 : BRK.B1;
+        b.rect(x0, yy, x1 - x0, Math.min(2, y + h - yy), col);
+        if (!dark && x1 - x0 > 2) b.px(x0, yy, k === 0 ? BRK.BH : BRK.B2);
+      }
+    }
+  }
+  // широкие зубцы
+  function brickMerlons(b, x, y, w) { for (let i = 0; i + 3 <= w; i += 5) { b.rect(x + i, y, 3, 3, BRK.B1); b.rect(x + i, y, 3, 1, BRK.BH); } }
+  // башня с широкой зубчатой верхушкой
+  function brickTower(b, x, y, w, h) {
+    brickWall(b, x, y, w, h, false);
+    b.rect(x - 1, y - 3, w + 2, 3, BRK.B1); b.rect(x - 1, y - 3, w + 2, 1, BRK.BH); b.rect(x - 1, y, w + 2, 1, BRK.MO);
+    brickMerlons(b, x - 1, y - 6, w + 2);
+  }
+
   function tierCols(t) {
     return [[P.iron, P.ironD, P.ironL], [P.bone, P.boneD, P.boneL], [P.mith, P.mithD, P.mithL], [P.red, P.redD, P.gold]][t] || [P.iron, P.ironD, P.ironL];
   }
@@ -506,26 +531,11 @@
   // Облик 1–4: окна загораются, вымпел на шатре, знамёна на башнях, золотая отделка.
   DEF.b_castle = { w: 64, h: 64, draw(b, t) {
     t = +t || 1;
-    const MO = '#43424a', B1 = '#8c8b92', B2 = '#a4a3aa', B3 = '#74737b', BH = '#bebdc4';
+    const { MO, B1, B2, B3, BH } = BRK;
     const RO = '#e0602a', ROL = '#f39446', ROD = '#b4421c', ROS = '#8a2f12';
     const glow = t >= 3 ? P.glow : '#d6d6dc', glowD = t >= 3 ? P.glowL : '#9c9ca6';
-    // кирпичная кладка: ряды по 2 пикселя через шов, кирпичи по 5 со сдвигом
-    const bricks = (x, y, w, h, dark) => {
-      b.rect(x, y, w, h, MO);
-      for (let r = 0; r * 3 < h; r++) {
-        const yy = y + r * 3, off = r % 2 ? 3 : 0;
-        for (let c = -1; c * 6 < w + 6; c++) {
-          const x0 = Math.max(x, x + c * 6 + off), x1 = Math.min(x + w, x + c * 6 + off + 5);
-          if (x1 <= x0) continue;
-          const k = (((c * 7 + r * 3) % 5) + 5) % 5;
-          const col = dark ? (k === 0 ? B1 : B3) : k === 0 ? B2 : k === 3 ? B3 : B1;
-          b.rect(x0, yy, x1 - x0, Math.min(2, y + h - yy), col);
-          if (!dark && x1 - x0 > 2) b.px(x0, yy, k === 0 ? BH : B2);
-        }
-      }
-    };
-    // широкие зубцы
-    const merlons = (x, y, w) => { for (let i = 0; i + 3 <= w; i += 5) { b.rect(x + i, y, 3, 3, B1); b.rect(x + i, y, 3, 1, BH); } };
+    const bricks = (x, y, w, h, dark) => brickWall(b, x, y, w, h, dark);
+    const merlons = (x, y, w) => brickMerlons(b, x, y, w);
     // зелёный вал под замком
     b.ellipse(32, 58.5, 31, 5.5, P.leafD); b.ellipse(32, 57.5, 29, 4.5, P.leaf); b.px(9, 57, P.leafL); b.px(52, 58, P.leafL); b.px(14, 59, P.leafL);
     // крепостная стена между башнями
@@ -594,17 +604,42 @@
       b.rect(17, 30, 14, 1, P.dark); b.rect(17, 36, 14, 1, P.dark);
       return;
     }
-    wallBricks(b, 12, 14, 24, 28, P.stoneD, P.stone); crenels(b, 12, 12, 24, P.stoneD);
+    // кирпичные ворота: башни как у Замка, надвратная стена с зубцами, арка с железными полосами
+    const { MO, B1, B3, BH } = BRK;
+    brickWall(b, 12, 16, 24, 28, true); brickMerlons(b, 13, 13, 22); b.rect(12, 16, 24, 1, MO);
     for (const x of [2, 36]) {
-      wallBricks(b, x, 8, 10, 36, P.stone, P.stoneD); crenels(b, x, 6, 10, P.stone);
-      b.rect(x + 4, 16, 2, 5, P.black);
+      brickTower(b, x, 12, 10, 32);
+      b.rect(x + 4, 20, 2, 5, t >= 3 ? P.glow : MO);
     }
-    b.rect(17, 24, 14, 18, P.woodD); b.ellipse(24, 24, 7, 4, P.woodD);
-    for (let x = 18; x < 31; x += 3) b.rect(x, 21, 1, 21, P.wood);
-    b.rect(17, 30, 14, 1, P.ironD); b.rect(17, 36, 14, 1, P.ironD);
-    if (t >= 2) { b.rect(13, 26, 1, 3, P.woodD); b.px(13, 25, P.glow); b.rect(34, 26, 1, 3, P.woodD); b.px(34, 25, P.glow); }
-    if (t >= 3) { b.rect(4, 24, 6, 9, P.red); b.rect(38, 24, 6, 9, P.red); b.px(6, 27, P.gold); b.px(7, 27, P.gold); b.px(40, 27, P.gold); b.px(41, 27, P.gold); }
-    if (t >= 4) { for (const x of [2, 36]) { b.poly([[x - 1, 7], [x + 5, -1], [x + 11, 7]], P.blue); b.poly([[x + 5, -1], [x + 11, 7], [x + 5, 7]], P.blueD); } b.disc(24, 17, 2.6, P.gold); b.px(24, 17, P.red); b.rect(17, 24, 14, 1, P.gold); }
+    b.rect(12, 23, 24, 1, t >= 4 ? P.gold : '#b4421c'); // оранжевый пояс, как у Замка
+    // арка и ворота
+    b.rect(17, 30, 14, 14, P.woodD); b.ellipse(24, 30, 7, 5, P.woodD);
+    b.rect(18, 29, 12, 15, P.wood); b.ellipse(24, 29.5, 6, 4, P.wood);
+    for (let x = 20; x < 29; x += 2) b.rect(x, 26, 1, 18, P.woodD);
+    b.rect(17, 33, 14, 1, '#3a3a40'); b.rect(17, 39, 14, 1, '#3a3a40'); b.px(27, 36, '#d8d8dc');
+    b.line(16, 30, 19, 25, BH); b.line(20, 24, 28, 24, BH); b.line(29, 25, 32, 30, BH); b.rect(16, 30, 1, 14, BH); b.rect(32, 30, 1, 14, B3);
+    if (t >= 2) {
+      // факелы у ворот
+      b.rect(14, 31, 1, 3, P.woodD); b.px(14, 30, P.glow); b.px(14, 29, P.glowL);
+      b.rect(33, 31, 1, 3, P.woodD); b.px(33, 30, P.glow); b.px(33, 29, P.glowL);
+    }
+    if (t >= 3) {
+      // решётка над воротами и алые знамёна на башнях
+      for (let x = 19; x < 30; x += 2) b.rect(x, 26, 1, 3, '#3a3a40');
+      b.rect(4, 27, 6, 9, P.red); b.px(6, 30, P.gold); b.px(7, 30, P.gold);
+      b.rect(38, 27, 6, 9, P.red); b.px(40, 30, P.gold); b.px(41, 30, P.gold);
+    }
+    if (t >= 4) {
+      // оранжевые шатры на башнях и золотой герб
+      for (const x of [2, 36]) {
+        b.poly([[x - 1, 6.5], [x + 5, -1], [x + 11, 6.5]], '#e0602a');
+        b.poly([[x + 5, -1], [x + 11, 6.5], [x + 5.5, 6.5]], '#b4421c');
+        b.rect(x - 1, 6, 12, 1, '#8a2f12');
+      }
+      b.disc(24, 19, 2.6, P.gold); b.px(24, 19, P.red);
+    }
+    b.rect(1, 43, 46, 2, MO);
+    b.outline(P.k);
   } };
   DEF.b_dungeon = { w: 48, h: 48, draw(b) {
     b.poly([[1, 46], [5, 26], [14, 12], [26, 8], [37, 14], [44, 28], [47, 46]], P.stoneD);
@@ -781,7 +816,7 @@
     for (let i = 0; i < 260; i++) {
       const x = rt() * W, y = rt() * H;
       const d = ell(x, y);
-      if (d > MOAT + 0.05 && !(x > 300 && y < 60) && !(x > 300 && y > 250) && !(Math.abs(x - M.cx) < 18 && y > 250)) trees.push([x, y, 5 + rt() * 3]);
+      if (d > MOAT + 0.05 && !(x > 262 && y < 78) && !(x > 300 && y > 250) && !(Math.abs(x - M.cx) < 18 && y > 250)) trees.push([x, y, 5 + rt() * 3]);
     }
     for (const [x, y] of [[140, 182], [246, 182], [120, 100], [266, 100], [192, 92], [60, 152], [324, 152], [100, 222], [286, 222]]) trees.push([x, y, 4.5]);
     trees.sort((p, q) => p[1] - q[1]);
@@ -789,9 +824,25 @@
 
     // пруд и горы снаружи
     b.ellipse(26, 268, 22, 12, P.waterD); b.ellipse(26, 267, 20, 10, P.water); b.ellipse(20, 264, 6, 2, P.waterL);
-    for (const [x, y, s] of [[318, 10, 14], [370, 58, 12], [300, 40, 10], [376, 14, 10]]) {
-      b.poly([[x - s, y + s * 0.6], [x - s * 0.2, y - s], [x + s, y + s * 0.6]], P.stoneD);
-      b.poly([[x - s * 0.2, y - s], [x + s * 0.15, y - s * 0.4], [x - s * 0.5, y + s * 0.1]], P.stoneL);
+    // горный массив в правом верхнем углу, только снаружи стены и рва
+    const rm = G.U.seeded(5);
+    const peaks = [[338, -6, 30, 52], [372, 6, 22, 44], [300, 6, 20, 36], [356, 30, 18, 34], [378, 46, 14, 28]];
+    peaks.sort((p, q) => p[1] + p[3] - (q[1] + q[3]));
+    for (const [cx, top, hw, h] of peaks) {
+      const ridge = cx + 2;
+      for (let y = Math.max(0, top); y <= top + h && y < H; y++) {
+        const f = (y - top) / h, half = hw * f;
+        for (let x = Math.floor(cx - half); x <= Math.ceil(cx + half); x++) {
+          if (x < 0 || x >= W || ell(x, y) < MOAT + 0.05) continue;
+          const edge = x <= cx - half + 1 || x >= cx + half - 1;
+          const snowLine = 0.34 + 0.06 * Math.sin(x * 0.9);
+          const left = x < ridge - (y - top) * 0.15;
+          let c;
+          if (f < snowLine) c = left ? '#f2f4f8' : '#c6cdda';
+          else { const n = rm(); c = left ? (n < 0.15 ? '#8a909b' : '#9ba1ac') : n < 0.15 ? '#565c67' : '#6a707b'; }
+          b.px(x, y, edge ? '#454a54' : c);
+        }
+      }
     }
     // цветы внутри стен
     for (let i = 0; i < 140; i++) {
