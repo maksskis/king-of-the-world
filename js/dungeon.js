@@ -50,10 +50,11 @@
     const cap = 1 + G.bonus('captain');
     const shield = 1 + members.reduce((s, a) => s + (a.hp > 0 ? G.T.skillSum(a, 'partyDef') : 0), 0);
     return members.map((a) => {
-      const s = G.T.stats(a), sk = (k) => G.T.skillSum(a, k);
+      const s = G.T.stats(a), sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
         a, cls: a.cls, hp: a.hp, max: s.hp, atk: s.atk * cap, def: s.def * cap * shield,
-        heal: sk('heal'), splash: sk('splash'), guard: sk('guard'), regen: sk('regen'), aura: sk('aura'), dodge: sk('dodge'), crit: sk('crit'),
+        heal: sk('heal'), splash: sk('splash'), guard: sk('guard'), regen: sk('regen'), aura: sk('aura'),
+        dodge: sk('dodge') + (C.dodge || 0), crit: sk('crit') + (C.crit || 0), critMul: 2 + sk('critDmg'), stun: (C.stun || 0) + sk('stun'),
       };
     });
   }
@@ -75,9 +76,9 @@
     const alive = P.filter((p) => p.hp > 0);
     let d = 0, crits = 0;
     for (const p of alive) {
-      let hit = p.cls === 'priest' ? p.atk * 0.6 : p.atk;
+      let hit = p.cls === 'priest' ? p.atk * 0.6 : p.cls === 'shaman' ? p.atk * 0.8 : p.atk;
       if (p.cls === 'mage' && en.count > 1) hit += p.atk * (0.3 + p.splash);
-      if (p.crit && Math.random() < p.crit) { hit *= 2; crits++; }
+      if (p.crit && Math.random() < p.crit) { hit *= p.critMul; crits++; }
       d += hit;
     }
     d *= dealtM * G.U.rand(0.85, 1.15);
@@ -85,7 +86,13 @@
     if (out) out.push([crits ? 'fr_partyCrit' : 'fr_party', { d: Math.round(d) }, 'good']);
     if (ehp <= 0) return ehp;
     const dr = Math.min(0.3, alive.reduce((s, p) => s + p.guard, 0));
-    const hits = en.boss ? 1 : Math.min(en.count, 2);
+    // шаманы сковывают врага: он пропускает свой ход. Шансы шаманов независимы,
+    // вместе не больше 40%, босс сопротивляется вдвое.
+    const binder = alive.find((p) => p.stun > 0);
+    const stun = Math.min(0.4, 1 - alive.reduce((s, p) => s * (1 - p.stun), 1)) * (en.boss ? 0.5 : 1);
+    const bound = stun > 0 && Math.random() < stun;
+    if (bound && out) out.push(['fr_stun', { name: binder.a.name }, 'good']);
+    const hits = bound ? 0 : en.boss ? 1 : Math.min(en.count, 2);
     for (let h = 0; h < hits; h++) {
       const al = P.filter((p) => p.hp > 0);
       if (!al.length) break;
@@ -136,7 +143,7 @@
   };
   X.fleeChance = function () {
     const ms = X.members().filter((a) => a.hp > 0);
-    const arch = ms.filter((a) => a.cls === 'archer').length;
+    const arch = ms.filter((a) => a.cls === 'archer' || a.cls === 'rogue').length;
     return G.U.clamp(0.65 + 0.08 * arch + G.T.partySum(ms, 'flee') - 0.02 * G.S.exp.floor, 0.2, 0.95);
   };
   X.hpRatio = function () {

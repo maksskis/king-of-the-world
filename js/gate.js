@@ -60,12 +60,16 @@
     const n = final ? 'final' : G.S.gate.sel;
     if (final && !W.finalReady()) return;
     if (!final && n > G.S.gate.best + 1) return;
-    const order = { warrior: 0, priest: 1, archer: 2, mage: 3 };
+    const order = { warrior: 0, rogue: 1, priest: 2, shaman: 3, archer: 4, mage: 5 };
     const advs = G.S.advs.filter((a) => a.st === 'gate' && a.hp > 0).sort((p, q) => order[p.cls] - order[q.cls]);
     const defs = advs.map((a, i) => {
       const s = G.T.stats(a);
-      const sk = (k) => G.T.skillSum(a, k);
-      return { a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - Math.floor(i / 3) * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0, dodge: sk('dodge'), crit: sk('crit'), regen: sk('regen') };
+      const sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
+      return {
+        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - Math.floor(i / 3) * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0,
+        dodge: sk('dodge') + (C.dodge || 0), crit: sk('crit') + (C.crit || 0), critMul: 2 + sk('critDmg'), regen: sk('regen'),
+        bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
+      };
     });
     const queue = W.comp(n);
     B = {
@@ -217,6 +221,7 @@
     for (const m of B.mons) {
       if (m.dead) continue;
       if (m.flash > 0) m.flash -= dt;
+      if (m.stun > 0) { m.stun -= dt; continue; }
       const stop = line + m.w / 2 + m.jit;
       if (m.x > stop) { m.x -= m.spd * dt; m.walk += dt; }
       else {
@@ -268,6 +273,15 @@
       } else if (d.cls === 'mage') {
         B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 1.3 * mul, kind: 'orb', spd: 170, splash: 26, sm: 0.5 + G.T.skillSum(d.a, 'splash') });
         d.cd = 1.5;
+      } else if (d.cls === 'rogue') {
+        // быстрые броски кинжалов, крит бьёт сильнее обычного
+        const cr = Math.random() < d.crit;
+        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * (cr ? d.critMul : 1), kind: 'knife', spd: 300, crit: cr });
+        d.cd = 0.7;
+      } else if (d.cls === 'shaman') {
+        // дух-оковы: врагов рядом с целью сковывает на несколько секунд
+        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 0.8 * mul, kind: 'spirit', spd: 160, bind: d.bind });
+        d.cd = 2.8;
       }
     }
 
@@ -279,9 +293,16 @@
       p.ang = Math.atan2(dy, dx);
       if (dist <= step + 2) {
         p.done = true;
-        const col = p.kind === 'orb' ? '#c08aff' : p.kind === 'holy' ? '#fff2a8' : '#ffffff';
+        const col = p.kind === 'orb' ? '#c08aff' : p.kind === 'holy' ? '#fff2a8' : p.kind === 'spirit' ? '#7fe7ff' : p.crit ? '#ffd84a' : '#ffffff';
         const main = p.tg;
         hitMon(main, p.dmg, col);
+        if (p.bind) {
+          for (const m of B.mons) {
+            if (m.dead || Math.abs(m.x - main.x) > 28 || Math.abs(m.y - main.y) > 20) continue;
+            m.stun = Math.max(m.stun || 0, p.bind * (m.boss ? 0.5 : 1));
+          }
+          if (!main.dead) float(main.x, main.y - main.h - 10, G.t('stunned'), '#7fe7ff');
+        }
         if (p.splash) {
           for (const m of B.mons) {
             if (m !== main && !m.dead && Math.abs(m.x - main.x) < p.splash && Math.abs(m.y - main.y) < 16) hitMon(m, p.dmg * p.sm, col);
@@ -406,8 +427,15 @@
         ctx.moveTo(p.x, p.y);
         ctx.lineTo(p.x - Math.cos(p.ang || 0) * 5, p.y - Math.sin(p.ang || 0) * 5);
         ctx.stroke();
+      } else if (p.kind === 'knife') {
+        ctx.strokeStyle = p.crit ? '#ffd84a' : '#dfe6f2';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - Math.cos(p.ang || 0) * 3, p.y - Math.sin(p.ang || 0) * 3);
+        ctx.stroke();
       } else {
-        ctx.fillStyle = p.kind === 'orb' ? '#c08aff' : '#fff2a8';
+        ctx.fillStyle = p.kind === 'orb' ? '#c08aff' : p.kind === 'spirit' ? '#7fe7ff' : '#fff2a8';
         ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 3, 3);
       }
     }
@@ -463,6 +491,13 @@
     if (m.dead) ctx.globalAlpha = Math.max(0, m.deadT / 0.5);
     ctx.drawImage(spr, x, y);
     ctx.globalAlpha = 1;
+    if (!m.dead && m.stun > 0) {
+      ctx.strokeStyle = '#7fe7ff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(m.x, m.y - 1, m.w / 2 + 1, 3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     if (!m.dead && m.hp < m.max) hpBar(x, y - 4, Math.max(10, m.w - 2), m.hp / m.max, m.boss ? '#ff9a3c' : '#d64545');
   }
 

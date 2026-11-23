@@ -198,6 +198,16 @@
   DEF.it_mace = { w: 16, h: 16, draw(b, t) { const [m, d, l] = tierCols(+t); b.line(2, 14, 8, 8, P.woodD); b.line(3, 14, 9, 8, P.wood); b.disc(10.5, 5.5, 3.3, m); b.px(10, 1, d); b.px(14, 5, d); b.px(6, 6, d); b.px(13, 2, d); b.px(7, 2, d); b.px(13, 8, d); b.px(9, 4, l); b.px(10, 4, l); } };
   DEF.it_armor = { w: 16, h: 16, draw(b, t) { const [m, d, l] = tierCols(+t); b.poly([[2, 3], [5.5, 2], [10.5, 2], [14, 3], [14, 7], [12, 7.5], [12, 14], [4, 14], [4, 7.5], [2, 7]], m); b.rect(8, 4, 1, 9, d); b.rect(4, 11, 8, 1, P.woodD); b.rect(7, 11, 2, 1, P.gold); b.px(5, 4, l); b.px(5, 5, l); b.px(3, 4, l); for (let x = 6; x < 10; x++) b.px(x, 2, null); b.px(7, 3, null); b.px(8, 3, null); } };
 
+  // Кинжал и тотем — оружие разбойника и шамана
+  DEF.it_dagger = { w: 16, h: 16, draw(b, t) { const [m, d, l] = tierCols(+t); for (let i = 0; i < 6; i++) { b.px(7 + i, 8 - i, l); b.px(8 + i, 8 - i, m); b.px(8 + i, 9 - i, d); } b.line(5, 8, 8, 11, P.gold); b.px(6, 11, P.woodD); b.px(5, 12, P.woodD); b.px(4, 13, P.wood); b.px(3, 14, P.gold); } };
+  DEF.it_totem = { w: 16, h: 16, draw(b, t) {
+    const [m] = tierCols(+t);
+    b.rect(7, 6, 2, 9, P.woodD); b.rect(7, 6, 1, 9, P.wood); b.rect(7, 10, 2, 1, m);
+    b.poly([[5, 2], [1.5, 1], [2.5, 4.5], [5, 4.5]], m); b.poly([[11, 2], [14.5, 1], [13.5, 4.5], [11, 4.5]], m);
+    b.rect(5, 1, 6, 5, P.wood); b.rect(5, 1, 6, 1, P.woodL); b.px(6, 3, P.k); b.px(9, 3, P.k); b.rect(7, 4, 2, 1, P.k); b.px(7, 1, GEM[+t] || P.cry); b.px(8, 1, GEM[+t] || P.cry);
+    b.px(6, 7, P.red); b.px(6, 8, P.red); b.px(9, 7, P.white); b.px(9, 8, P.white);
+  } };
+
   // ---------- классы (16×16) ----------
   DEF.c_warrior = { w: 16, h: 16, draw(b) {
     b.rect(5, 12, 2, 3, P.woodD); b.rect(9, 12, 2, 3, P.woodD);
@@ -225,6 +235,22 @@
     b.poly([[4, 7], [12, 7], [13, 14.5], [3, 14.5]], P.robe); b.rect(7, 7, 2, 8, P.gold);
     b.disc(8, 4.2, 3.3, P.robeD); b.disc(8, 4.8, 2.3, P.skin); b.px(7, 5, P.k); b.px(9, 5, P.k);
     b.rect(13, 6, 1, 8, P.wood); b.disc(13.5, 4.5, 1.7, P.gold);
+  } };
+  DEF.c_rogue = { w: 16, h: 16, draw(b) {
+    b.rect(5, 12, 2, 3, '#2c2638'); b.rect(9, 12, 2, 3, '#2c2638');
+    b.poly([[4, 7], [12, 7], [12.5, 13], [3.5, 13]], '#4a4058'); b.rect(4, 10, 8, 1, P.woodD); b.px(8, 10, P.gold);
+    b.disc(8, 4.6, 3.4, '#2c2638'); b.disc(8, 5.2, 2.1, P.skin); b.rect(6, 6, 4, 1, '#2c2638'); b.px(7, 5, P.k); b.px(9, 5, P.k);
+    b.px(10, 7, P.red); b.px(11, 8, P.red);
+    b.line(12, 8, 14, 5, P.ironL); b.px(12, 9, P.woodD); b.px(13, 8, P.gold);
+    b.line(4, 8, 2, 5, P.ironL); b.px(4, 9, P.woodD); b.px(3, 8, P.gold);
+  } };
+  DEF.c_shaman = { w: 16, h: 16, draw(b) {
+    b.rect(5, 12, 2, 3, P.woodD); b.rect(9, 12, 2, 3, P.woodD);
+    b.poly([[4, 7], [12, 7], [13, 14.5], [3, 14.5]], '#7a5a3a'); b.rect(4, 7, 8, 1, P.boneL); b.px(6, 10, '#3fb8c8'); b.px(8, 10, '#3fb8c8'); b.px(10, 10, '#3fb8c8');
+    b.disc(8, 4.8, 2.5, P.skin); b.px(7, 5, P.k); b.px(9, 5, P.k); b.px(6, 6, '#3fb8c8'); b.px(10, 6, '#3fb8c8');
+    b.rect(5, 2, 6, 1, P.wood); b.px(5, 1, P.red); b.px(6, 0, P.white); b.px(8, 0, P.red); b.px(10, 0, P.white); b.px(11, 1, P.green);
+    b.rect(13, 4, 1, 11, P.woodD); b.disc(13.5, 2.6, 1.7, '#7fe7ff'); b.px(12, 5, P.red); b.px(12, 6, P.white);
+    b.px(1, 7, '#7fe7ff'); b.px(2, 5, '#7fe7ff');
   } };
   DEF.c_king = { w: 16, h: 16, draw(b) {
     b.poly([[3, 7], [13, 7], [14, 14.5], [2, 14.5]], P.red); b.rect(3, 7, 10, 2, P.robe); b.rect(7, 9, 2, 6, P.gold);

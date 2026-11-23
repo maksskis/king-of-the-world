@@ -32,11 +32,13 @@
     bh_lumber: 'Следующий уровень: больше мест для дровосеков, добыча +20%, клик +20%.',
     bh_gate: 'Следующий уровень: прочность ворот +60%, +1 место защитника. С 3 уровня стены каменные, с 6-го — ров.',
 
-    cl_warrior: 'Воин', cl_archer: 'Лучник', cl_mage: 'Маг', cl_priest: 'Жрец',
+    cl_warrior: 'Воин', cl_archer: 'Лучник', cl_mage: 'Маг', cl_priest: 'Жрец', cl_rogue: 'Разбойник', cl_shaman: 'Шаман',
     cld_warrior: 'Держит удар и прикрывает остальных.', cld_archer: 'Стабильный урон издалека, помогает сбежать.',
     cld_mage: 'Огромный урон по группам, но хрупок.', cld_priest: 'Лечит союзников в бою.',
+    cld_rogue: 'Метает кинжалы. Врождённо: 15% шанс крита и 10% уклонения.',
+    cld_shaman: 'Сковывает врагов духами. Врождённо: 15% шанс, что враг пропустит ход, у ворот оковы держат врагов на месте.',
     ar_0: 'Новичок', ar_1: 'Ветеран', ar_2: 'Герой', ar_3: 'Легенда',
-    it_sword: 'Меч', it_bow: 'Лук', it_staff: 'Посох', it_mace: 'Булава', it_armor: 'Броня',
+    it_sword: 'Меч', it_bow: 'Лук', it_staff: 'Посох', it_mace: 'Булава', it_dagger: 'Кинжал', it_totem: 'Тотем', it_armor: 'Броня',
     tier_0: 'Железо', tier_1: 'Кость', tier_2: 'Мифрил', tier_3: 'Драконья кость',
     ir_0: 'Обычный', ir_1: 'Добротный', ir_2: 'Редкий', ir_3: 'Эпический', ir_4: 'Легендарный',
 
@@ -57,6 +59,12 @@
     sk_p1: 'Святой свет', skd_p1: '+12% атаки за ранг.', sk_p2: 'Щит веры', skd_p2: 'Защита всего отряда +8% за ранг.',
     sk_p3: 'Благодать', skd_p3: '+20% к силе лечения за ранг.', sk_p4: 'Благословение удачи', skd_p4: '+15% к шансу найти предмет и +4% ресурсов за ранг.',
     sk_p5: 'Последний шанс', skd_p5: 'Павшие союзники гибнут на 10% реже за ранг.',
+    sk_r1: 'Удар в спину', skd_r1: '+10% атаки и 5% шанс крита за ранг.', sk_r2: 'Ловкость', skd_r2: '7% шанс увернуться от удара за ранг.',
+    sk_r3: 'Целебные травы', skd_r3: 'Восстанавливает 2,5% здоровья каждый раунд за ранг.', sk_r4: 'Карманник', skd_r4: '+8% ресурсов и +10% к шансу найти предмет за ранг.',
+    sk_r5: 'Смертельный удар', skd_r5: 'Крит сильнее: +50% урона за ранг.',
+    sk_s1: 'Гнев молнии', skd_s1: '+12% атаки за ранг.', sk_s2: 'Каменная кожа', skd_s2: '+15% защиты и +6% здоровья за ранг.',
+    sk_s3: 'Целебный дождь', skd_s3: 'Весь отряд восстанавливает 1,2% здоровья каждый раунд за ранг.', sk_s4: 'Духи предков', skd_s4: '+10% к шансу найти предмет и +5% ресурсов за ранг.',
+    sk_s5: 'Оковы духов', skd_s5: '+6% шанс сковать врага в подземелье и +0,5 с оков у ворот за ранг.',
     skc_atk: 'Атака', skc_def: 'Защита', skc_heal: 'Лечение', skc_loot: 'Добыча', skc_spec: 'Особый',
 
     tipExp: 'отряд в походе, этаж {f}', tipOpen: 'Нажми: добыча и окно здания', needBuildersShort: 'Все строители заняты',
@@ -238,7 +246,7 @@
     buildersNow: 'Строители', buildersIdle: 'Строители свободны.', decreeAddBuild: 'Добавить стройку в указ', decreeAddRes: 'Добавить исследование',
     needCastleShort: 'нужен Замок {l}', needStorageShort: 'мал склад', needAcademy: 'Постройте Академию, чтобы планировать исследования.', paused: 'на паузе',
     bnDungeon: 'походы', guardsShort: 'Стража', onWallShort: 'На стене', waveEnemies: 'Монстры этой волны',
-    toCity: 'В город', nextWave: 'Дальше', nextNeedDef: 'Для следующей волны нужны защитники', nextAfterLoss: 'После поражения вернись в город', dodged: 'мимо!',
+    toCity: 'В город', nextWave: 'Дальше', nextNeedDef: 'Для следующей волны нужны защитники', nextAfterLoss: 'После поражения вернись в город', dodged: 'мимо!', stunned: 'скован!',
     decreeTotal: 'Всего нужно', agentOn: 'Торговый агент продал излишков на {g} золота.', agentOff: 'Талант «Торговый агент» сам продаёт излишки, когда склад почти полон.',
     startFloor: 'Начать с этажа', startHint: 'Точка старта каждые 5 этажей рекорда. Пропущенные этажи не дают добычи.', startLocked: 'Пройди 5-й этаж, чтобы начинать с него.',
     condPush: 'до последнего', condPushShort: 'до последнего бойца',
@@ -253,7 +261,7 @@
     xAvoid: 'Шанс победы всего {p}% — отряд отступает, не принимая боя.', xItem: 'Найден предмет: {item}.',
     xwDown: 'Кто-то из отряда без сознания — пора домой.', xwRecall: 'Король приказал вернуться.', xwMax: 'Достигнут нужный этаж — отряд возвращается.',
     xwBoss: 'Босс повержен — отряд возвращается с трофеями.', xwHp: 'Здоровье отряда ниже {p}% — отряд возвращается.',
-    fr_partyCrit: 'Отряд наносит {d} урона, есть двойной удар!', fr_dodge: '{name} уворачивается!',
+    fr_partyCrit: 'Отряд наносит {d} урона, есть двойной удар!', fr_dodge: '{name} уворачивается!', fr_stun: '{name} сковывает врага духами — тот пропускает ход!',
   };
 
   const en = {
@@ -287,11 +295,13 @@
     bh_lumber: 'Next level: more woodcutter slots, output +20%, click +20%.',
     bh_gate: 'Next level: gate durability +60%, +1 defender slot. Stone walls from level 3, a moat from level 6.',
 
-    cl_warrior: 'Warrior', cl_archer: 'Archer', cl_mage: 'Mage', cl_priest: 'Priest',
+    cl_warrior: 'Warrior', cl_archer: 'Archer', cl_mage: 'Mage', cl_priest: 'Priest', cl_rogue: 'Rogue', cl_shaman: 'Shaman',
     cld_warrior: 'Takes hits and shields the others.', cld_archer: 'Steady ranged damage, helps the party escape.',
     cld_mage: 'Huge damage against groups, but fragile.', cld_priest: 'Heals allies in battle.',
+    cld_rogue: 'Throws daggers. Innate: 15% crit chance and 10% dodge.',
+    cld_shaman: 'Binds enemies with spirits. Innate: 15% chance the enemy loses its turn; at the gate, chains hold enemies in place.',
     ar_0: 'Novice', ar_1: 'Veteran', ar_2: 'Hero', ar_3: 'Legend',
-    it_sword: 'Sword', it_bow: 'Bow', it_staff: 'Staff', it_mace: 'Mace', it_armor: 'Armor',
+    it_sword: 'Sword', it_bow: 'Bow', it_staff: 'Staff', it_mace: 'Mace', it_dagger: 'Dagger', it_totem: 'Totem', it_armor: 'Armor',
     tier_0: 'Iron', tier_1: 'Bone', tier_2: 'Mithril', tier_3: 'Dragonbone',
     ir_0: 'Common', ir_1: 'Fine', ir_2: 'Rare', ir_3: 'Epic', ir_4: 'Legendary',
 
@@ -312,6 +322,12 @@
     sk_p1: 'Holy light', skd_p1: '+12% attack per rank.', sk_p2: 'Shield of faith', skd_p2: 'Whole party defense +8% per rank.',
     sk_p3: 'Grace', skd_p3: '+20% healing power per rank.', sk_p4: 'Blessing of luck', skd_p4: '+15% item find chance and +4% resources per rank.',
     sk_p5: 'Last chance', skd_p5: 'Fallen allies die 10% less often per rank.',
+    sk_r1: 'Backstab', skd_r1: '+10% attack and 5% crit chance per rank.', sk_r2: 'Agility', skd_r2: '7% chance to dodge a hit per rank.',
+    sk_r3: 'Healing herbs', skd_r3: 'Restores 2.5% health every round per rank.', sk_r4: 'Pickpocket', skd_r4: '+8% resources and +10% item find chance per rank.',
+    sk_r5: 'Deadly strike', skd_r5: 'Crits hit harder: +50% damage per rank.',
+    sk_s1: 'Lightning wrath', skd_s1: '+12% attack per rank.', sk_s2: 'Stoneskin', skd_s2: '+15% defense and +6% health per rank.',
+    sk_s3: 'Healing rain', skd_s3: 'The whole party restores 1.2% health every round per rank.', sk_s4: 'Ancestor spirits', skd_s4: '+10% item find chance and +5% resources per rank.',
+    sk_s5: 'Spirit chains', skd_s5: '+6% chance to bind the enemy in dungeons and +0.5 s of chains at the gate per rank.',
     skc_atk: 'Attack', skc_def: 'Defense', skc_heal: 'Healing', skc_loot: 'Loot', skc_spec: 'Special',
 
     tipExp: 'party on expedition, floor {f}', tipOpen: 'Click to gather and open the building', needBuildersShort: 'All builders are busy',
@@ -493,7 +509,7 @@
     buildersNow: 'Builders', buildersIdle: 'Builders are idle.', decreeAddBuild: 'Add construction to the decree', decreeAddRes: 'Add research',
     needCastleShort: 'needs Castle {l}', needStorageShort: 'storage too small', needAcademy: 'Build the Academy to plan research.', paused: 'paused',
     bnDungeon: 'expeditions', guardsShort: 'Guards', onWallShort: 'On wall', waveEnemies: 'Monsters of this wave',
-    toCity: 'To city', nextWave: 'Next', nextNeedDef: 'The next wave needs defenders', nextAfterLoss: 'After a defeat, return to the city', dodged: 'miss!',
+    toCity: 'To city', nextWave: 'Next', nextNeedDef: 'The next wave needs defenders', nextAfterLoss: 'After a defeat, return to the city', dodged: 'miss!', stunned: 'bound!',
     decreeTotal: 'Total needed', agentOn: 'The trade agent sold surplus for {g} gold.', agentOff: 'The "Trade agent" talent sells surplus on its own when storage is nearly full.',
     startFloor: 'Start from floor', startHint: 'A new starting point every 5 floors of your record. Skipped floors give no loot.', startLocked: 'Clear floor 5 to start from it.',
     condPush: 'to the last', condPushShort: 'to the last fighter',
@@ -508,7 +524,7 @@
     xAvoid: 'Win odds are only {p}% — the party retreats without a fight.', xItem: 'Item found: {item}.',
     xwDown: 'Someone in the party is unconscious — time to go home.', xwRecall: 'The king ordered a return.', xwMax: 'The target floor is reached — the party returns.',
     xwBoss: 'The boss is slain — the party returns with trophies.', xwHp: 'Party health is below {p}% — the party returns.',
-    fr_partyCrit: 'The party deals {d} damage, with a double hit!', fr_dodge: '{name} dodges!',
+    fr_partyCrit: 'The party deals {d} damage, with a double hit!', fr_dodge: '{name} dodges!', fr_stun: '{name} binds the enemy with spirits, it loses its turn!',
   };
 
   G.STR = { ru, en };

@@ -50,6 +50,10 @@
     archer: { hp: 40, atk: 8, def: 2, ghp: 7, gatk: 1.8, gdef: 0.5, weapon: 'bow' },
     mage: { hp: 32, atk: 10, def: 1, ghp: 5, gatk: 2.3, gdef: 0.4, weapon: 'staff' },
     priest: { hp: 45, atk: 5, def: 3, ghp: 8, gatk: 1.1, gdef: 0.8, weapon: 'mace' },
+    // Разбойник: кинжалы, врождённые крит и уклонение
+    rogue: { hp: 38, atk: 8, def: 2, ghp: 6.5, gatk: 1.9, gdef: 0.5, weapon: 'dagger', crit: 0.15, dodge: 0.1 },
+    // Шаман: сковывает врагов — в подземелье враг пропускает ход, у ворот замирает
+    shaman: { hp: 48, atk: 6, def: 3, ghp: 9, gatk: 1.3, gdef: 0.8, weapon: 'totem', stun: 0.15 },
   };
   // Редкость наёмников; tav — с какого уровня таверны появляется
   D.ARAR = [
@@ -91,6 +95,20 @@
       { id: 'p4', cat: 'loot', icon: 'i_gem', eff: { drop: 0.15, loot: 0.04 } },
       { id: 'p5', cat: 'spec', icon: 'i_star', eff: { save: 0.1 } },
     ],
+    rogue: [
+      { id: 'r1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.1, crit: 0.05 } },
+      { id: 'r2', cat: 'def', icon: 'i_boot', eff: { dodge: 0.07 } },
+      { id: 'r3', cat: 'heal', icon: 'i_heal', eff: { regen: 0.025 } },
+      { id: 'r4', cat: 'loot', icon: 'i_bag', eff: { loot: 0.08, drop: 0.1 } },
+      { id: 'r5', cat: 'spec', icon: 'it_dagger:0', eff: { critDmg: 0.5 } },
+    ],
+    shaman: [
+      { id: 's1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
+      { id: 's2', cat: 'def', icon: 'i_def', eff: { def: 0.15, hp: 0.06 } },
+      { id: 's3', cat: 'heal', icon: 'i_heal', eff: { aura: 0.012 } },
+      { id: 's4', cat: 'loot', icon: 'i_gem', eff: { drop: 0.1, loot: 0.05 } },
+      { id: 's5', cat: 'spec', icon: 'it_totem:0', eff: { stun: 0.06 } },
+    ],
   };
 
   // ---------- предметы ----------
@@ -99,6 +117,8 @@
     bow: { g: 'm', slot: 'weapon', cls: 'archer', mod: 1.05 },
     staff: { g: 'm', slot: 'weapon', cls: 'mage', mod: 1.15 },
     mace: { g: 'f', slot: 'weapon', cls: 'priest', mod: 0.85 },
+    dagger: { g: 'm', slot: 'weapon', cls: 'rogue', mod: 0.9 },
+    totem: { g: 'm', slot: 'weapon', cls: 'shaman', mod: 0.95 },
     armor: { g: 'f', slot: 'armor', cls: null, mod: 1 },
   };
   D.TIERS = [
