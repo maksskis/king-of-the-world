@@ -501,45 +501,76 @@
     if (t >= 3) { b.px(24, 7, P.white); b.rect(41, 8, 1, 6, P.woodD); b.poly([[42, 8], [47, 9.5], [42, 11]], P.purple); }
     if (t >= 4) { b.line(28, 4, 34, 1, P.gold); b.line(28, 5, 34, 2, P.goldD); b.px(35, 1, P.cry); b.disc(3, 30, 1.6, P.purpleL); b.px(3, 30, P.white); b.disc(45, 32, 1.6, P.cry); b.px(45, 32, P.white); b.disc(7, 21, 1.2, P.purpleL); b.rect(5, 39, 38, 1, P.gold); }
   } };
+  // Готический замок: тёмный камень, острые шпили, окно-роза, стрельчатые окна и ворота.
+  // Облик 1–4: окна загораются, знамёна, золотые навершия, королевские пурпурные стяги.
   DEF.b_castle = { w: 64, h: 64, draw(b, t) {
     t = +t || 1;
-    // тёплый песчаник, чтобы замок не сливался с серой мостовой
-    const S1 = '#b3a891', S1D = '#7b705e', S1M = '#c8bea8', S1L = '#ddd4c2';
-    // зелёный вал под замком: стены стоят на холме, а не лежат на камне
+    const S = '#6c6878', SD = '#46424f', SM = '#837f93', SL = '#a29eb3';
+    const R = '#3b3457', RD = '#25203a', RL = '#5c5488';
+    const glow = t >= 2 ? P.glow : '#3a3242', glowL = t >= 2 ? P.glowL : '#4b4255';
+    // стрельчатое окно: прямоугольник с острым верхом
+    const lancet = (x, y, w, h, c) => { b.rect(x, y + 1, w, h - 1, c); b.rect(x + (w > 2 ? 1 : 0), y, w > 2 ? w - 2 : w, 1, c); };
+    // пинакль: тонкий острый пик на углу башни
+    const pin = (x, yb, h) => { b.rect(x, yb - h + 2, 1, h - 2, R); b.px(x, yb - h + 1, RL); b.px(x - 1, yb - 1, SD); b.px(x + 1, yb - 1, SD); };
+    // шпиль: левая грань светлее, правая темнее
+    const spire = (x0, x1, yb, ya) => {
+      const ax = (x0 + x1) / 2;
+      b.poly([[x0, yb], [ax, ya], [x1, yb]], R);
+      b.poly([[ax, ya], [x1, yb], [ax, yb]], RD);
+      b.line(Math.round(ax) - 1, ya + 3, x0 + 1, yb - 1, RL);
+    };
+    // зелёный вал под замком
     b.ellipse(32, 58.5, 31, 5.5, P.leafD); b.ellipse(32, 57.5, 29, 4.5, P.leaf); b.px(9, 57, P.leafL); b.px(52, 58, P.leafL); b.px(14, 59, P.leafL);
-    // задняя стена с зубцами
-    wallBricks(b, 8, 16, 48, 14, S1, S1D); crenels(b, 8, 14, 48, S1);
-    // главная башня (донжон)
-    wallBricks(b, 22, 10, 20, 32, S1M, S1);
-    b.poly([[20, 11], [32, -1 + (t >= 3 ? 0 : 3)], [44, 11]], P.blue); b.poly([[32, -1 + (t >= 3 ? 0 : 3)], [44, 11], [32, 11]], P.blueD);
-    if (t >= 3) { b.px(32, 0, P.gold); b.px(32, 1, P.gold); }
-    windowLit(b, 30, 16, 4, 5);
-    // угловые башни
-    for (const x of [4, 48]) {
-      wallBricks(b, x, 22, 12, 34, S1, S1D);
-      crenels(b, x, 20, 12, S1);
-      b.poly([[x - 1, 21], [x + 6, 9], [x + 13, 21]], P.blue); b.poly([[x + 6, 9], [x + 13, 21], [x + 6, 21]], P.blueD);
-      b.rect(x + 5, 30, 2, 4, P.dark);
+    // задняя галерея между башнями
+    wallBricks(b, 10, 26, 44, 12, S, SD);
+    for (let x = 11; x < 53; x += 4) { b.rect(x, 24, 2, 2, S); b.px(x, 23, S); }
+    // центральный донжон с высоким шпилем и окном-розой
+    wallBricks(b, 24, 16, 16, 40, SM, S);
+    b.rect(24, 16, 1, 40, SL);
+    spire(26, 38, 17, t >= 3 ? 0 : 1);
+    pin(24, 17, 7); pin(39, 17, 7);
+    b.disc(32, 24, 3.4, SD); b.disc(32, 24, 2.4, glow); b.px(32, 24, SD); b.px(32, 22, SD); b.px(32, 26, SD); b.px(30, 24, SD); b.px(34, 24, SD);
+    lancet(30, 30, 4, 7, glow); b.rect(31.5, 31, 1, 6, SD);
+    // боковые башни со шпилями и стрельчатыми окнами, контрфорсы у основания
+    for (const [x, side] of [[7, -1], [47, 1]]) {
+      wallBricks(b, x, 20, 10, 36, S, SD);
+      b.rect(side < 0 ? x : x + 9, 20, 1, 36, side < 0 ? SL : SD);
+      spire(x + 1, x + 9, 21, 4);
+      pin(x, 21, 6); pin(x + 9, 21, 6);
+      lancet(x + 4, 27, 2, 6, glow); lancet(x + 4, 39, 2, 6, glow);
+      const bx = side < 0 ? x - 1 : x + 10;
+      b.poly(side < 0 ? [[bx - 2, 56], [bx + 1, 42], [bx + 1, 56]] : [[bx, 42], [bx + 3, 56], [bx, 56]], SD);
     }
-    // передняя стена
-    wallBricks(b, 15, 36, 34, 20, S1M, S1); crenels(b, 15, 34, 34, S1M);
-    b.rect(26, 42, 12, 14, P.woodD); b.ellipse(32, 42, 6, 3, P.woodD); for (let x = 28; x < 37; x += 3) b.rect(x, 40, 1, 16, P.wood);
-    b.px(36, 49, P.gold);
-    windowLit(b, 18, 42, 3, 4); windowLit(b, 43, 42, 3, 4);
+    // передняя стена с остроконечными зубцами
+    wallBricks(b, 16, 40, 32, 16, SM, S);
+    for (let x = 17; x < 47; x += 4) { b.rect(x, 37, 2, 3, SM); b.px(x, 36, SM); }
+    // стрельчатые ворота
+    b.rect(27, 46, 10, 10, P.woodD); b.poly([[27, 46.5], [32, 40.5], [37, 46.5]], P.woodD);
+    for (let x = 29; x < 37; x += 2) b.rect(x, 43, 1, 13, P.wood);
+    b.line(26, 46, 32, 39, SL); b.line(38, 46, 32, 39, SL); b.px(35, 51, P.gold);
+    lancet(19, 45, 2, 6, glow); lancet(43, 45, 2, 6, glow);
     if (t >= 2) {
-      b.rect(10, 4, 1, 6, P.woodD); b.poly([[11, 4], [16, 5.5], [11, 7]], P.red);
-      b.rect(54, 4, 1, 6, P.woodD); b.poly([[55, 4], [60, 5.5], [55, 7]], P.red);
-      b.rect(19, 46, 3, 7, P.red); b.px(20, 48, P.gold); b.rect(42, 46, 3, 7, P.red); b.px(43, 48, P.gold);
+      // вымпелы на шпилях и длинные алые знамёна на стене
+      b.poly([[12, 5], [17, 6], [12, 7]], P.red); b.poly([[52, 5], [57, 6], [52, 7]], P.red);
+      b.rect(22, 41, 3, 10, P.red); b.px(22, 51, P.red); b.px(24, 51, P.red); b.px(23, 44, P.gold);
+      b.rect(39, 41, 3, 10, P.red); b.px(39, 51, P.red); b.px(41, 51, P.red); b.px(40, 44, P.gold);
     }
-    if (t >= 3) { b.rect(15, 36, 34, 1, P.gold); b.rect(22, 10, 20, 1, P.gold); }
+    if (t >= 3) {
+      // золотые навершия, карниз и горгульи
+      b.px(32, 0, P.gold); b.px(32, 1, P.goldL); b.px(12, 3, P.gold); b.px(52, 3, P.gold); b.px(24, 10, P.gold); b.px(39, 10, P.gold);
+      b.rect(24, 17, 16, 1, P.gold); b.px(23, 33, SD); b.px(22, 34, SD); b.px(41, 33, SD); b.px(42, 34, SD);
+      b.disc(32, 24, 1.4, glowL);
+    }
     if (t >= 4) {
-      for (const x of [10, 54]) { b.rect(x, 1, 1, 9, P.woodD); b.poly([[x + 1, 1], [x + 6, 2.5], [x + 1, 4]], P.gold); }
-      b.rect(29, 24, 6, 8, P.purple); b.rect(29, 24, 6, 1, P.gold); b.px(31, 27, P.gold); b.px(32, 27, P.gold); b.px(31, 28, P.gold); b.px(32, 28, P.gold);
-      b.rect(24, 44, 1, 10, P.gold); b.rect(39, 44, 1, 10, P.gold);
+      // королевские пурпурные стяги и сияние окон
+      b.rect(29, 13, 6, 3, P.purple); b.px(31, 14, P.gold); b.px(32, 14, P.gold);
+      b.rect(9, 33, 6, 4, P.purple); b.px(11, 34, P.gold); b.rect(49, 33, 6, 4, P.purple); b.px(51, 34, P.gold);
+      b.rect(16, 40, 32, 1, P.gold);
+      b.px(30, 31, glowL); b.px(33, 31, glowL);
     }
-    // тёмный цоколь у подножия стен и ступени от ворот вниз на площадь
-    b.rect(4, 55, 12, 2, S1D); b.rect(48, 55, 12, 2, S1D); b.rect(15, 55, 11, 2, S1D); b.rect(38, 55, 11, 2, S1D);
-    b.rect(25, 56, 14, 2, S1L); b.rect(23, 58, 18, 2, S1M); b.rect(21, 60, 22, 2, S1); b.rect(21, 61, 22, 1, S1D);
+    // тёмный цоколь и ступени от ворот вниз на площадь
+    b.rect(5, 55, 54, 2, SD);
+    b.rect(25, 56, 14, 2, SL); b.rect(23, 58, 18, 2, SM); b.rect(21, 60, 22, 2, S); b.rect(21, 61, 22, 1, SD);
     b.outline(P.k);
   } };
   DEF.b_gate = { w: 48, h: 48, draw(b, t) {
