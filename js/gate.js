@@ -33,6 +33,9 @@
     if (n % 5 === 0) list.push(n % 10 === 0 ? 'lich' : 'troll');
     return list;
   };
+  // Скорость монстров: каждые 5 волн +12% (волны 1–5 — обычная, 6–10 — +12%, 11–15 — +24% …), не больше ×2;
+  // финальная битва идёт как 21-я волна
+  W.spdMul = (n) => Math.min(2, 1 + 0.12 * Math.floor(((n === 'final' ? 21 : n) - 1) / 5));
   W.hpMul = (n) => (n === 'final' ? 6 : Math.pow(1.16, n - 1)) * G.K.epochMul();
   W.atkMul = (n) => (n === 'final' ? 3 : Math.pow(1.1, n - 1)) * G.K.epochMul();
   W.preview = function (n) {
@@ -150,7 +153,7 @@
     const lane = M.boss ? 1 : Math.floor(Math.random() * 3);
     B.mons.push({
       k, hp: M.hp * W.hpMul(B.n) * (M.boss ? D.BOSS.gateHp : 1), max: M.hp * W.hpMul(B.n) * (M.boss ? D.BOSS.gateHp : 1),
-      atk: M.atk * W.atkMul(B.n) * (M.boss ? D.BOSS.gateAtk : 1), spd: M.spd * G.U.rand(0.9, 1.1),
+      atk: M.atk * W.atkMul(B.n) * (M.boss ? D.BOSS.gateAtk : 1), spd: M.spd * W.spdMul(B.n) * G.U.rand(0.9, 1.1),
       x: LW + 10 + spr.width / 2, y: LANES[lane] + G.U.randInt(-2, 2), w: spr.width, h: spr.height, cd: 0.3, flash: 0, dead: false, deadT: 0,
       boss: !!M.boss, walk: 0, jit: G.U.randInt(0, 8),
     });

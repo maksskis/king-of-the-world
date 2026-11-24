@@ -968,3 +968,7 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 .foe.hitme { cursor: crosshair; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .foe.hitme:active img { transform: scale(0.94); }
 #stage.duel-click #battlecv { cursor: crosshair; }
+
+/* Ускорение монстров в виджете волны */
+.wt .wfast { font-style: normal; font-size: 11px; color: #ffb07a; margin-left: 4px; white-space: nowrap; }
+.wt .wfast .ic { width: 11px; height: 11px; vertical-align: -1px; }

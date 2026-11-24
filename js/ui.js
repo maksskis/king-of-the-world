@@ -453,7 +453,7 @@
     el.innerHTML = `<div class="ww">
       <div class="wsec">
         <button class="wbtn" data-action="wave" data-arg="-1" ${n <= 1 ? 'disabled' : ''}>◀</button>
-        <span class="wt">${t('wave')} <b>${n}</b>${n % 5 === 0 ? ` <i class="boss">${t('boss')}</i>` : ''}</span>
+        <span class="wt">${t('wave')} <b>${n}</b>${n % 5 === 0 ? ` <i class="boss">${t('boss')}</i>` : ''}${G.W.spdMul(n) > 1 ? ` <i class="wfast" title="${esc(t('waveFastTip', { p: Math.round((G.W.spdMul(n) - 1) * 100) }))}">${ic('i_boot')}+${Math.round((G.W.spdMul(n) - 1) * 100)}%</i>` : ''}</span>
         <button class="wbtn" data-action="wave" data-arg="1" ${n > s.best ? 'disabled' : ''}>▶</button>
       </div>
       <div class="wsec wmons" title="${esc(t('waveEnemies'))}">${mons}</div>
