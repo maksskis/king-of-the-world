@@ -153,7 +153,7 @@
       return `<div class="skill cat-${sk.cat}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b>${t('sk_' + sk.id)}</b> <span class="small muted">${r}/${D.SKILL_MAX}</span> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
     }).join('');
     const xpw = Math.min(100, (a.xp / G.T.xpNeed(a.lvl)) * 100).toFixed(1);
-    const canDismiss = a.st !== 'dungeon' && a.st !== 'arena' && !(G.W.active() && a.st === 'gate');
+    const canDismiss = a.st !== 'dungeon' && a.st !== 'arena' && a.st !== 'journey' && !(G.W.active() && a.st === 'gate');
     return `<div class="box charbox" style="--rc:${R.color}">
       <div class="chead"><div class="por big" style="--rc:${R.color}">${ic('c_' + a.cls, 'ic4')}</div>
         <div class="grow"><h2 style="color:${R.color}">${esc(nm(a.name))}</h2>
@@ -196,6 +196,42 @@
   };
 
   // ---------- окно целей ----------
+  // ---------- Путешествие: области по 5 этапов, на каждом свой босс ----------
+  W.journey = function () {
+    const { ic, t, lootHtml, advTile, monSpr, esc } = h();
+    const J = G.J, S = J.S(), shown = J.shownRegions();
+    let map = '';
+    for (let ri = 0; ri < shown; ri++) {
+      const R = J.REGIONS[ri % J.REGIONS.length], lap = Math.floor(ri / J.REGIONS.length);
+      const a = ri * J.PER + 1, b = a + J.PER - 1, locked = !J.unlocked(a);
+      let nodes = '';
+      for (let st = a; st <= b; st++) {
+        const cls = st <= S.best ? 'done' : J.unlocked(st) ? 'cur' : 'locked';
+        nodes += `<button class="jnode ${cls} ${S.sel === st ? 'sel' : ''} ${st % J.PER === 0 ? 'big' : ''}" data-action="jSel" data-arg="${st}" ${cls === 'locked' ? 'disabled' : ''} title="${esc(t(J.bossName(st)))}">
+          <span class="jimg" style="filter:${R.filter}">${ic(monSpr(J.bossKey(st)), 'ic3')}</span><b>${st}</b>${cls === 'done' ? ic('i_check') : cls === 'locked' ? ic('i_lock') : ''}</button>`;
+      }
+      map += `<div class="jreg ${locked ? 'locked' : ''}" data-r="${R.id}"><div class="jrh"><b>${t('jr_' + R.id)}${lap ? ' ' + 'I'.repeat(lap + 1) : ''}</b><span class="muted small">${t('jrStages', { a, b })}</span></div><div class="jpath">${nodes}</div></div>`;
+    }
+    // выбранный этап
+    const st = S.sel, R = J.region(st), tm = J.team(), n = Math.max(1, tm.length), en = J.opp(st, n), first = st > S.best, why = J.whyNot();
+    const idle = G.S.advs.filter((a) => (a.st === 'idle' && a.hp > 0) || S.team.includes(a.id));
+    const chance = tm.length ? Math.round(J.chance() * 100) : 0;
+    const whyTxt = why === 'stage' ? t('jrNeedPrev', { s: st - 1 }) : why === 'team' ? t('arenaNoTeam') : why === 'battle' ? t('jrBusy') : why === 'fight' ? t('arenaLive') : '';
+    const det = `<div class="jdetail">
+      <div class="jboss"><span class="jbig" style="filter:${R.filter}">${ic(monSpr(en.key), 'ic4')}</span>
+        <div class="grow"><div class="muted small">${t('jr_' + R.id)} · ${t('jrStage', { s: st })}</div><h3>${esc(t(J.bossName(st)))}</h3>
+          <div>${ic('i_hp')} ${G.U.fmt(en.hp)} · ${ic('i_atk')} ${G.U.fmt(en.atk)} <span class="muted small">${t('jrForTeam', { n })}</span></div>
+          <div class="small">${t(first ? 'jrRewardFirst' : 'jrRewardAgain')}: ${lootHtml(J.reward(st, first))}${J.itemChance(st, first) ? ` · ${ic('i_chest')} ${t('jrItemChance', { p: Math.round(J.itemChance(st, first) * 100) })}` : ''}</div>
+          ${tm.length ? `<div class="small ${chance >= 60 ? 'good' : chance >= 30 ? 'warn' : 'bad'}">${t('winChance')}: ${chance}%</div>` : ''}
+        </div></div>
+      <button class="btn primary big" data-action="jFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why ? whyTxt : t('jrFight')}</button>
+      <h3>${ic('i_people')} ${t('arenaTeam')} <span class="muted">${tm.length}/${J.teamMax()}</span></h3>
+      ${idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'jPick', a.id, S.team.includes(a.id) && a.st === 'idle')).join('')}</div>` : `<div class="muted small">${t('noIdle')}</div>`}
+      <div class="hint">${t('jrHint')}</div></div>`;
+    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_ship', 'ic2')} ${t('journey')}</h2><div class="muted small">${t('journeyHint', { b: S.best })}</div>
+      <div class="jwrap"><div class="jmap">${map}</div>${det}</div>`;
+  };
+
   W.goals = function () {
     const { ic, t, lootHtml } = h();
     const cur = G.S.goal;

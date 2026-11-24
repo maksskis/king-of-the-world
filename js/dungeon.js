@@ -76,10 +76,10 @@
     const key = boss ? L.boss(f) : G.U.pick(L.pool(f));
     const count = boss ? 1 : G.U.randInt(2, 4);
     const diff = L.diff * G.K.epochMul();
-    const hp = Math.round(60 * Math.pow(1.26, f - 1) * diff * (boss ? 3.5 : 1) * (count / 3));
+    const hp = Math.round(60 * Math.pow(1.26, f - 1) * diff * (boss ? D.BOSS.hp : 1) * (count / 3));
     const sc = X.scale(locId, n || X.maxParty);
     const hpS = Math.round(hp * sc.hp);
-    const atk = Math.round(9 * Math.pow(1.19, f - 1) * Math.pow(diff, 0.8) * (boss ? 1.6 : 1) * (0.7 + count * 0.1) * sc.atk * 10) / 10;
+    const atk = Math.round(9 * Math.pow(1.19, f - 1) * Math.pow(diff, 0.8) * (boss ? D.BOSS.atk : 1) * (0.7 + count * 0.1) * sc.atk * 10) / 10;
     return { key, count, hp: hpS, max: hpS, atk, boss, f, hits: sc.hits };
   };
   X.enemyName = function (en) {
@@ -331,9 +331,8 @@
     if (Math.random() >= chance) return;
     const depth = e.floor * D.LOCS[e.loc].diff;
     const ti = Math.min(3, Math.floor(depth / 5));
-    const k = 0.05 * e.floor + G.bonus('luck');
-    const leg = Math.min(D.LEG.cap, (D.LEG.dun + D.LEG.dunFloor * e.floor) * (1 + G.bonus('luck'))) * (boss ? D.LEG.boss : 1);
-    const rar = G.U.weighted(G.F.weightsFor(k, leg));
+    const k = 0.03 * e.floor + G.bonus('luck') + (boss ? 0.3 : 0);
+    const rar = G.U.weighted(G.F.weightsFor(k, D.LEG.p));
     const it = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
     e.items.push(it);
     xlog(e, 'xItem', { item: G.F.nameObj(it) }, it.rar >= 3 ? 'epic' : 'good');

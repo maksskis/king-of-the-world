@@ -45,13 +45,14 @@
   // Редкости открываются уровнями кузницы; удача сдвигает шансы к редким
   // Веса редкостей: обычная–эпическая сдвигаются удачей, легендарная получает ровно свой шанс legP
   F.weightsFor = function (k, legP, open) {
-    const w = D.IRAR.map((r, i) => (i < 4 && (!open || open(i)) ? r.w * Math.pow(1 + k, i) : 0));
+    const m = 1 + Math.min(D.LEG.kMax, Math.max(0, k)) / 2;
+    const w = D.IRAR.map((r, i) => (i < 4 && (!open || open(i)) ? r.w * Math.pow(m, i) : 0));
     const s = w.reduce((a, b) => a + b, 0);
     w[4] = legP > 0 ? (s * legP) / (1 - legP) : 0;
     return w;
   };
   F.luckK = () => 0.12 * (lvl() - 1) + 0.04 * G.S.b.forge.w + G.bonus('luck');
-  F.legChance = () => (F.rarOpen(4) ? Math.min(D.LEG.cap, D.LEG.forge * (1 + F.luckK())) : 0);
+  F.legChance = () => (F.rarOpen(4) ? D.LEG.p : 0);
   F.rarWeights = () => F.weightsFor(F.luckK(), F.legChance(), F.rarOpen);
   F.rarChances = function () {
     const w = F.rarWeights();
@@ -147,7 +148,7 @@
   F.lockedOwner = (owner) => {
     if (owner === 'king' || !owner) return false;
     const a = G.T.get(owner);
-    return !!a && (a.st === 'dungeon' || a.st === 'arena' || (a.st === 'gate' && G.W.active()));
+    return !!a && (a.st === 'dungeon' || a.st === 'arena' || a.st === 'journey' || (a.st === 'gate' && G.W.active()));
   };
 
   F.equip = function (id, owner) {

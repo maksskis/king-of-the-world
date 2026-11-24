@@ -596,16 +596,49 @@
     }
   } };
 
+  // Катакомбы: кирпичный портал в скале, каменная арка, двустворчатые дубовые двери, череп в замке арки, факелы
+  DEF.dungeon = { w: 48, h: 48, draw(b, S) {
+    b.poly([[1, 46], [3, 30], [10, 17], [24, 11], [38, 17], [45, 30], [47, 46]], P.stoneD);
+    b.poly([[3, 30], [10, 17], [24, 11], [19, 18], [10, 26]], P.stone);
+    b.poly([[10, 17], [24, 11], [17, 16]], P.stoneL);
+    b.ellipse(24, 11.5, 8, 1.6, P.leafD); b.ellipse(22, 11, 4, 1, P.leaf);
+    // кирпичный фасад со ступенчатым верхом
+    polyWall(b, S, [[9, 46], [9, 25], [14, 19], [34, 19], [39, 25], [39, 46]], 9, 19, false);
+    b.line(9, 24, 14, 19, S.TL); b.rect(14, 19, 20, 1, S.TL); b.line(34, 19, 38, 23, S.T);
+    b.rect(9, 25, 2, 21, S.B3); b.rect(37, 25, 2, 21, S.B3);
+    // каменная арка с клинчатыми камнями
+    arch(b, 14, 23, 20, 23, S.T, 1);
+    for (let yy = 23; yy < 33; yy += 2) { const r = yy - 23, half = Math.min(10, r + 1); b.px(24 - half, yy, S.TD); b.px(23 + half, yy, S.TD); }
+    // двери: две створки, доски, железные полосы, кольца
+    arch(b, 16, 25, 16, 21, P.woodD, 1);
+    arch(b, 17, 26, 14, 20, P.wood, 1);
+    for (let x = 18; x < 31; x += 3) b.rect(x, 33, 1, 13, P.woodD);
+    b.rect(23, 26, 2, 20, P.woodD);
+    b.rect(17, 35, 14, 1, '#2a2a30'); b.rect(17, 42, 14, 1, '#2a2a30');
+    b.px(22, 38, P.ironL); b.px(25, 38, P.ironL); b.px(21, 39, P.ironL); b.px(26, 39, P.ironL);
+    // череп в замке арки
+    b.disc(24, 21, 2.6, P.bone); b.rect(23, 23, 3, 1, P.bone); b.px(23, 21, P.k); b.px(25, 21, P.k); b.px(24, 23, P.boneD);
+    torchL(b, 12, 30); torchL(b, 35, 30);
+    // ступени вниз
+    b.rect(14, 46, 20, 1, S.TL); b.rect(12, 47, 24, 1, S.T);
+  } };
+  function torchL(b, x, y) { b.rect(x, y + 1, 1, 4, P.woodD); b.px(x, y, P.glow); b.px(x, y - 1, P.glowL); b.px(x - 1, y, '#ff7a3a'); }
+
+  // Классический облик (серый кирпич) — только для Катакомб: остальное классическое рисует sprites.js
+  const CLASSIC = { id: 'classic', MO: '#43424a', B1: '#8c8b92', B2: '#a4a3aa', B3: '#74737b', BH: '#bebdc4', T: '#c3c8cf', TD: '#8d939c', TL: '#e6e9ee',
+    R: '#e0602a', RD: '#b4421c', RL: '#f39446', RS: '#8a2f12', WD: '#2a2233', WL: '#55505e', GL: '#ffb347', GLL: '#ffe39a',
+    BN: '#c83a3a', BND: '#8a2222', FI: '#f7c948', FID: '#b07d1a', spire: 'cone', merlon: 'square', rose: false, buttress: false };
+
   const ORDER = [
     ['castle', 'Замок'], ['gate', 'Главные ворота'], ['lumber', 'Лесопилка'], ['quarry', 'Каменоломня'], ['mine', 'Шахта'],
     ['warehouse', 'Склад'], ['forge', 'Кузница'], ['guild', 'Гильдия'], ['barracks', 'Казармы'], ['academy', 'Академия'], ['arena', 'Арена'],
   ];
 
   // Ключ здания в игре → рисунок стиля (Таверна в игре — это Гильдия)
-  const NAME = { castle: 'castle', gate: 'gate', lumber: 'lumber', quarry: 'quarry', mine: 'mine', warehouse: 'warehouse', forge: 'forge', tavern: 'guild', barracks: 'barracks', academy: 'academy', arena: 'arena' };
+  const NAME = { dungeon: 'dungeon', castle: 'castle', gate: 'gate', lumber: 'lumber', quarry: 'quarry', mine: 'mine', warehouse: 'warehouse', forge: 'forge', tavern: 'guild', barracks: 'barracks', academy: 'academy', arena: 'arena' };
   const style = (id) => STYLES.find((S) => S.id === id) || null;
   function render(name, id, t, white) {
-    const d = DEF[NAME[name] || name], S = style(id);
+    const d = DEF[NAME[name] || name], S = style(id) || (id === 'classic' && NAME[name] === 'dungeon' ? CLASSIC : null);
     if (!d || !S) return null;
     const b = new Buf(d.w, d.h);
     d.draw(b, S, Math.max(1, Math.min(4, t || 1)));

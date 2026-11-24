@@ -146,11 +146,12 @@
     const dyn = G.S.dyn;
     dyn.pts += K.legacyGain();
     dyn.epoch++;
-    const lang = G.S.lang, sound = G.S.sound;
+    const lang = G.S.lang, sound = G.S.sound, style = G.S.style;
     const heirs = K.carryHeroes(G.S);
     G.S = G.newState(dyn);
     G.S.lang = lang;
     G.S.sound = sound;
+    G.S.style = style;
     G.S.advs = heirs.advs;
     G.S.items = heirs.items;
     for (const a of G.S.advs) a.hp = G.T.stats(a).hp;

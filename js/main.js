@@ -52,6 +52,8 @@
     G.invalidateBonus();
     G.UI.init();
     if (G.S.arena.live) G.A.finish(); // бой на Арене прервался перезагрузкой — подводим итог сразу
+    if (G.S.camp.won) G.J.S().open = true; // дракон уже повержен — Путешествие открыто
+    if (G.J.S().live) G.J.finish();
     G.K.xp(0); // опыт по старой кривой сразу даёт уровни
     let rep = null;
     if (loaded) {

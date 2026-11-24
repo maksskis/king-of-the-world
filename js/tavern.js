@@ -37,6 +37,14 @@
   T.refreshCost = () => ({ gold: Math.ceil(20 * Math.max(1, tl()) * Math.pow(1.6, G.S.tavern.rr || 0)) });
   // цена найма с навыком «Вербовщики» и наследием династии
   T.hireCost = (c) => Math.ceil(c.cost * Math.max(0.4, 1 - G.bonus('hireC')));
+  // Клик по Гильдии: новые люди приходят на секунду раньше; когда таймер дошёл до нуля — приходят сразу
+  T.boostSec = () => 1 + 0.25 * Math.max(0, tl() - 1);
+  T.boost = function () {
+    if (tl() < 1 || G.E.busy('tavern')) return false;
+    G.S.tavern.t -= T.boostSec();
+    if (G.S.tavern.t <= 0) { T.refresh(true); G.log('logRecruitsCame', {}, 'good'); return 'came'; }
+    return true;
+  };
   T.refresh = function (free) {
     if (!free && (G.E.busy('tavern') || !G.E.pay(T.refreshCost()))) return;
     G.S.tavern.cands = Array.from({ length: T.candCount() }, T.gen);

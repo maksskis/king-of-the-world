@@ -43,6 +43,7 @@
     if (a.st === 'gate') return ic('i_tower') + `<span>${t('st_gate')}</span>`;
     if (a.st === 'dungeon') return ic('i_flag') + `<span>${t('st_dungeon')}</span>`;
     if (a.st === 'arena') return ic('i_atk') + `<span>${t('st_arena')}</span>`;
+    if (a.st === 'journey') return ic('i_ship') + `<span>${t('st_journey')}</span>`;
     if (a.st === 'wounded') return ic('i_heal') + `<span data-b="wt:${a.id}"></span>`;
     return ic('i_check') + `<span>${t('st_idle')}</span>`;
   }
@@ -328,6 +329,13 @@
 
   function updateSlots() {
     UI.slotsDirty = false;
+    const jb = $('#journey-btn');
+    if (jb) {
+      const open = G.J.open();
+      jb.classList.toggle('hidden', !open);
+      const html = `${ic('i_ship', 'ic2')}<span>${t('journey')}</span>`;
+      if (open && jb._h !== html + G.LANG) { jb.innerHTML = html; jb._h = html + G.LANG; jb.title = t('journeyTip'); }
+    }
     const wt = wallTier(), st = G.SPR.style();
     if (wt !== UI.wallTier || st !== UI.wallStyle) { UI.wallTier = wt; UI.wallStyle = st; G.SPR.mapBg($('#mapbg'), wt); }
     const dq = G.S.decree.build;
@@ -393,7 +401,11 @@
       else { text = t('full'); icon = 'i_bag'; }
     } else if (k === 'dungeon' && G.X.hurry()) { text = '−' + U.fmt1(G.X.hurrySec()) + t('sec'); icon = 'i_boot'; G.SFX.play('click'); }
     else if (k === 'forge' && G.F.boost()) { text = t('hammerHit') + ' −' + U.fmt1(G.F.boostSec()) + t('sec'); icon = 'i_anvil'; G.SFX.play('hit'); }
-    else if (k === 'arena' && G.A.boost()) { text = '−' + U.fmt1(G.A.boostSec()) + t('sec'); icon = 'i_clock'; G.SFX.play('click'); }
+    else if (k === 'tavern') {
+      const r = G.T.boost();
+      if (r === 'came') { text = t('recruitsCame'); icon = 'i_people'; G.SFX.play('coin'); }
+      else if (r) { text = '−' + U.fmt1(G.T.boostSec()) + t('sec'); icon = 'i_people'; G.SFX.play('click'); }
+    } else if (k === 'arena' && G.A.boost()) { text = '−' + U.fmt1(G.A.boostSec()) + t('sec'); icon = 'i_clock'; G.SFX.play('click'); }
     else if (k === 'academy' && G.R.boost()) { text = '−' + U.fmt1(G.R.boostSec()) + t('sec'); icon = 'i_book'; G.SFX.play('click'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
     if (e.type === 'pointerdown') UI.openPop(k);
@@ -546,6 +558,13 @@
     fightFinal() { G.W.start(true); UI.dirty(); },
     bclose() { G.W.close(); },
     askip() { G.W.arenaSkip(); },
+    arenaNext() { G.A.fight(); },
+    arenaBoost() { if (G.A.boost()) G.SFX.play('click'); },
+    journey() { if (!G.J.open()) return; if (!G.W.running()) G.W.close(); UI.open('journey'); },
+    journeyNext() { G.J.fight(); },
+    jSel(s) { G.J.select(+s); },
+    jPick(id) { G.J.pick(id); },
+    jFight() { G.J.fight(); },
     bnext() { G.W.next(); },
     cast(id) { G.K.cast(id); },
     talent(id) { G.K.learn(id); },
@@ -776,6 +795,7 @@
     if (G.E.consOf(k)) return G.E.boostSec() > 0 ? `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_hammer')} ${t('helpBuild', { n: U.fmt1(G.E.boostSec()) })}</button>` : '';
     if (L > 0 && d.click) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_pick')} ${t('gatherBtn')} <b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + d.click)}</button>`;
     if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn', { n: U.fmt1(G.F.boostSec()) })}</button>`;
+    if (k === 'tavern' && L > 0 && !G.E.busy('tavern')) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_people')} ${t('recruitBoost', { n: U.fmt1(G.T.boostSec()) })} <span class="muted small">· <span data-b="tavT"></span></span></button>`;
     if (k === 'arena' && L > 0 && G.S.arena.cd > 0) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_clock')} ${t('arenaBoost', { n: U.fmt1(G.A.boostSec()) })}</button>`;
     if (k === 'academy' && L > 0 && G.R.active().length) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_book')} ${t('resBoostBtn', { n: U.fmt1(G.R.boostSec()) })}</button>`;
     return '';
@@ -1105,9 +1125,10 @@
   UI.showBattle = function (on, mode) {
     $('#map').classList.toggle('hidden', on);
     $('#stage').classList.toggle('in-battle', on);
-    $('#stage').classList.toggle('arena-mode', on && mode === 'arena');
+    const duel = mode === 'arena' || mode === 'journey';
+    $('#stage').classList.toggle('arena-mode', on && duel);
     $('#battle').classList.toggle('hidden', !on);
-    if (on && mode === 'arena') {
+    if (on && duel) {
       // Арена: ранг, чемпион и его здоровье, «Пропустить» до конца боя, «В город» — после
       $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
         <span class="grow"></span><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button>`;
@@ -1129,24 +1150,51 @@
     $('#bh-gate').style.width = ((B.gate / B.gateMax) * 100).toFixed(1) + '%';
     $('#bh-gtxt').textContent = Math.ceil(B.gate) + '/' + B.gateMax;
   };
-  UI.arenaHud = function (B) {
+  UI.duelHud = function (B) {
     const w = $('#bh-wave');
     if (!w) return;
     const m = B.mons[0];
-    w.textContent = t('arenaRank', { r: B.n });
-    $('#bh-left').textContent = t('mn_' + B.champ) + (B.ri >= 0 && B.state === 'run' ? ' · ' + t('arenaRound', { n: Math.min(B.ri + 1, B.tl.length) }) : '');
+    if (w.textContent !== B.title) w.textContent = B.title;
+    $('#bh-left').textContent = B.cname + (B.ri >= 0 && B.state === 'run' ? ' · ' + t('arenaRound', { n: Math.min(B.ri + 1, B.tl.length) }) : '');
     $('#bh-gate').style.width = (m ? (Math.max(0, m.hp) / m.max) * 100 : 0).toFixed(1) + '%';
     $('#bh-gtxt').textContent = m ? U.fmt(Math.max(0, Math.ceil(m.hp))) + '/' + U.fmt(m.max) : '';
+  };
+  // Итог поединка: Арена — «Ускорить» и «Следующий бой» (загорается после подготовки);
+  // Путешествие — «К карте» и «Следующий этап»
+  UI.duelResult = function (B, r) {
+    const sk = $('#bh-skip');
+    if (sk) sk.remove();
+    $('#bh-city').disabled = false;
+    const head = $('#battle-head');
+    if (B.mode === 'journey') {
+      const h = r.win
+        ? `<div class="res-win">${t('jrWonTitle', { s: r.s })}</div><div>${lootHtml(r.loot)}${r.item ? ' · ' + t('jrItem', { item: fmtEntry({ k: 'xItemShort', p: { item: G.F.nameObj(r.item) } }) }) : ''} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('jrRest', { n: r.wounded }) : ''}</div>`
+        : `<div class="res-lose">${t('jrLostTitle', { s: r.s })}</div><div>${r.wounded ? t('jrRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('jrLostHint')}</span></div>`;
+      $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
+      head.insertAdjacentHTML('beforeend', `<button class="btn small" data-action="journey">${ic('i_map')} ${t('jrToMap')}</button>${r.win ? `<button class="btn small primary" id="bh-jnext" data-action="journeyNext">${t('jrNext')} ▶</button>` : ''}`);
+      return;
+    }
+    head.insertAdjacentHTML('beforeend', `<button class="btn small" id="bh-aboost" data-action="arenaBoost">${ic('i_clock')} ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</button><button class="btn small primary" id="bh-anext" data-action="arenaNext" disabled></button>`);
+    UI.arenaResult(r);
   };
   UI.arenaResult = function (r) {
     const h = r.win
       ? `<div class="res-win">${t('arenaWonTitle', { r: r.rank })}</div><div>${lootHtml(r.loot)} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('arenaRest', { n: r.wounded }) : ''} · <span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`
       : `<div class="res-lose">${t('arenaLostTitle', { r: r.rank })}</div><div>${r.wounded ? t('arenaRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`;
     $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
-    const sk = $('#bh-skip');
-    if (sk) sk.remove();
-    $('#bh-city').disabled = false;
   };
+  // кнопки окна Арены после боя: следующий бой ждёт конца подготовки и свободных бойцов
+  function refreshDuelButtons() {
+    const an = $('#bh-anext');
+    if (an) {
+      const why = G.A.whyNot();
+      an.disabled = !!why;
+      const lab = why === 'cd' ? t('arenaNextBtn') + ' · ' + U.fmtTime(G.S.arena.cd) : why === 'team' ? t('arenaNoTeam') : why ? t('arenaNextBtn') : t('arenaNextBtn') + ' ▶';
+      if (an.textContent !== lab) an.textContent = lab;
+      const ab = $('#bh-aboost');
+      if (ab) ab.classList.toggle('hidden', !(G.S.arena.cd > 0));
+    }
+  }
   UI.battleResult = function (r) {
     let h;
     if (r.win) h = `<div class="res-win">${r.final ? t('finalVictory') : t('victory')}</div><div>${lootHtml({ gold: r.gold, bone: r.bone })} · ${t('xpEach', { n: r.xp })}${r.wounded ? ' · ' + t('woundedN', { n: r.wounded }) : ''}</div>`;
@@ -1194,6 +1242,7 @@
     ehp: (id) => { const e = G.X.get(id); return e && e.enemy ? U.fmt(Math.max(0, e.phase === 'fight' ? e.ehp : e.enemy.hp)) + '/' + U.fmt(e.enemy.max) : ''; },
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
+    tavT: () => U.fmtTime(Math.max(0, G.S.tavern.t)),
     arenaT: () => (G.S.arena.cd > 0 ? U.fmtTime(G.S.arena.cd) + (G.E.busy('arena') ? ' · ' + t('paused') : '') : t('arenaReady')),
     folkR: () => { const v = G.E.folkTax() * (1 + G.bonus('tax')); return v ? '+' + U.fmt1(v) : ''; },
     cd: (id) => { const v = G.S.king.cd[id] || 0; const b = id === 'rush' ? G.S.king.buff.rush : id === 'rallyS' ? G.S.king.buff.rally : 0; return b > 0 ? U.fmtTime(b) : v > 0 ? U.fmtTime(v) : ''; },
@@ -1305,6 +1354,7 @@
     }
     $('#rush-ind').classList.toggle('hidden', !(G.S.king.buff.rush > 0));
     updateBadges();
+    refreshDuelButtons();
     applyGoal();
     renderTip();
     renderGtip();

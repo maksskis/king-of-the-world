@@ -920,3 +920,45 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 #battle-head .champbar i { background: #d64545; }
 #stage.arena-mode #battle-head { flex-wrap: wrap; row-gap: 4px; }
 #stage.arena-mode .res-win, #stage.arena-mode .res-lose { font-size: 20px; }
+
+/* Путешествие: кнопка-причал у пруда на карте */
+#journey-btn {
+  position: absolute; left: 0.6%; top: 74%; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 4px 6px 3px; font: inherit; font-size: 11px; font-weight: 600; color: #fff;
+  background: rgba(20, 40, 80, 0.78); border: 2px solid #7fb4f0; border-radius: 10px; cursor: pointer;
+  box-shadow: 0 0 10px rgba(127, 180, 240, 0.6); animation: journeyGlow 2.4s ease-in-out infinite;
+}
+#journey-btn:hover, #journey-btn:focus-visible { border-color: var(--gold); outline: none; }
+#journey-btn .ic2 { width: 26px; height: 26px; }
+@keyframes journeyGlow { 50% { box-shadow: 0 0 16px rgba(127, 180, 240, 0.95); } }
+
+/* Окно Путешествия: слева области с этапами, справа выбранный этап и отряд */
+#modal-box.w-journey { width: min(980px, 96vw); }
+.jwrap { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; margin-top: 8px; align-items: start; }
+.jmap { display: grid; gap: 8px; max-height: 62vh; overflow: auto; padding-right: 4px; }
+.jreg { border-radius: 8px; padding: 8px; border: 1px solid var(--line); background: #2a2233; }
+.jreg[data-r="wastes"] { background: linear-gradient(90deg, #3a3020, #2a2233); }
+.jreg[data-r="swamp"] { background: linear-gradient(90deg, #1f3328, #2a2233); }
+.jreg[data-r="fire"] { background: linear-gradient(90deg, #45201a, #2a2233); }
+.jreg[data-r="ice"] { background: linear-gradient(90deg, #22384e, #2a2233); }
+.jreg[data-r="dark"] { background: linear-gradient(90deg, #2a1a3a, #2a2233); }
+.jreg.locked { opacity: 0.55; }
+.jrh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.jpath { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; position: relative; }
+.jnode { position: relative; display: grid; justify-items: center; gap: 2px; padding: 5px 2px 3px; font: inherit; font-size: 12px; color: var(--text); background: rgba(13, 10, 18, 0.55); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.jnode .ic3 { width: 32px; height: 32px; }
+.jnode.big .ic3 { width: 40px; height: 40px; }
+.jnode > .ic { position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; }
+.jnode.done { border-color: #5ec85e; }
+.jnode.cur { border-color: var(--gold); box-shadow: 0 0 8px rgba(247, 201, 72, 0.5); }
+.jnode.locked { cursor: default; filter: grayscale(0.8); }
+.jnode.sel { background: rgba(247, 201, 72, 0.18); outline: 2px solid var(--gold); outline-offset: 1px; }
+.jnode:hover:not(:disabled) { border-color: var(--gold); }
+.jdetail { display: grid; gap: 8px; background: var(--panel2); border-radius: 8px; padding: 10px; }
+.jboss { display: flex; gap: 10px; align-items: center; }
+.jboss h3 { margin: 2px 0; }
+.jbig .ic4 { width: 72px; height: 72px; }
+.jdetail .tiles { max-height: 28vh; overflow: auto; }
+@media (max-width: 760px) { .jwrap { grid-template-columns: minmax(0, 1fr); } .jmap { max-height: none; } }
+@media (prefers-reduced-motion: reduce) { #journey-btn { animation: none; } }

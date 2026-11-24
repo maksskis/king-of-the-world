@@ -214,6 +214,7 @@
   DEF.i_snd = { w: 12, h: 12, draw(b) { b.rect(1, 4, 3, 4, P.stoneL); b.poly([[3, 4], [7, 1], [7, 11], [3, 8]], P.stoneL); b.line(9, 3, 10, 5, P.white); b.line(10, 6, 9, 8, P.white); } };
   DEF.i_mute = { w: 12, h: 12, draw(b) { b.rect(1, 4, 3, 4, P.stoneD); b.poly([[3, 4], [7, 1], [7, 11], [3, 8]], P.stoneD); b.line(8, 4, 11, 7, P.red); b.line(11, 4, 8, 7, P.red); } };
   DEF.i_scroll = { w: 12, h: 12, draw(b) { b.rect(2, 2, 8, 8, P.plaster); b.rect(1, 1, 10, 2, P.plasterD); b.rect(1, 9, 10, 2, P.plasterD); b.rect(3, 4, 6, 1, P.woodD); b.rect(3, 6, 5, 1, P.woodD); b.px(8, 8, P.red); } };
+  DEF.i_ship = { w: 12, h: 12, draw(b) { b.rect(5, 1, 1, 8, P.woodD); b.poly([[6, 1.5], [10.5, 7], [6, 7]], P.plaster); b.poly([[5, 2], [1.5, 7], [5, 7]], P.plasterD); b.poly([[0.5, 8], [11.5, 8], [9.5, 11], [2.5, 11]], P.wood); b.rect(1, 8, 11, 1, P.woodL); b.px(6, 0, P.red); b.px(7, 0, P.red); } };
   DEF.i_tower = { w: 12, h: 12, draw(b) { b.rect(3, 3, 6, 8, P.stone); crenels(b, 3, 1, 7, P.stone); b.rect(5, 7, 2, 4, P.woodD); b.rect(5, 4, 2, 1, P.dark); } };
 
   // ---------- предметы (16×16), аргумент — тир ----------
@@ -687,7 +688,7 @@
     const [name, arg] = k.split(':');
     // облик города: готические стили A–E рисует gothic.js, «Классика» — эти спрайты
     const st = G.SPR.style();
-    if (st !== 'classic' && name.startsWith('b_') && G.GOTH && G.GOTH.has(name.slice(2))) {
+    if ((st !== 'classic' || name === 'b_dungeon') && name.startsWith('b_') && G.GOTH && G.GOTH.has(name.slice(2))) {
       const cv = G.GOTH.render(name.slice(2), st, +arg || 1, white);
       if (cv) return cv;
     }
@@ -960,6 +961,34 @@
       b.px(x, y, y < wy + 16 ? sand[3] : n < 0.08 ? sand[3] : n < 0.25 ? sand[2] : n < 0.6 ? sand[1] : sand[0]);
     }
     for (let i = 0; i < 6; i++) { const y = wy + 24 + i * 7; for (let x = 0; x < W; x++) if ((x + i * 7) % 11 < 6) b.px(x, y, sand[2]); }
+    return b.canvas();
+  };
+
+  // Поле боя Путешествия по областям: пустоши, топи, огненные горы, ледяной край, тёмная цитадель
+  G.SPR.journeyBg = function (ri) {
+    const OFF = 80, W = 320, H = 130 + OFF, b = new Buf(W, H), r = G.U.seeded(500 + ri);
+    const SET = [
+      { sky: ['#1a1430', '#2a1f3d', '#4a3550', '#7a5560'], far: '#3b2c3a', near: '#2c2230', g: ['#8a7a55', '#9c8a60', '#7a6a48', '#6b5c3e'] },
+      { sky: ['#101a20', '#16262a', '#203630', '#2c4a3a'], far: '#1c3028', near: '#15241e', g: ['#3f5a3a', '#4a6a40', '#35502f', '#2a4026'], pools: '#2a4a48' },
+      { sky: ['#200c0c', '#3a1210', '#5a1c10', '#8a3010'], far: '#2a1410', near: '#1c0c0a', g: ['#3a2420', '#4a2c24', '#2c1a18', '#5a3020'], lava: '#ff6a2a' },
+      { sky: ['#0e1830', '#1a2c50', '#2c4470', '#4a6a90'], far: '#8aa4c0', near: '#6a84a0', g: ['#cfe3ee', '#e4f0f6', '#b8d0de', '#a4bccc'] },
+      { sky: ['#0a0812', '#140e20', '#1e142e', '#2c1c40'], far: '#24182e', near: '#180f22', g: ['#2a2433', '#342c40', '#221c2a', '#3a2c4a'], glow: '#9a5cff' },
+    ];
+    const C = SET[ri % SET.length];
+    for (let y = 0; y < 72 + OFF; y++) { const c = C.sky[Math.min(3, Math.floor((y / (72 + OFF)) * 4))]; for (let x = 0; x < W; x++) b.px(x, y, c); }
+    for (let i = 0; i < 60; i++) b.px(Math.floor(r() * W), Math.floor(r() * (40 + OFF)), r() < 0.6 ? '#ffffff' : '#c8b8ff');
+    for (let x = 0; x < W; x++) {
+      const h1 = Math.round(40 + OFF + 12 * Math.sin(x * 0.03 + ri) + 6 * Math.sin(x * 0.11));
+      for (let y = h1; y < 72 + OFF; y++) b.px(x, y, C.far);
+      if (ri % 5 === 3 && y0snow(h1)) for (let y = h1; y < h1 + 2; y++) b.px(x, y, '#ffffff');
+      const h2 = Math.round(56 + OFF + 6 * Math.sin(x * 0.07 + 2 * ri) + 3 * Math.sin(x * 0.19));
+      for (let y = h2; y < 72 + OFF; y++) b.px(x, y, C.near);
+    }
+    function y0snow(h) { return h < 44 + OFF; }
+    for (let y = 72 + OFF; y < H; y++) for (let x = 0; x < W; x++) { const n = r(); b.px(x, y, n < 0.1 ? C.g[3] : n < 0.25 ? C.g[2] : n < 0.6 ? C.g[0] : C.g[1]); }
+    if (C.pools) for (let i = 0; i < 5; i++) b.ellipse(30 + r() * 260, 80 + OFF + r() * 10, 10 + r() * 12, 2.5, C.pools);
+    if (C.lava) for (let i = 0; i < 7; i++) { let x = r() * W, y = 74 + OFF + r() * 50; for (let k = 0; k < 14; k++) { b.px(x, y, C.lava); x += r() * 3 - 1; y += r() * 2 - 0.5; } }
+    if (C.glow) for (let i = 0; i < 30; i++) b.px(Math.floor(r() * W), 74 + OFF + Math.floor(r() * 56), C.glow);
     return b.canvas();
   };
 

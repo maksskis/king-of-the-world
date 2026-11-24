@@ -4,10 +4,10 @@
   const LW = 320, LH = 130, SC = 3, TOP = 80; // TOP — небо над полем боя
   const LANES = [100, 112, 124];
   let B = null, raf = 0, lastT = 0, cv = null, ctx = null, bg = null;
-  const abg = {}; // фон Арены по облику города
+  const abg = {}; // фоны поединков (Арена по облику города, области Путешествия)
 
-  // active — идёт бой у ворот; running — идёт любой бой в окне (ворота или Арена)
-  W.active = () => !!B && B.state === 'run' && B.mode !== 'arena';
+  // active — идёт бой у ворот; running — идёт любой бой в окне (ворота, Арена, Путешествие)
+  W.active = () => !!B && B.state === 'run' && !B.duel;
   W.running = () => !!B && B.state === 'run';
   W.battle = () => B;
   W.wallHp = () => Math.round(120 * Math.pow(1.6, G.E.lvl('gate') - 1) * (1 + G.bonus('gateHp')));
@@ -104,7 +104,7 @@
   };
 
   // «Дальше»: сразу следующая волна после победы
-  W.canNext = () => !!B && B.mode !== 'arena' && B.state === 'won' && B.n !== 'final' && !W.whyNot();
+  W.canNext = () => !!B && !B.duel && B.state === 'won' && B.n !== 'final' && !W.whyNot();
   W.next = function () {
     if (!W.canNext()) return;
     W.close();
@@ -123,11 +123,11 @@
     if (!B) return;
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    if (B.state === 'run') (B.mode === 'arena' ? updateArena : update)(dt);
+    if (B.state === 'run') (B.duel ? updateArena : update)(dt);
     if (!B) return;
     updateFx(dt);
     draw();
-    if (B.mode === 'arena') G.UI.arenaHud(B); else G.UI.battleHud(B);
+    if (B.duel) G.UI.duelHud(B); else G.UI.battleHud(B);
     raf = requestAnimationFrame(frame);
   }
 
@@ -146,7 +146,8 @@
     const spr = G.SPR.canvas(sprKey(k));
     const lane = M.boss ? 1 : Math.floor(Math.random() * 3);
     B.mons.push({
-      k, hp: M.hp * W.hpMul(B.n), max: M.hp * W.hpMul(B.n), atk: M.atk * W.atkMul(B.n), spd: M.spd * G.U.rand(0.9, 1.1),
+      k, hp: M.hp * W.hpMul(B.n) * (M.boss ? D.BOSS.gateHp : 1), max: M.hp * W.hpMul(B.n) * (M.boss ? D.BOSS.gateHp : 1),
+      atk: M.atk * W.atkMul(B.n) * (M.boss ? D.BOSS.gateAtk : 1), spd: M.spd * G.U.rand(0.9, 1.1),
       x: LW + 10 + spr.width / 2, y: LANES[lane] + G.U.randInt(-2, 2), w: spr.width, h: spr.height, cd: 0.3, flash: 0, dead: false, deadT: 0,
       boss: !!M.boss, walk: 0, jit: G.U.randInt(0, 8),
     });
@@ -356,6 +357,7 @@
       for (const d of downed) G.T.wound(d.a, 60);
       if (final) {
         G.S.camp.won = true;
+        G.J.unlock(); // за драконом открывается Путешествие
         G.K.xp(2000);
         G.log('logFinalWon', {}, 'epic');
       } else {
@@ -396,9 +398,14 @@
     G.save();
   }
 
-  // ---------- Арена: показ боя по записи раундов ----------
-  // Исход уже посчитан (G.X.duel); здесь он проигрывается: герои бьют, чемпион отвечает, жрецы лечат.
-  W.arena = function (res, en, tm, rank) {
+  // ---------- Поединок (Арена, Путешествие): показ боя по записи раундов ----------
+  // Исход уже посчитан (G.X.duel); здесь он проигрывается: герои бьют, противник отвечает, жрецы лечат.
+  // opt: mode, n (ранг или этап), title, cname, bg() — фон, bgKey, filter — оттенок противника, finish() — итог
+  W.arena = (res, en, tm, rank) => W.duel(res, en, tm, {
+    mode: 'arena', n: rank, title: G.t('arenaRank', { r: rank }), cname: G.t('mn_' + en.key),
+    bg: () => G.SPR.arenaBg(), bgKey: 'arena@' + G.SPR.style(), finish: G.A.finish,
+  });
+  W.duel = function (res, en, tm, opt) {
     if (W.running()) return false;
     cancelAnimationFrame(raf);
     const defs = layout(tm);
@@ -408,18 +415,19 @@
     const sc = spr.height <= 20 ? 2 : 1.5;
     const mon = {
       k: en.key, hp: en.hp, max: en.hp, x: 215, y: LANES[1] + 4, w: spr.width, h: spr.height, sc, flash: 0, dead: false, deadT: 0,
-      boss: true, champ: true, walk: 0, stun: 0, lunge: 0, jit: 0,
+      boss: true, champ: true, walk: 0, stun: 0, lunge: 0, jit: 0, filter: opt.filter || null,
     };
     const rt = Math.max(0.45, Math.min(1, 14 / Math.max(1, res.tl.length)));
     B = {
-      mode: 'arena', n: rank, state: 'run', t: 0, queue: [], mons: [mon], defs, guards: [], proj: [], fl: [], slash: [], boom: 0, shake: 0,
+      mode: opt.mode, duel: true, n: opt.n, title: opt.title, cname: opt.cname, bg: opt.bg, bgKey: opt.bgKey || opt.mode + ':' + opt.n, finish: opt.finish,
+      state: 'run', t: 0, queue: [], mons: [mon], defs, guards: [], proj: [], fl: [], slash: [], boom: 0, shake: 0,
       tl: res.tl, ids: tm.map((a) => a.id), ri: -1, rs: 0, rt, step: 0, wait: 0.7, stance: res.stance, total: 1, champ: en.key,
     };
     cv = document.getElementById('battlecv');
     cv.width = LW * SC;
     cv.height = (LH + TOP) * SC;
     ctx = cv.getContext('2d');
-    G.UI.showBattle(true, 'arena');
+    G.UI.showBattle(true, opt.mode);
     G.SFX.play('horn');
     lastT = performance.now();
     raf = requestAnimationFrame(frame);
@@ -513,24 +521,24 @@
       B.mons[0].hp = last.ehp;
       last.hp.forEach((v, i) => { const d = defById(B.ids[i]); if (d) d.hpv = v; });
     }
-    const r = G.A.finish() || { win: false, rank: B.n, loot: null, xp: 0, wounded: 0 };
+    const r = B.finish() || { win: false, rank: B.n, s: B.n, loot: null, xp: 0, wounded: 0 };
     B.state = r.win ? 'won' : 'lost';
     B.result = r;
     if (r.win && !B.mons[0].dead) { B.mons[0].dead = true; B.mons[0].deadT = 1.2; }
     G.SFX.play(r.win ? 'win' : 'lose');
-    G.UI.arenaResult(r);
+    G.UI.duelResult(B, r);
     G.save();
   }
   // «Пропустить»: сразу к итогу
   W.arenaSkip = function () {
-    if (!B || B.mode !== 'arena' || B.state !== 'run') return;
+    if (!B || !B.duel || B.state !== 'run') return;
     B.proj = [];
     endArena();
   };
 
   // Клик короля по монстру
   W.click = function (ev) {
-    if (!B || B.state !== 'run' || B.mode === 'arena') return;
+    if (!B || B.state !== 'run' || B.duel) return;
     const r = cv.getBoundingClientRect();
     const x = ((ev.clientX - r.left) / r.width) * LW, y = ((ev.clientY - r.top) / r.height) * (LH + TOP) - TOP;
     let hit = null;
@@ -553,9 +561,8 @@
     ctx.setTransform(SC, 0, 0, SC, 0, TOP * SC);
     ctx.imageSmoothingEnabled = false;
     const sx = B.shake > 0 ? Math.round((Math.random() - 0.5) * 3) : 0;
-    if (B.mode === 'arena') {
-      const st = G.SPR.style();
-      ctx.drawImage(abg[st] || (abg[st] = G.SPR.arenaBg()), sx, -TOP);
+    if (B.duel) {
+      ctx.drawImage(abg[B.bgKey] || (abg[B.bgKey] = B.bg()), sx, -TOP);
     } else {
       ctx.drawImage(bg, sx, -TOP);
       const g = B.gate / B.gateMax;
@@ -643,7 +650,9 @@
     const sc = m.sc || 1, lunge = m.lunge > 0 ? -5 : 0;
     const x = Math.round(m.x - (m.w * sc) / 2 + lunge), y = Math.round(m.y - m.h * sc + bob);
     if (m.dead) ctx.globalAlpha = Math.max(0, m.deadT / (m.champ ? 1.2 : 0.5));
+    if (m.filter && m.filter !== 'none') ctx.filter = m.filter;
     ctx.drawImage(spr, x, y, m.w * sc, m.h * sc);
+    ctx.filter = 'none';
     ctx.globalAlpha = 1;
     if (!m.dead && m.stun > 0) {
       ctx.strokeStyle = '#7fe7ff';
@@ -657,7 +666,7 @@
 
   function drawDef(d) {
     const spr = G.SPR.canvas(d.hit > 0 ? 'c_' + d.cls + '|w' : 'c_' + d.cls);
-    const x = Math.round(d.x - 8 + (d.swing > 0 ? (B.mode === 'arena' ? 6 : 2) : 0)), y = Math.round(d.y - 16);
+    const x = Math.round(d.x - 8 + (d.swing > 0 ? (B.duel ? 6 : 2) : 0)), y = Math.round(d.y - 16);
     const hp = d.hpv != null ? d.hpv : d.a.hp;
     if (hp <= 0) {
       ctx.save();
