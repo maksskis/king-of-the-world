@@ -103,14 +103,14 @@
     const { ic, t, btn, costHtml, bar } = h();
     const AL = G.E.lvl('academy');
     const act = G.R.active(), full = !G.R.free();
-    let top = act.length ? act.map((c) => `<div class="job">${ic(G.R.get(c.id).icon, 'ic2')}<div class="grow"><div>${t('rs_' + c.id)}</div>${bar('rsch:' + c.id)}<div class="muted small" data-b="rschT:${c.id}"></div></div><button class="btn small" data-action="resCancel" data-arg="${c.id}" title="${t('cancelRefund')}">${ic('i_x')}</button></div>`).join('') + `<div class="hint">${t('resBoostHint', { n: G.U.fmt1(G.R.boostSec()) })}</div>` : `<div class="muted small">${t('resIdle')}</div>`;
+    let top = act.length ? act.map((c) => `<div class="job" data-tip="s:${c.id}">${ic(G.R.get(c.id).icon, 'ic2')}<div class="grow"><div>${t('rs_' + c.id)}</div>${bar('rsch:' + c.id)}<div class="muted small" data-b="rschT:${c.id}"></div></div><button class="btn small" data-action="resCancel" data-arg="${c.id}" title="${t('cancelRefund')}">${ic('i_x')}</button></div>`).join('') + `<div class="hint">${t('resBoostHint', { n: G.U.fmt1(G.R.boostSec()) })}</div>` : `<div class="muted small">${t('resIdle')}</div>`;
     if (act.length && !full) top += `<div class="good small">${t('resSlotFree')}</div>`;
     // очередь указа: порядок можно менять стрелками
     const q = G.S.decree.research;
     const queue = q.length ? q.map((id, i) => {
       const r = G.R.get(id), st = G.R.state(id);
       const note = P.resWait(id);
-      return `<div class="dq">${ic(r.icon, 'ic2')}<div class="grow">${i + 1}. <b>${t('rs_' + id)}</b><div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span>${note}</div></div>
+      return `<div class="dq" data-tip="s:${id}">${ic(r.icon, 'ic2')}<div class="grow">${i + 1}. <b>${t('rs_' + id)}</b><div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span>${note}</div></div>
         <button class="btn small" data-action="decreeUp" data-arg="research|${i}" ${i ? '' : 'disabled'} title="${t('prioUp')}">▲</button><button class="btn small" data-action="decreeDown" data-arg="research|${i}" ${i < q.length - 1 ? '' : 'disabled'} title="${t('prioDown')}">▼</button><button class="btn small" data-action="decreeDel" data-arg="research|${i}" title="${t('cancel')}">${ic('i_x')}</button></div>`;
     }).join('') : `<div class="muted small">${t('acadQueueEmpty')}</div>`;
     top += `<div class="muted small">${t('resDone', { n: G.R.doneCount(), m: D.RESEARCH.length })} · ${t('resSpeed', { n: G.R.speed().toFixed(1) })}</div>`;
@@ -123,10 +123,10 @@
       else if (st === 'cur') ra = `<span class="warn small">${t('researching')}</span>`;
       else {
         if (st === 'open') ra += btn(t('study'), 'research', r.id, { cost: r.cost, chips: false, cls: 'small primary', lock: full });
-        else ra += `<span class="muted small">${ic('i_lock')} ${r.req && !G.R.done(r.req) ? t('needRes', { r: t('rs_' + r.req) }) : t('needAcad', { l: r.acad })}</span>`;
+        else ra += `<span class="muted small">${ic('i_lock')} ${r.req && !G.R.done(r.req) ? t('needRes', { r: `<span class="tipword" data-tip="s:${r.req}">${t('rs_' + r.req)}</span>` }) : t('needAcad', { l: r.acad })}</span>`;
         ra += ` <button class="btn small" data-action="resQueue" data-arg="${r.id}" ${queued ? 'disabled' : ''}>${ic('i_scroll')} ${queued ? t('queuedPos', { n: G.S.decree.research.indexOf(r.id) + 1 }) : t('toDecree')}</button>`;
       }
-      return `<div class="rcard2 st-${st}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${st === 'done' ? '' : `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span></div>`}<div class="row">${ra}</div></div></div>`;
+      return `<div class="rcard2 st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${st === 'done' ? '' : `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span></div>`}<div class="row">${ra}</div></div></div>`;
     }).join('')}</div>`).join('');
     return `<div class="box"><h3>${ic('i_book')} ${t('researchNow')} <span class="muted">${act.length}/${G.R.slots()}</span></h3>${top}</div>
       <div class="box"><h3>${ic('i_scroll')} ${t('acadQueue')} <span class="muted">${q.length}/12</span></h3><div class="hint top">${t('acadQueueHint')}</div>${queue}</div>
@@ -236,6 +236,6 @@
     const { ic, t, lootHtml } = h();
     const cur = G.S.goal;
     return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_star', 'ic2')} ${t('goalsTitle')}</h2><div class="muted small">${t('goalsHint')}</div>
-      <div class="glist">${D.GOALS.map((g, i) => `<div class="gitem ${i < cur ? 'done' : i === cur ? 'cur' : 'later'}">${ic(i < cur ? 'i_check' : i === cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t(g.t)}</span><span class="small">${lootHtml(g.reward)}</span>${i === cur ? `<button class="btn small" data-action="goGoal">${t('goalGo')} ›</button>` : ''}</div>`).join('')}</div>`;
+      <div class="glist">${D.GOALS.map((g, i) => `<div class="gitem ${i < cur ? 'done' : i === cur ? 'cur' : 'later'}" ${g.h && g.h.act === 'research' && g.h.arg ? `data-tip="s:${g.h.arg}"` : ''}>${ic(i < cur ? 'i_check' : i === cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t(g.t)}</span><span class="small">${lootHtml(g.reward)}</span>${i === cur ? `<button class="btn small" data-action="goGoal">${t('goalGo')} ›</button>` : ''}</div>`).join('')}</div>`;
   };
 })();

@@ -101,6 +101,12 @@
     const depth = Object.values(S.dng.best).reduce((a, b) => a + b, 0);
     return Math.floor((S.gate.best + depth + G.E.lvl('castle') * 3 + S.king.lvl * 2) / 5) + (S.camp.won ? 10 : 0);
   };
+  // Из чего складываются очки наследия (для подсказки): лучшая волна, этажи подземелий, Замок ×3, Король ×2, ÷5, +10 за дракона
+  K.legacyParts = function () {
+    const S = G.S;
+    const depth = Object.values(S.dng.best).reduce((a, b) => a + b, 0);
+    return { wave: S.gate.best, depth, castle: G.E.lvl('castle'), king: S.king.lvl, dragon: !!S.camp.won, total: K.legacyGain() };
+  };
   K.perkRank = (id) => G.S.dyn.perks[id] || 0;
   K.perkCost = (id) => 1 + K.perkRank(id);
   K.buyPerk = function (id) {

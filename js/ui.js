@@ -79,6 +79,8 @@
       ? `<span class="rchip" style="--rc:${r.color}">${t(lockKey + '_' + i)} <b>${(ch[i] * 100).toFixed(1)}%</b></span>`
       : `<span class="rchip locked">${ic('i_lock')} ${t(lockKey + '_' + i)} <i>${t('fromLvl', { l: (r.forge || r.tav) })}</i></span>`)).join('')}</div>`;
   }
+  // Название исследования, при наведении на которое видно, что оно даёт
+  const rsWord = (id) => `<span class="tipword" data-tip="s:${id}">${esc(t('rs_' + id))}</span>`;
   function fmtEntry(l) {
     const p = {};
     for (const k in l.p) {
@@ -86,6 +88,7 @@
       if (k === 'loot') p[k] = lootHtml(v) || '—';
       else if (k === 'gi') p[k] = typeof v === 'string' ? t(v) : t('goal' + v);
       else if (k === 'c') p[k] = t('ch_' + v);
+      else if (v && typeof v === 'object' && typeof v.k === 'string' && v.k.startsWith('rs_')) p[k] = rsWord(v.k.slice(3));
       else if (v && typeof v === 'object') p[k] = esc(nm(v));
       else p[k] = esc(String(v));
     }
@@ -244,7 +247,7 @@
     el.style.top = Math.max(6, y) + 'px';
   }
   function resWaitText(r, why) {
-    return why === 'academy' ? t('needAcad', { l: r.acad }) : why === 'req' ? t('needRes', { r: t('rs_' + r.req) }) : t('needStorageShort');
+    return why === 'academy' ? t('needAcad', { l: r.acad }) : why === 'req' ? t('needRes', { r: rsWord(r.req) }) : t('needStorageShort');
   }
   function gtipHtml(key) {
     const i = key.indexOf(':'), type = key.slice(0, i), id = key.slice(i + 1);
@@ -258,6 +261,28 @@
       const n = G.E.folk(), cap = G.E.homes();
       return `<b>${ic('c_folk')} ${t('folk')}: ${n} / ${cap}</b><div>${t('folkTax')}: <span class="good">+${U.fmt1(G.E.folkTax() * (1 + G.bonus('tax')))}/${t('sec')}</span></div>`
         + `<div>${n < cap ? t('folkNext', { s: Math.ceil(G.E.folkEvery() - (G.S.folkT || 0)) }) : t('folkFull')}</div><div class="muted">${t('folkHint', { e: U.fmt1(G.E.folkEvery()) })}</div>`;
+    }
+    if (type === 'pk') {
+      const p = D.PERKS.find((x) => x.id === id);
+      if (!p) return '';
+      const r = G.K.perkRank(id), cost = G.K.perkCost(id), pts = G.S.dyn.pts;
+      let h = `<b>${ic(p.icon)} ${t('pk_' + id)}</b> <span class="muted">${t('rankOf', { r, m: D.PERK_MAX })}</span><div>${t('pkd_' + id)}</div>`;
+      if (id === 'found' && r < D.FOUND_ORDER.length) h += `<div class="good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>`;
+      h += r >= D.PERK_MAX ? `<div class="good">${t('maxLevel')}</div>` : `<div class="${pts >= cost ? 'good' : 'warn'}">${ic('i_crown')} ${t('perkCostTip', { c: cost, p: pts })}</div>`;
+      return h + `<div class="muted">${t('perkTipHint')}</div>`;
+    }
+    if (type === 'tl') {
+      const x = D.TALENTS.find((q) => q.id === id);
+      if (!x) return '';
+      const r = G.S.king.tal[id] || 0, mx = G.K.talMax(x);
+      return `<b>${ic(x.icon)} ${t('tl_' + id)}</b> <span class="muted">${t('br_' + x.br)} · ${t('rankOf', { r, m: mx })}</span><div>${t('tld_' + id)}</div>`
+        + `<div class="${G.K.tp() > 0 && r < mx ? 'good' : 'muted'}">${r >= mx ? t('maxLevel') : t('talTipPts', { n: G.K.tp() })}</div>`;
+    }
+    if (key === 'dyn') {
+      const L = G.K.legacyParts();
+      return `<b>${ic('i_crown')} ${t('dynasty')}</b><div>${t('dynTipWhat')}</div><div>${t('dynTipHow')}</div>`
+        + `<div class="good">${t('dynTipNow', { w: L.wave, f: L.depth, c: L.castle, c3: L.castle * 3, k: L.king, k2: L.king * 2, n: L.total })}${L.dragon ? '' : ' ' + t('dynTipDragon')}</div>`
+        + `<div class="muted">${t('dynTipPts', { p: G.S.dyn.pts })}</div>`;
     }
     if (type === 's') {
       const r = G.R.get(id);
@@ -684,7 +709,8 @@
     const all = `<button class="goal-all" data-action="goals">${ic('i_scroll')} ${t('allGoals')}</button>`;
     if (i >= D.GOALS.length) { el.innerHTML = `<button class="goal-go" data-action="goals">${ic('i_star')} <span class="gtxt">${t('goalsDone')}</span></button>${all}`; return; }
     const g = D.GOALS[i];
-    el.innerHTML = `<button class="goal-go" data-action="goGoal" title="${t('goalGoTip')}">${ic('i_star')}<span class="gtxt"><b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> ${t(g.t)} <span class="muted">${lootHtml(g.reward)}</span></span><span class="go">${t('goalGo')} ›</span></button>${all}`;
+    const gr = g.h && g.h.act === 'research' && g.h.arg;
+    el.innerHTML = `<button class="goal-go" data-action="goGoal" ${gr ? `data-tip="s:${gr}"` : `title="${t('goalGoTip')}"`}>${ic('i_star')}<span class="gtxt"><b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> ${t(g.t)} <span class="muted">${lootHtml(g.reward)}</span></span><span class="go">${t('goalGo')} ›</span></button>${all}`;
   }
 
   // ---------- окно здания ----------
@@ -853,7 +879,7 @@
         if (AL) act += ` <button class="btn small" data-action="resQueue" data-arg="${r.id}" ${q >= 0 ? 'disabled' : ''}>${ic('i_scroll')} ${q >= 0 ? t('queuedPos', { n: q + 1 }) : t('toDecree')}</button>`;
         act += '</div>';
       }
-      return `<div class="bskill st-${st}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${act}</div></div>`;
+      return `<div class="bskill st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${act}</div></div>`;
     }).join('');
     const done = list.filter((r) => G.R.done(r.id)).length;
     return box(ic('i_book') + ' ' + t('bSkills') + ` <span class="muted">${done}/${list.length}</span>`, `<div class="hint top">${t('bSkillsHint')}</div>${rows}`);
@@ -1050,7 +1076,7 @@
     const br = ['hand', 'eco', 'build', 'war'];
     h += box(ic('i_star') + ' ' + t('talents') + ` <span class="muted">${tp}</span>`, `<div class="tal3">${br.map((b) => `<div class="tcol"><div class="tbr">${t('br_' + b)}</div>${D.TALENTS.filter((x) => x.br === b).map((x) => {
       const r = k.tal[x.id] || 0, mx = G.K.talMax(x);
-      return `<div class="tal">${ic(x.icon, 'ic2')}<div class="grow"><b>${t('tl_' + x.id)}</b><div class="small muted">${t('tld_' + x.id)}</div>${pips(r, mx)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < mx ? '' : 'disabled'}>+</button></div>`;
+      return `<div class="tal" data-tip="tl:${x.id}">${ic(x.icon, 'ic2')}<div class="grow"><b>${t('tl_' + x.id)}</b><div class="small muted">${t('tld_' + x.id)}</div>${pips(r, mx)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < mx ? '' : 'disabled'}>+</button></div>`;
     }).join('')}</div>`).join('')}</div>`);
     h += box(ic('i_people') + ' ' + t('council'), `<div class="advs">${D.ADVISORS.map((a) => {
       const l = G.K.advLvl(a.id), open = G.K.advOpen(a);
@@ -1058,15 +1084,17 @@
         ${!open ? `<div class="small">${ic('i_lock')} ${t('needCastleLvl', { l: a.castle })}</div>` : l >= D.ADV_MAX ? `<div class="small good">${t('maxLevel')}</div>` : btn(l ? t('promote') : t('hireAdv'), 'advisor', a.id, { cost: G.K.advCost(a.id), cls: 'small' })}</div></div>`;
     }).join('')}</div>`);
     const dyn = G.S.dyn;
-    let dh = `<div class="small">${t('epoch')}: <b>${dyn.epoch + 1}</b> · ${esc(G.tn(G.K.land(dyn.epoch)))} · ${t('legacyPts')}: <b>${dyn.pts}</b></div>`;
+    const LP = G.K.legacyParts();
+    let dh = `<div class="small">${t('epoch')}: <b>${dyn.epoch + 1}</b> · ${esc(G.tn(G.K.land(dyn.epoch)))} · <span class="tipword" data-tip="dyn">${t('legacyPts')}</span>: <b>${dyn.pts}</b></div>`;
+    dh += `<div class="hint top" data-tip="dyn">${ic('i_star')} ${t('legacyHow', { n: LP.total })}${LP.dragon ? '' : ' ' + t('dynTipDragon')}</div>`;
     if (G.S.camp.won) dh += `<div class="row">${btn(ic('i_crown') + ' ' + t('abdicate', { n: G.K.legacyGain() }), 'abdicate', '', { cls: 'danger' })}</div><div class="hint">${t('abdicateHint', { land: G.tn(G.K.land(dyn.epoch + 1)) })}</div>`;
     else dh += `<div class="muted small">${ic('i_lock')} ${t('dynastyLocked')}</div>`;
     dh += `<div class="perks">${D.PERKS.map((p) => {
       const r = G.K.perkRank(p.id);
       const nextB = p.id === 'found' && r < D.FOUND_ORDER.length ? `<div class="small good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>` : '';
-      return `<div class="perk">${ic(p.icon, 'ic2')}<div class="grow"><b>${t('pk_' + p.id)}</b> ${pips(Math.min(r, 10), D.PERK_MAX)}<div class="small muted">${t('pkd_' + p.id)}</div>${nextB}</div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
+      return `<div class="perk" data-tip="pk:${p.id}">${ic(p.icon, 'ic2')}<div class="grow"><b>${t('pk_' + p.id)}</b> ${pips(Math.min(r, 10), D.PERK_MAX)}<div class="small muted">${t('pkd_' + p.id)}</div>${nextB}</div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
     }).join('')}</div>`;
-    h += box(ic('i_crown') + ' ' + t('dynasty'), dh, 'dynbox');
+    h += box(`<span data-tip="dyn">${ic('i_crown')} ${t('dynasty')} <span class="muted small">ⓘ</span></span>`, dh, 'dynbox');
     return h;
   }
 
