@@ -267,22 +267,28 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .res-win { color: var(--good); }
 .res-lose { color: var(--bad); }
 
-#goal {
-  display: block;
-  width: 100%;
-  padding: 7px 10px;
+#goal { display: flex; gap: 6px; align-items: stretch; }
+#goal button {
   font: inherit;
   font-size: 13.5px;
-  text-align: left;
   color: var(--text);
   background: #241b12;
   border: 1px solid #5c4320;
   border-radius: 4px;
   cursor: pointer;
 }
-#goal:hover { border-color: var(--gold); }
+#goal button:hover, #goal button:focus-visible { border-color: var(--gold); outline: none; }
 #goal b { color: var(--gold); }
-#goal .more { float: right; color: var(--gold); font-size: 12.5px; }
+.goal-go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 7px 10px; text-align: left; }
+.goal-go .gtxt { flex: 1; min-width: 0; }
+.goal-go .go { color: var(--gold); font-size: 12.5px; white-space: nowrap; }
+#goal .goal-all { flex: none; display: flex; align-items: center; gap: 5px; padding: 7px 10px; color: var(--gold); font-size: 12.5px; white-space: nowrap; }
+.goal-note { display: flex; align-items: flex-start; gap: 7px; margin: 0 0 8px; padding: 6px 9px; font-size: 13px; background: #241b12; border: 1px dashed var(--gold); border-radius: 4px; }
+.goal-note b { color: var(--gold); }
+.goal-flash { animation: goalFlash 0.6s ease-in-out 3; }
+.slot.goal-ping::after { content: ''; position: absolute; inset: 6% 6% 14%; border-radius: 50%; box-shadow: 0 0 0 3px var(--gold), 0 0 18px 6px rgba(247, 201, 72, 0.7); animation: goalPing 0.6s ease-out 3; pointer-events: none; z-index: 2; }
+@keyframes goalFlash { 50% { box-shadow: 0 0 0 4px var(--gold), 0 0 16px rgba(247, 201, 72, 0.8); } }
+@keyframes goalPing { from { opacity: 1; transform: scale(0.7); } to { opacity: 0; transform: scale(1.15); } }
 
 #log {
   flex: 1;
@@ -894,6 +900,6 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 @keyframes goalPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 @keyframes goalOutline { 0%, 100% { outline-color: var(--gold); } 50% { outline-color: rgba(247, 201, 72, 0.2); } }
 @media (prefers-reduced-motion: reduce) {
-  .goal-hl:not(.slot), .slot.goal-hl::before { animation: none; }
+  .goal-hl:not(.slot), .slot.goal-hl::before, .goal-flash, .slot.goal-ping::after { animation: none; }
   .scene.fighting .foe img, .scene.fighting .fig img, .float, .slot.bump .slot-img { animation: none; }
 }

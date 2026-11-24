@@ -201,7 +201,7 @@
     story_won: 'Королевство спасено!', storyd_won: 'Древний дракон повержен. Твоё имя войдёт в летописи. Во вкладке «Король» открылась Династия: передай трон наследнику и начни новую эпоху с наследием предков.',
 
     tabCity: 'Город', tabGuild: 'Герои', tabArmory: 'Арсенал', tabExp: 'Походы', tabKing: 'Король',
-    goalLabel: 'Цель', goalsDone: 'Все цели выполнены!', allGoals: 'все цели',
+    goalLabel: 'Цель', goalsDone: 'Все цели выполнены!', allGoals: 'Все цели', goalGo: 'Показать', goalGoTip: 'Открыть нужное здание и подсветить, что нажать', goalNoteHint: '— нажмите подсвеченное',
     levelOf: 'Уровень {l} из {m}', notBuilt: 'Не построено', maxLevel: 'Максимальный уровень.',
     consUp: 'Идёт улучшение до {l} уровня', consBuild: 'Идёт строительство', cancel: 'Отменить', cancelRefund: 'Отменить и вернуть ресурсы',
     consHint: 'Кликай по зданию на карте — каждый клик ускоряет стройку на 1 секунду.',
@@ -596,7 +596,7 @@
     story_won: 'The kingdom is saved!', storyd_won: 'The Ancient dragon is slain. Your name will live in the chronicles. The Dynasty opened in the King tab: pass the throne to an heir and begin a new epoch with your ancestors\' legacy.',
 
     tabCity: 'City', tabGuild: 'Heroes', tabArmory: 'Armory', tabExp: 'Expeditions', tabKing: 'King',
-    goalLabel: 'Goal', goalsDone: 'All goals complete!', allGoals: 'all goals',
+    goalLabel: 'Goal', goalsDone: 'All goals complete!', allGoals: 'All goals', goalGo: 'Show me', goalGoTip: 'Open the building and highlight what to press', goalNoteHint: '— press the highlighted button',
     levelOf: 'Level {l} of {m}', notBuilt: 'Not built', maxLevel: 'Maximum level.',
     consUp: 'Upgrading to level {l}', consBuild: 'Under construction', cancel: 'Cancel', cancelRefund: 'Cancel and refund resources',
     consHint: 'Click the building on the map — each click speeds construction up by 1 second.',

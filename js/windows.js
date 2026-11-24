@@ -200,6 +200,6 @@
     const { ic, t, lootHtml } = h();
     const cur = G.S.goal;
     return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_star', 'ic2')} ${t('goalsTitle')}</h2><div class="muted small">${t('goalsHint')}</div>
-      <div class="glist">${D.GOALS.map((g, i) => `<div class="gitem ${i < cur ? 'done' : i === cur ? 'cur' : 'later'}">${ic(i < cur ? 'i_check' : i === cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t(g.t)}</span><span class="small">${lootHtml(g.reward)}</span></div>`).join('')}</div>`;
+      <div class="glist">${D.GOALS.map((g, i) => `<div class="gitem ${i < cur ? 'done' : i === cur ? 'cur' : 'later'}">${ic(i < cur ? 'i_check' : i === cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t(g.t)}</span><span class="small">${lootHtml(g.reward)}</span>${i === cur ? `<button class="btn small" data-action="goGoal">${t('goalGo')} ›</button>` : ''}</div>`).join('')}</div>`;
   };
 })();

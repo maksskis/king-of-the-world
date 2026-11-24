@@ -480,7 +480,12 @@
     sound() { G.S.sound = !G.S.sound; applyStatic(); G.SFX.play('click'); },
     autoToggle() { G.S.king.auto = !G.S.king.auto; G.SFX.play('click'); UI.dirty(); },
     settings() { UI.openSettings(); },
-    goals() { UI.open('goals'); },
+    goals() {
+      UI.open('goals');
+      const cur = $('#modal-box .gitem.cur');
+      if (cur) cur.scrollIntoView({ block: 'center' });
+    },
+    goGoal() { UI.goGoal(); },
     tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
     sel(k) { UI.openPop(k); },
     goto(k) { UI.openPop(k); },
@@ -590,7 +595,7 @@
     const p = $('#panel');
     const key = UI.tab;
     const st = UI.lastTab === key ? p.scrollTop : 0;
-    p.innerHTML = (PANEL[UI.tab] || PANEL.decree)();
+    p.innerHTML = goalNote(null, UI.tab) + (PANEL[UI.tab] || PANEL.decree)();
     p.scrollTop = st;
     UI.lastTab = key;
     renderTabs();
@@ -630,8 +635,10 @@
   function renderGoal() {
     const i = G.S.goal;
     const el = $('#goal');
-    if (i >= D.GOALS.length) { el.innerHTML = `${ic('i_star')} <span>${t('goalsDone')}</span> <span class="more">${t('allGoals')}</span>`; return; }
-    el.innerHTML = `${ic('i_star')} <b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> <span>${t(D.GOALS[i].t)}</span> <span class="muted">${lootHtml(D.GOALS[i].reward)}</span> <span class="more">${t('allGoals')} ›</span>`;
+    const all = `<button class="goal-all" data-action="goals">${ic('i_scroll')} ${t('allGoals')}</button>`;
+    if (i >= D.GOALS.length) { el.innerHTML = `<button class="goal-go" data-action="goals">${ic('i_star')} <span class="gtxt">${t('goalsDone')}</span></button>${all}`; return; }
+    const g = D.GOALS[i];
+    el.innerHTML = `<button class="goal-go" data-action="goGoal" title="${t('goalGoTip')}">${ic('i_star')}<span class="gtxt"><b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> ${t(g.t)} <span class="muted">${lootHtml(g.reward)}</span></span><span class="go">${t('goalGo')} ›</span></button>${all}`;
   }
 
   // ---------- окно здания ----------
@@ -765,6 +772,7 @@
   function popPanel(k) {
     const L = G.E.lvl(k);
     let h = `<div class="bhead">${ic(bSprite(k), 'bimg')}<div class="grow"><h2>${t('bn_' + k)}</h2><div class="lvl">${L ? t('levelOf', { l: L, m: D.MAXLVL }) : t('notBuilt')}</div><p class="desc">${t('bd_' + k)}</p></div></div>`;
+    h += goalNote(k, null);
     h += popAction(k);
     h += upgradeBox(k);
     // здание на перестройке недоступно; замок и склад показывают справку
@@ -1152,6 +1160,39 @@
     kxp: () => G.S.king.xp / G.K.need(),
   };
 
+  // Подсказка цели вверху окна здания или вкладки, к которой цель ведёт
+  function goalNote(k, tab) {
+    const g = D.GOALS[G.S.goal];
+    const h = (g && g.h) || {};
+    if (!g || (tab ? h.tab !== tab : !h.b || h.tab || h.b !== k)) return '';
+    return `<div class="goal-note">${ic('i_star')} <span><b>${t('goalLabel')}:</b> ${t(g.t)} <span class="muted small">${t('goalNoteHint')}</span></span></div>`;
+  }
+
+  // Клик по цели: открыть нужное здание или вкладку и мигнуть тем, что нажать
+  UI.goGoal = function () {
+    const g = D.GOALS[G.S.goal];
+    if (!g) { ACT.goals(); return; }
+    const h = g.h || {};
+    if (UI.win && UI.win !== 'decision') UI.closeModal();
+    if (h.tab) { UI.tab = h.tab; UI.pick = null; }
+    if (h.b && h.b !== 'dungeon') UI.pop = h.b;
+    hideTip();
+    UI.slotsDirty = true;
+    G.SFX.play('click');
+    UI.render();
+    const scope = h.tab ? '#panel' : '#bpop';
+    const el = $(`${scope} .goal-hl`) || $('.goal-hl:not(.slot)') || $(`${scope} .goal-note`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.remove('goal-flash');
+      void el.offsetWidth;
+      el.classList.add('goal-flash');
+      setTimeout(() => el.classList.remove('goal-flash'), 1800);
+    }
+    const slot = h.b && $(`.slot[data-k="${h.b}"]`);
+    if (slot) { slot.classList.remove('goal-ping'); void slot.offsetWidth; slot.classList.add('goal-ping'); setTimeout(() => slot.classList.remove('goal-ping'), 1800); }
+  };
+
   // Подсветка следующей цели: здание на карте, нужная вкладка, кнопка в меню построек и кнопка действия
   function applyGoal() {
     const g = D.GOALS[G.S.goal];
@@ -1161,6 +1202,7 @@
     const tabShown = h.tab && UI.tab === h.tab;
     if (h.b && UI.pop !== h.b && !tabShown) add(`.slot[data-k="${h.b}"]`);
     if (h.tab && !tabShown) add(`.tab[data-arg="${h.tab}"]`);
+    if (h.el) add(h.el);
     // кнопки действия ищем там, где они сейчас видны: в окне здания или в панели вкладки
     const scope = h.tab ? '#panel' : '#bpop';
     for (const a of [].concat(h.act || [])) {
@@ -1177,7 +1219,7 @@
       UI._dx = false;
       if (UI.tab === 'exp') {
         const p = $('#panel'), st = p.scrollTop;
-        p.innerHTML = PANEL.exp();
+        p.innerHTML = goalNote(null, 'exp') + PANEL.exp();
         p.scrollTop = st;
       }
       renderTabs();
