@@ -421,6 +421,16 @@
     $('#fx').appendChild(f);
     setTimeout(() => f.remove(), 900);
   }
+  // Всплывающая цифра у курсора в любом месте экрана (сцена похода в правой колонке)
+  function floatAt(e, text, icon) {
+    const f = document.createElement('div');
+    f.className = 'float fixed';
+    f.style.left = e.clientX + 'px';
+    f.style.top = e.clientY + 'px';
+    f.innerHTML = (icon ? ic(icon) : '') + `<span>${esc(text)}</span>`;
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 900);
+  }
   function bump(el) {
     el.classList.remove('bump');
     void el.offsetWidth;
@@ -562,6 +572,12 @@
     arenaBoost() { if (G.A.boost()) G.SFX.play('click'); },
     journey() { if (!G.J.open()) return; if (!G.W.running()) G.W.close(); UI.open('journey'); },
     journeyNext() { G.J.fight(); },
+    foeHit(id, el, e) {
+      const r = G.X.click(id);
+      if (!r) return;
+      floatAt(e, (r.crit ? t('critClick') + ' ' : '') + '−' + U.fmt(r.d), 'i_atk');
+      G.SFX.play(r.crit ? 'coin' : 'hit');
+    },
     jSel(s) { G.J.select(+s); },
     jPick(id) { G.J.pick(id); },
     jFight() { G.J.fight(); },
@@ -964,9 +980,9 @@
     let h = `<div class="scene ${e.phase === 'fight' ? 'fighting' : ''}" style="background-image:url(${G.SPR.dungeonBg(e.loc)})">
       <div class="sfloor">${t('floor')} <b>${fl}</b></div>
       <div class="party ${ms.length > 4 ? 'many' : ''}"><div class="prow back">${ms.filter((a) => !G.X.isFront(a.cls)).map(sceneFig).join('')}</div><div class="prow front">${ms.filter((a) => G.X.isFront(a.cls)).map(sceneFig).join('')}</div></div>
-      ${showFoe ? `<div class="foe">${ic(monSpr(e.enemy.key), 'ic4')}<div class="fn">${esc(nm(G.X.enemyName(e.enemy)))}</div>${bar('ehp:' + e.id, 'hp')}<div class="small" data-b="ehp:${e.id}"></div></div>` : `<div class="walk">${ic('i_flag', 'ic2')}<span>${ph}</span></div>`}
+      ${showFoe ? `<div class="foe ${e.phase === 'fight' ? 'hitme' : ''}" ${e.phase === 'fight' ? `data-action="foeHit" data-arg="${e.id}" title="${esc(t('kingHitTip', { d: G.W.kingDmg() }))}"` : ''}>${ic(monSpr(e.enemy.key), 'ic4')}<div class="fn">${esc(nm(G.X.enemyName(e.enemy)))}</div>${bar('ehp:' + e.id, 'hp')}<div class="small" data-b="ehp:${e.id}"></div></div>` : `<div class="walk">${ic('i_flag', 'ic2')}<span>${ph}</span></div>`}
     </div>`;
-    let body = `<div class="phase">${ph}</div>`;
+    let body = `<div class="phase">${ph}${e.phase === 'fight' ? ` <span class="muted small">· ${t('kingHitHint', { d: G.W.kingDmg() })}</span>` : ''}</div>`;
     if (e.phase === 'travel' || e.phase === 'ret') body += `${bar('exp:' + e.id)}<div class="muted small" data-b="expT:${e.id}"></div>`;
     if (e.phase === 'fight' || e.flog.length) body += `<div class="flog">${e.flog.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`;
     const c = e.cond || X_COND();
@@ -1134,12 +1150,14 @@
     $('#stage').classList.toggle('in-battle', on);
     const duel = mode === 'arena' || mode === 'journey';
     $('#stage').classList.toggle('arena-mode', on && duel);
+    $('#stage').classList.toggle('duel-click', on && mode === 'journey');
     $('#battle').classList.toggle('hidden', !on);
     if (on && duel) {
       // Арена: ранг, чемпион и его здоровье, «Пропустить» до конца боя, «В город» — после
       $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
         <span class="grow"></span><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button>`;
-      $('#battle-foot').innerHTML = `<div class="hint">${t('arenaLiveHint', { s: t('ch_' + ((G.W.battle() || {}).stance || 'attack')) })}</div>`;
+      const stn = t('ch_' + ((G.W.battle() || {}).stance || 'attack'));
+      $('#battle-foot').innerHTML = `<div class="hint">${mode === 'journey' ? t('jrLiveHint', { s: stn, d: G.W.kingDmg() }) : t('arenaLiveHint', { s: stn })}</div>`;
     } else if (on) {
       $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
         <span class="grow"></span><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button>`;

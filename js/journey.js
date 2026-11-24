@@ -94,13 +94,7 @@
     const en = J.opp(s, tm.length);
     const res = G.X.duel(tm, en);
     const first = s > S.best;
-    let item = null;
-    if (res.win && Math.random() < J.itemChance(s, first)) {
-      const ti = Math.min(D.TIERS.length - 1, 1 + Math.floor(s / 6));
-      const rar = G.U.weighted(G.F.weightsFor(0.4 + 0.08 * s + G.bonus('luck'), D.LEG.p));
-      item = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
-    }
-    S.live = { s, ids: tm.map((a) => a.id), win: res.win, hp: res.ps.map((p) => Math.max(0, p.hp)), loot: res.win ? J.reward(s, first) : null, item, first };
+    S.live = { s, ids: tm.map((a) => a.id), win: res.win, hp: res.ps.map((p) => Math.max(0, p.hp)), first };
     for (const a of tm) a.st = 'journey';
     if (G.UI.win === 'journey') G.UI.closeModal();
     const reg = J.region(s);
@@ -112,10 +106,19 @@
     G.UI.dirty();
   };
 
-  J.finish = function () {
+  // ovr — итог, если босса добил Король кликами раньше записи: победа и здоровье бойцов на тот момент
+  J.finish = function (ovr) {
     const S = J.S(), L = S.live;
     if (!L) return null;
     S.live = null;
+    if (ovr) { L.win = ovr.win; L.hp = ovr.hp; }
+    L.loot = L.win ? J.reward(L.s, L.first) : null;
+    L.item = null;
+    if (L.win && Math.random() < J.itemChance(L.s, L.first)) {
+      const ti = Math.min(D.TIERS.length - 1, 1 + Math.floor(L.s / 6));
+      const rar = G.U.weighted(G.F.weightsFor(0.4 + 0.08 * L.s + G.bonus('luck'), D.LEG.p));
+      L.item = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
+    }
     const xp = J.xp(L.s);
     let wounded = 0;
     L.ids.forEach((id, i) => {

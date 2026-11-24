@@ -324,6 +324,19 @@
     else if (e.round >= MAX_ROUNDS) { xlog(e, 'xStalemate', {}, 'warn'); X.goHome(e); }
   };
 
+  // Клик Короля по врагу в сцене похода: урон как у ворот (оружие Короля, крит «Удачливой руки» ×3)
+  X.click = function (id) {
+    const e = X.get(id);
+    if (!e || e.phase !== 'fight' || !(e.ehp > 0)) return null;
+    const crit = Math.random() < G.bonus('clickCrit');
+    const d = G.W.kingDmg() * (crit ? 3 : 1);
+    e.ehp -= d;
+    G.K.xp(0.2);
+    if (e.ehp <= 0) { flog(e, 'fr_king', {}, 'good'); X.endFight(e, true); }
+    G.UI.expDirty();
+    return { d, crit };
+  };
+
   // Добыча предмета: шанс растёт с навыками «добычи», материал — с глубиной
   function dropItem(e, boss) {
     const ms = X.members(e);

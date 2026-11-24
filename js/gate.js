@@ -421,7 +421,7 @@
     B = {
       mode: opt.mode, duel: true, n: opt.n, title: opt.title, cname: opt.cname, bg: opt.bg, bgKey: opt.bgKey || opt.mode + ':' + opt.n, finish: opt.finish,
       state: 'run', t: 0, queue: [], mons: [mon], defs, guards: [], proj: [], fl: [], slash: [], boom: 0, shake: 0,
-      tl: res.tl, ids: tm.map((a) => a.id), ri: -1, rs: 0, rt, step: 0, wait: 0.7, stance: res.stance, total: 1, champ: en.key,
+      tl: res.tl, ids: tm.map((a) => a.id), clickable: opt.mode === 'journey', clickDmg: 0, forceWin: false, ri: -1, rs: 0, rt, step: 0, wait: 0.7, stance: res.stance, total: 1, champ: en.key,
     };
     cv = document.getElementById('battlecv');
     cv.width = LW * SC;
@@ -458,10 +458,10 @@
         float(m.x, m.y - m.h * m.sc - 8, '-' + G.U.fmt(e[1].d), crit ? '#ffd84a' : '#ffffff');
         if (crit) B.shake = 0.12;
       }
-      m.hp = R.ehp;
+      m.hp = Math.max(0, R.ehp - B.clickDmg);
       m.flash = 0.12;
       G.SFX.play('hit');
-      if (m.hp <= 0) { m.dead = true; m.deadT = 1.2; B.step = 9; return; }
+      if (m.hp <= 0) { if (R.ehp > 0) B.forceWin = true; m.dead = true; m.deadT = 1.2; B.step = 9; return; }
     }
     // 3) чемпион отвечает
     if (B.step === 2 && s >= 0.55 * T) {
@@ -516,12 +516,16 @@
 
   function endArena() {
     if (!B || B.state !== 'run') return;
-    const last = B.tl[B.tl.length - 1];
-    if (last) {
-      B.mons[0].hp = last.ehp;
-      last.hp.forEach((v, i) => { const d = defById(B.ids[i]); if (d) d.hpv = v; });
+    let ovr = null;
+    if (B.forceWin) ovr = { win: true, hp: B.ids.map((id) => { const d = defById(id); return d ? Math.max(0, d.hpv) : 0; }) };
+    else {
+      const last = B.tl[B.tl.length - 1];
+      if (last) {
+        B.mons[0].hp = Math.max(0, last.ehp - B.clickDmg);
+        last.hp.forEach((v, i) => { const d = defById(B.ids[i]); if (d) d.hpv = v; });
+      }
     }
-    const r = B.finish() || { win: false, rank: B.n, s: B.n, loot: null, xp: 0, wounded: 0 };
+    const r = B.finish(ovr) || { win: false, rank: B.n, s: B.n, loot: null, xp: 0, wounded: 0 };
     B.state = r.win ? 'won' : 'lost';
     B.result = r;
     if (r.win && !B.mons[0].dead) { B.mons[0].dead = true; B.mons[0].deadT = 1.2; }
@@ -536,8 +540,29 @@
     endArena();
   };
 
+  // Клик Короля по боссу Путешествия: урон копится; если босс падает раньше, чем по записи, — победа досрочно
+  function duelClick(ev) {
+    const r = cv.getBoundingClientRect();
+    const x = ((ev.clientX - r.left) / r.width) * LW, y = ((ev.clientY - r.top) / r.height) * (LH + TOP) - TOP;
+    B.slash.push({ x, y, t: 0 });
+    G.SFX.play('click');
+    const m = B.mons[0];
+    if (!m || m.dead || B.step === 9) return;
+    const w = m.w * (m.sc || 1), h = m.h * (m.sc || 1);
+    if (x < m.x - w / 2 - 6 || x > m.x + w / 2 + 6 || y < m.y - h - 6 || y > m.y + 4) return;
+    const crit = Math.random() < G.bonus('clickCrit');
+    const d = W.kingDmg() * (crit ? 3 : 1);
+    B.clickDmg += d;
+    m.hp = Math.max(0, m.hp - d);
+    m.flash = 0.1;
+    float(m.x, m.y - h - 2, '−' + G.U.fmt(Math.round(d)), crit ? '#ff9a3c' : '#f7c948');
+    G.K.xp(0.2);
+    if (m.hp <= 0) { B.forceWin = true; m.dead = true; m.deadT = 1.2; B.step = 9; B.wait = 0; }
+  }
+
   // Клик короля по монстру
   W.click = function (ev) {
+    if (B && B.duel && B.clickable && B.state === 'run') { duelClick(ev); return; }
     if (!B || B.state !== 'run' || B.duel) return;
     const r = cv.getBoundingClientRect();
     const x = ((ev.clientX - r.left) / r.width) * LW, y = ((ev.clientY - r.top) / r.height) * (LH + TOP) - TOP;

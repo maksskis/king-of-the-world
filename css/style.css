@@ -962,3 +962,9 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 .jdetail .tiles { max-height: 28vh; overflow: auto; }
 @media (max-width: 760px) { .jwrap { grid-template-columns: minmax(0, 1fr); } .jmap { max-height: none; } }
 @media (prefers-reduced-motion: reduce) { #journey-btn { animation: none; } }
+
+/* Удар Короля кликом: враг в сцене похода и босс Путешествия */
+.float.fixed { position: fixed; z-index: 60; pointer-events: none; }
+.foe.hitme { cursor: crosshair; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.foe.hitme:active img { transform: scale(0.94); }
+#stage.duel-click #battlecv { cursor: crosshair; }
