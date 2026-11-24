@@ -93,6 +93,7 @@
       ${full ? `<div class="warn small">${t('guildFull')}</div>` : ''}
       <div class="hgrid">${cards || `<div class="muted">${t('noCands')}</div>`}</div>
       <div class="row"><span class="muted small">${ic('i_clock')} ${t('newIn')} <span data-b="tavT"></span></span><span class="grow"></span>${btn(ic('i_people') + ' ' + t('reroll'), 'reroll', '', { cost: G.T.refreshCost(), cls: 'small' })}</div>
+      <div class="hint">${t('rerollHint')}${G.S.tavern.rr ? ' ' + t('rerollCount', { n: G.S.tavern.rr }) : ''}</div>
       <div class="row"><button class="btn small" data-action="tab" data-arg="guild">${ic('i_people')} ${t('toGuild')}</button></div></div>
       <div class="box"><h3>${ic('i_star')} ${t('rarityChances')}</h3>${chancesRow(D.ARAR, G.T.rarChances(), G.T.rarOpen, 'ar')}</div>`;
   };

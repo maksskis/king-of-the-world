@@ -195,7 +195,7 @@
     return Math.floor(E.lvl('castle') * D.FOLK.perCastle + lv / D.FOLK.perLevels + G.bonus('housing'));
   };
   E.folk = () => Math.floor(G.S.folk || 0);
-  E.folkEvery = () => D.FOLK.every / (1 + 0.1 * E.lvl('tavern') + 0.1 * E.lvl('market'));
+  E.folkEvery = () => D.FOLK.every / (1 + 0.1 * E.lvl('tavern') + 0.1 * E.lvl('arena'));
   E.folkTax = () => E.folk() * D.FOLK.tax;
   E.tickFolk = function (dt) {
     const S = G.S, cap = E.homes();
@@ -221,7 +221,7 @@
 
   // Торговый агент (талант): продаёт излишки, когда склад почти полон
   E.autoSell = function () {
-    if (G.bonus('agent') <= 0 || !E.usable('market')) return;
+    if (G.bonus('agent') <= 0) return; // Скупщик работает без Рынка
     for (const r of D.MAT) {
       if (!E.PRICE[r] || (G.S.res[r] || 0) < E.cap(r) * 0.95) continue;
       const n = Math.floor(E.cap(r) * 0.2);
@@ -259,34 +259,9 @@
     G.UI.dirty();
   };
 
-  // ---------- рынок ----------
-  // Курс мягче: 100 дерева на 1 уровне рынка = 40 золота, на 8-м — около 68
+  // ---------- цена излишков (для «Скупщика»; Рынка больше нет) ----------
   E.PRICE = { wood: 0.4, stone: 0.4, iron: 0.6, bone: 2.5, crystal: 6, mithril: 12 };
-  E.BUY_LVL = { wood: 1, stone: 1, iron: 2, bone: 3, crystal: 4, mithril: 5 };
-  E.batch = (r) => (E.PRICE[r] < 1 ? 100 : 10);
-  E.sellPrice = (r) => E.PRICE[r] * (1 + 0.1 * (E.lvl('market') - 1)) * (1 + G.bonus('trade'));
-  E.buyPrice = (r) => ((E.PRICE[r] * 2.5 * (1 - 0.04 * (E.lvl('market') - 1))) / (1 + G.bonus('trade'))) * Math.max(0.5, 1 - G.bonus('buyC'));
-  E.canBuy = (r) => E.lvl('market') >= E.BUY_LVL[r];
-  E.sell = function (r, n) {
-    if (!E.usable('market')) return;
-    n = Math.min(Math.floor(n), Math.floor(G.S.res[r] || 0));
-    const g = Math.floor(n * E.sellPrice(r));
-    if (n <= 0 || g < 1) return;
-    G.S.res[r] -= n;
-    E.add('gold', g);
-    G.S.stats.sold = (G.S.stats.sold || 0) + 1;
-    G.log('logSellRes', { n, r: { k: 'res_' + r }, g }, 'info');
-    G.SFX.play('coin');
-  };
-  E.buy = function (r, n) {
-    if (!E.canBuy(r) || !E.usable('market')) return;
-    n = Math.min(Math.floor(n), Math.floor(E.cap(r) - (G.S.res[r] || 0)));
-    const g = Math.ceil(n * E.buyPrice(r));
-    if (n <= 0 || !E.pay({ gold: g })) return;
-    E.add(r, n);
-    G.log('logBuyRes', { n, r: { k: 'res_' + r }, g }, 'info');
-    G.SFX.play('coin');
-  };
+  E.sellPrice = (r) => E.PRICE[r] * (1 + G.bonus('trade'));
 
   // ---------- цели ----------
   E.migrateGoals = function () {

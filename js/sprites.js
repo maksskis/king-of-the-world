@@ -459,22 +459,38 @@
     if (t >= 3) { b.rect(22, 2, 1, 7, P.woodD); b.poly([[23, 2], [29, 3.5], [23, 5]], P.blue); b.rect(9, 26, 6, 4, P.glow); b.rect(33, 26, 6, 4, P.glow); }
     if (t >= 4) { b.rect(5, 23, 38, 1, P.gold); b.rect(11, 13, 7, 6, P.wood); b.poly([[10, 13], [14.5, 9], [19, 13]], P.roofD); b.rect(13, 15, 3, 3, P.glow); b.rect(30, 13, 7, 6, P.wood); b.poly([[29, 13], [33.5, 9], [38, 13]], P.roofD); b.rect(32, 15, 3, 3, P.glow); }
   } };
-  DEF.b_market = { w: 48, h: 48, draw(b, t) {
+  // Арена: кирпичный амфитеатр с песчаной ареной и арками
+  DEF.b_arena = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;
-    const stall = (x, y, c1, c2, goods) => {
-      b.rect(x + 1, y + 8, 1, 10, P.woodD); b.rect(x + 14, y + 8, 1, 10, P.woodD);
-      b.rect(x + 1, y + 14, 14, 4, P.wood); b.rect(x + 1, y + 14, 14, 1, P.woodL);
-      for (let i = 0; i < 4; i++) b.px(x + 3 + i * 3, y + 13, goods[i % goods.length]);
-      b.rect(x, y, 16, 8, c1); for (let i = 0; i < 16; i += 4) b.rect(x + i, y, 2, 8, c2);
-      for (let i = 0; i < 16; i += 4) b.rect(x + i, y + 8, 2, 1, c1);
-    };
-    stall(3, 14, P.red, P.white, [P.red, P.gold, P.green]);
-    stall(29, 14, P.blue, P.white, [P.cry, P.purple, P.bone]);
-    if (t >= 2) stall(16, 4, P.green, P.white, [P.gold, P.wood]);
-    brickWall(b, 19, 34, 10, 6, false); b.disc(24, 31, 3, P.gold); b.px(23, 30, P.goldL);
-    b.rect(6, 38, 5, 6, P.woodD); b.rect(6, 39, 5, 1, P.ironD); b.rect(37, 38, 5, 6, P.woodD); b.rect(37, 39, 5, 1, P.ironD);
-    if (t >= 3) { b.rect(23, 0, 1, 6, P.woodD); b.poly([[24, 0], [30, 1.5], [24, 3]], P.gold); b.line(2, 31, 46, 31, P.woodD); for (let x = 4; x < 46; x += 5) { b.px(x, 32, P.glow); b.px(x, 33, P.glowL); } }
-    if (t >= 4) { b.rect(14, 43, 20, 3, P.purple); b.rect(14, 43, 20, 1, P.gold); b.rect(14, 45, 20, 1, P.gold); b.rect(3, 22, 16, 1, P.gold); b.rect(29, 22, 16, 1, P.gold); b.rect(16, 12, 16, 1, P.gold); }
+    const { MO, B1, B3, BH } = BRK, sand = '#d8b26a', sandD = '#b48e4c';
+    // внутренний край и песок
+    b.ellipse(24, 17, 22, 9, B3); b.ellipse(24, 18, 18, 6.5, sandD); b.ellipse(24, 18.5, 16, 5.2, sand);
+    b.px(18, 18, sandD); b.px(29, 19, sandD); b.px(24, 17, P.redD);
+    // кирпичный фасад: нижняя половина овала
+    brickWall(b, 2, 18, 44, 22, false);
+    b.ellipse(24, 40, 22, 5, B1); b.rect(2, 18, 44, 1, BH);
+    // два яруса арок
+    for (let x = 4; x < 44; x += 6) {
+      b.rect(x, 22, 3, 5, MO); b.px(x + 1, 21, MO);
+      b.rect(x, 31, 3, 5, MO); b.px(x + 1, 30, MO);
+    }
+    b.rect(2, 28, 44, 1, B3);
+    // ворота
+    b.rect(20, 33, 8, 10, P.woodD); b.ellipse(24, 33, 4, 2.5, P.woodD); for (let x = 21; x < 28; x += 2) b.rect(x, 32, 1, 11, P.wood);
+    b.rect(20, 36, 8, 1, '#3a3a40'); b.rect(20, 40, 8, 1, '#3a3a40');
+    if (t >= 2) {
+      // флаги на стене
+      for (const x of [6, 24, 42]) { b.rect(x, 2, 1, 9, P.woodD); b.poly([[x + 1, 2], [x + 6, 3.5], [x + 1, 5]], P.red); }
+    }
+    if (t >= 3) {
+      // золотые щиты между арками нижнего яруса
+      for (const x of [10, 37]) { b.rect(x, 32, 3, 3, P.gold); b.px(x + 1, 35, P.gold); b.px(x + 1, 33, P.red); }
+    }
+    if (t >= 4) {
+      // навес над трибунами и золотой венок над воротами
+      for (let x = 4; x < 44; x += 4) b.rect(x, 9, 2, 3, (x / 4) % 2 ? '#e0602a' : P.white);
+      b.disc(24, 29.5, 2.2, P.gold); b.px(24, 29.5, P.goldD);
+    }
   } };
   DEF.b_forge = { w: 48, h: 48, draw(b, t) {
     t = +t || 1;

@@ -22,7 +22,8 @@
     castle: { base: { gold: 150, wood: 90, stone: 90 }, click: 'gold', size: 64, start: 1 },
     academy: { base: { gold: 200, wood: 100, stone: 100 }, ang: -90 },
     barracks: { base: { gold: 120, wood: 80, stone: 90, iron: 30 }, ang: -50 },
-    market: { base: { gold: 100, wood: 90, stone: 60 }, ang: -10 },
+    // Арена заменила Рынок: бои за кости, кристаллы и мифрил
+    arena: { base: { gold: 120, wood: 90, stone: 90 }, ang: -10 },
     forge: { base: { gold: 100, wood: 60, stone: 80, iron: 20 }, ang: 30 },
     warehouse: { base: { gold: 40, wood: 60, stone: 40 }, ang: 70 },
     tavern: { base: { gold: 150, wood: 100, stone: 60 }, ang: 110 },
@@ -42,7 +43,7 @@
       b.y = Math.round(D.MAP.cy + D.MAP.ry * Math.sin(a));
     }
   }
-  D.ORDER = ['castle', 'lumber', 'quarry', 'mine', 'warehouse', 'market', 'forge', 'tavern', 'barracks', 'academy', 'gate', 'dungeon'];
+  D.ORDER = ['castle', 'lumber', 'quarry', 'mine', 'warehouse', 'arena', 'forge', 'tavern', 'barracks', 'academy', 'gate', 'dungeon'];
   D.PROD = ['lumber', 'quarry', 'mine'];
   // Жители: платят налог; приходят, пока есть свободное жильё
   D.FOLK = { tax: 0.03, perCastle: 3, perLevels: 2, every: 15 };
@@ -246,7 +247,7 @@
     { id: 'runes', b: 'forge', acad: 4, icon: 'i_gem', cost: { gold: 800, crystal: 20, stone: 400 }, t: 600, eff: { enchant: 1 } },
     // 5
     { id: 'medicine', b: 'tavern', acad: 5, icon: 'i_heal', cost: { gold: 1200, bone: 50, crystal: 20 }, t: 800, eff: { recover: 1, save: 0.1 } },
-    { id: 'guild', b: 'market', acad: 5, icon: 'i_scale', cost: { gold: 1300, wood: 800, stone: 800 }, t: 800, eff: { trade: 0.15 } },
+    { id: 'gladiators', b: 'arena', acad: 5, icon: 'i_atk', cost: { gold: 1300, wood: 800, stone: 800 }, t: 800, eff: { arenaLoot: 0.25 } },
     { id: 'workcamps', b: ['lumber', 'quarry', 'mine'], acad: 5, icon: 'i_people', cost: { gold: 1500, wood: 1000, stone: 1000, iron: 300 }, t: 900, eff: { crews: 1 } },
     { id: 'library', b: 'academy', acad: 5, icon: 'i_book', cost: { gold: 1400, wood: 800, stone: 600 }, t: 800, eff: { resSpeed: 0.25 } },
     // 6
@@ -256,7 +257,7 @@
     { id: 'spikes', b: 'gate', acad: 6, icon: 'i_atk', cost: { gold: 2200, wood: 1500, iron: 600 }, t: 1100, eff: { thorns: 0.5 } },
     // 7
     { id: 'builders2', b: 'castle', acad: 7, req: 'builders', icon: 'i_hammer', cost: { gold: 5000, wood: 5000, stone: 5000 }, t: 1800, eff: { builders: 1 } },
-    { id: 'contracts', b: 'market', acad: 7, req: 'guild', icon: 'i_scroll', cost: { gold: 5000, wood: 3000, stone: 3000 }, t: 1600, eff: { buyC: 0.25 } },
+    { id: 'fame', b: 'arena', acad: 7, req: 'gladiators', icon: 'i_star', cost: { gold: 5000, wood: 3000, stone: 3000 }, t: 1600, eff: { arenaCd: 0.3 } },
     { id: 'smelting', b: 'forge', acad: 7, req: 'workshop', icon: 'i_anvil', cost: { gold: 5000, iron: 3000, stone: 1500 }, t: 1600, eff: { forgeC: 0.2 } },
     { id: 'bellows', b: 'forge', acad: 7, icon: 'i_fire', cost: { gold: 5000, wood: 3000, iron: 2000 }, t: 1600, eff: { craft: 0.4 } },
     // 8
@@ -322,7 +323,7 @@
   D.PREST_BONUS = 0.15;
   D.PERK_MAX = 10;
   // «Основатели»: каждый ранг — ещё одно здание уже построено в начале эпохи, по порядку важности
-  D.FOUND_ORDER = ['lumber', 'quarry', 'warehouse', 'mine', 'forge', 'tavern', 'gate', 'academy', 'market', 'barracks'];
+  D.FOUND_ORDER = ['lumber', 'quarry', 'warehouse', 'mine', 'forge', 'tavern', 'gate', 'academy', 'arena', 'barracks'];
   D.PERKS = [
     { id: 'found', icon: 'i_hammer', eff: {} },
     { id: 'prod', icon: 'i_pick', eff: { prod: 0.1 } },
@@ -333,7 +334,7 @@
     { id: 'cap', icon: 'i_bag', eff: { store: 0.1 } },
     { id: 'build', icon: 'i_clock', eff: { buildT: 0.05 } },
     { id: 'tax', icon: 'r_gold', eff: { tax: 0.1 } },
-    { id: 'trade', icon: 'i_scale', eff: { trade: 0.05 } },
+    { id: 'trade', icon: 'i_atk', eff: { arenaLoot: 0.1 } }, // «Слава арены» (бывший Торговый дом)
     { id: 'craft', icon: 'i_anvil', eff: { craft: 0.1 } },
     { id: 'hero', icon: 'i_people', eff: { advXp: 0.1 } },
     { id: 'hire', icon: 'i_coin', eff: { hireC: 0.05 } },
@@ -385,8 +386,8 @@
     { id: 'g17', t: 'goal17', h: { b: 'academy', act: 'research' }, test: (S) => Object.keys(S.research.done).length >= 1, reward: { gold: 120 } },
     { id: 'n16', t: 'gn16', h: { b: 'academy', act: 'research', arg: 'logging' }, test: (S) => R(S, 'logging'), reward: { wood: 80 } },
     { id: 'n17', t: 'gn17', h: { b: 'academy', act: 'resQueue' }, test: (S) => (S.stats.resQueued || 0) >= 1, reward: { gold: 80 } },
-    { id: 'g18', t: 'goal18', h: { b: 'market', act: 'up' }, test: (S) => S.b.market.lvl >= 1, reward: { gold: 100 } },
-    { id: 'n18', t: 'gn18', h: { b: 'market', act: 'sell' }, test: (S) => (S.stats.sold || 0) >= 1, reward: { gold: 40 } },
+    { id: 'g18', t: 'goal18', h: { b: 'arena', act: 'up' }, test: (S) => S.b.arena.lvl >= 1, reward: { gold: 100 } },
+    { id: 'n18', t: 'gn18', h: { b: 'arena', act: ['arenaPick', 'arenaFight'] }, test: (S) => (S.arena.wins || 0) >= 1, reward: { bone: 10 } },
     { id: 'g19', t: 'goal19', h: { b: 'barracks', act: ['up', 'guard'] }, test: (S) => S.guards >= 1, reward: { iron: 60 } },
     { id: 'n19', t: 'gn19', h: { b: 'barracks', act: 'guard' }, test: (S) => S.guards >= 3, reward: { iron: 40 } },
     { id: 'n20', t: 'gn20', h: { tab: 'king', act: 'talent' }, test: (S) => Object.values(S.king.tal).some((v) => v > 0), reward: { gold: 80 } },
@@ -406,7 +407,7 @@
     { id: 'n31', t: 'gn31', h: { b: 'academy', act: 'research', arg: 'builders' }, test: (S) => R(S, 'builders'), reward: { stone: 150 } },
     { id: 'n32', t: 'gn32', h: { b: 'gate', act: 'up' }, test: (S) => S.b.gate.lvl >= 3, reward: { stone: 150 } },
     { id: 'n33', t: 'gn33', h: { b: 'academy', act: 'research', arg: 'gates' }, test: (S) => R(S, 'gates'), reward: { gold: 200 } },
-    { id: 'n34', t: 'gn34', h: { b: 'market', act: 'up' }, test: (S) => S.b.market.lvl >= 3, reward: { gold: 200 } },
+    { id: 'n34', t: 'gn34', h: { b: 'arena', act: 'up' }, test: (S) => S.b.arena.lvl >= 3, reward: { gold: 200 } },
     { id: 'n35', t: 'gn35', h: { b: 'barracks', act: 'up' }, test: (S) => S.b.barracks.lvl >= 3, reward: { iron: 120 } },
     { id: 'n36', t: 'gn36', h: { b: 'academy', act: 'up' }, test: (S) => S.b.academy.lvl >= 3, reward: { gold: 200 } },
     { id: 'g23', t: 'goal23', h: { b: 'castle', act: 'up' }, test: (S) => S.b.castle.lvl >= 4, reward: { gold: 500 } },

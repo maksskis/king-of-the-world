@@ -165,6 +165,31 @@
     return ehp;
   }
 
+  // Шанс победы для произвольной группы героев (Арена)
+  X.chanceFor = function (members, en) {
+    const ps = snap(members);
+    let best = 0;
+    for (const stance of ['attack', 'defend']) {
+      let w = 0;
+      for (let i = 0; i < 30; i++) if (X.sim(ps, en, stance)) w++;
+      best = Math.max(best, w / 30);
+    }
+    return best;
+  };
+  // Полный бой сразу (Арена): тактику выбирает отряд, возвращает исход, здоровье бойцов и строки боя
+  X.duel = function (members, en) {
+    const ps = snap(members), out = [];
+    let ca = 0, cd = 0;
+    for (let i = 0; i < 20; i++) { if (X.sim(ps, en, 'attack')) ca++; if (X.sim(ps, en, 'defend')) cd++; }
+    const stance = ca >= cd ? 'attack' : 'defend';
+    let ehp = en.hp, r = 0;
+    while (r++ < MAX_ROUNDS && ps.some((p) => p.hp > 0)) {
+      ehp = roundCore(ps, en, ehp, stance, out);
+      if (ehp <= 0) break;
+    }
+    return { win: ehp <= 0, rounds: r, ps, stance, out: out.slice(-10) };
+  };
+
   X.sim = function (ps, en, stance) {
     const P = ps.map((p) => Object.assign({}, p));
     let ehp = en.hp, r = 0;
@@ -253,7 +278,7 @@
         xlog(e, 'xAvoid', { p: Math.round(best * 100) }, 'warn');
         e.enemy = null;
         X.goHome(e);
-        G.UI.dirty();
+        G.UI.expDirty(); // только вкладка «Походы», другие меню не трогаем
         return;
       }
       xlog(e, 'xFleeFail', {}, 'bad');
@@ -272,7 +297,7 @@
     e.fell = [];
     e.flog = [];
     flog(e, 'fr_start', { m: X.enemyName(e.enemy), s: { k: 'ch_' + stance }, p: Math.round(best * 100) }, 'warn');
-    G.UI.dirty();
+    G.UI.expDirty(); // только вкладка «Походы», другие меню не трогаем
   };
 
   X.round = function (e) {
@@ -288,7 +313,7 @@
     });
     for (const [k, p, c] of out) flog(e, k, p, c);
     G.SFX.play('hit');
-    G.UI.dirty();
+    G.UI.expDirty(); // только вкладка «Походы», другие меню не трогаем
     if (e.ehp <= 0) X.endFight(e, true);
     else if (!ms.some((a) => a.hp > 0)) X.endFight(e, false);
     else if (e.round >= MAX_ROUNDS) { xlog(e, 'xStalemate', {}, 'warn'); X.goHome(e); }
@@ -366,7 +391,7 @@
       e.t = e.tt = X.travelTime(e.floor);
       xlog(e, 'xDeeper', { f: e.floor });
     }
-    G.UI.dirty();
+    G.UI.expDirty(); // только вкладка «Походы», другие меню не трогаем
   };
 
   X.goHome = function (e) {
@@ -381,7 +406,7 @@
     e.recall = true;
     xlog(e, 'xRecall', {}, 'warn');
     if (e.phase === 'travel') X.goHome(e);
-    G.UI.dirty();
+    G.UI.expDirty(); // только вкладка «Походы», другие меню не трогаем
   };
 
   X.finish = function (e, ok) {

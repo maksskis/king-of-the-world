@@ -364,7 +364,7 @@
         if (v > 0) { G.S.res[r] -= v; lost[r] = v; }
       }
       G.S.folk = Math.floor((G.S.folk || 0) * 0.85); // часть жителей разбегается
-      const cand = ['lumber', 'quarry', 'mine', 'forge', 'tavern', 'barracks', 'market', 'warehouse', 'academy'].filter((k) => G.E.lvl(k) > 1 && !G.E.consOf(k));
+      const cand = ['lumber', 'quarry', 'mine', 'forge', 'tavern', 'barracks', 'arena', 'warehouse', 'academy'].filter((k) => G.E.lvl(k) > 1 && !G.E.consOf(k));
       let broken = null;
       if (cand.length) {
         broken = G.U.pick(cand);

@@ -20,11 +20,12 @@
       items: [],
       advs: [],
       guards: 0,
-      tavern: { cands: [], t: 0 },
+      tavern: { cands: [], t: 0, rr: 0 }, // rr — сколько раз звал новых за золото с последнего прихода
       forge: { q: [] },
       gate: { best: 0, sel: 1 },
       exps: [], // отряды в походах
       lastExp: null,
+      arena: { rank: 1, best: 0, cd: 0, team: [], wins: 0, last: null },
       dng: { best: {}, maxFloor: 3, start: 1, loc: 'catacombs', hp: 0.4, down: true, boss: false, avoid: 0.3 },
       camp: { awake: false, won: false },
       dyn: dyn || { epoch: 0, pts: 0, perks: {} },

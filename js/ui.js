@@ -91,6 +91,8 @@
   }
   UI.h = { ic, bSprite, nm, monSpr, costHtml, btn, lootHtml, bar, box, kv, pips, stIcon, advTile, itemTile, itemMain, ownerIcon, chancesRow, fmtEntry, esc, t };
   UI.dirty = () => { UI._d = true; };
+  // Бои в походах обновляют только вкладку «Походы» (если она открыта) и значки — окно здания и другие вкладки не перерисовываются
+  UI.expDirty = () => { UI._dx = true; };
 
   // ---------- инициализация ----------
   UI.init = function () {
@@ -390,6 +392,7 @@
       else { text = t('full'); icon = 'i_bag'; }
     } else if (k === 'dungeon' && G.X.hurry()) { text = '−' + U.fmt1(G.X.hurrySec()) + t('sec'); icon = 'i_boot'; G.SFX.play('click'); }
     else if (k === 'forge' && G.F.boost()) { text = t('hammerHit') + ' −' + U.fmt1(G.F.boostSec()) + t('sec'); icon = 'i_anvil'; G.SFX.play('hit'); }
+    else if (k === 'arena' && G.A.boost()) { text = '−' + U.fmt1(G.A.boostSec()) + t('sec'); icon = 'i_clock'; G.SFX.play('click'); }
     else if (k === 'academy' && G.R.boost()) { text = '−' + U.fmt1(G.R.boostSec()) + t('sec'); icon = 'i_book'; G.SFX.play('click'); }
     if (text) { fxFloat(e, text, icon); bump(el); }
     if (e.type === 'pointerdown') UI.openPop(k);
@@ -499,8 +502,6 @@
     worker(k) { G.E.hireWorker(k); },
     tools() { G.E.upgradeTools(); },
     smith() { G.F.hireSmith(); },
-    sell(a) { const [r, n] = a.split('|'); G.E.sell(r, n === 'half' ? (G.S.res[r] || 0) / 2 : +n); UI.dirty(); },
-    buy(a) { const [r, n] = a.split('|'); G.E.buy(r, +n); UI.dirty(); },
     craftType(ty) { UI.craft.type = ty; UI.dirty(); },
     craftTier(ti) { UI.craft.ti = +ti; UI.dirty(); },
     craft() { G.F.craft(UI.craft.type, UI.craft.ti); },
@@ -558,7 +559,9 @@
     condAvoid(v) { G.S.dng.avoid = +v; UI.dirty(); },
     send() { const e = G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc)); UI.party.clear(); if (e) UI.expView = e.id; },
     recall(id) { G.X.recall(id); },
-    hurry(id) { G.X.hurry(id); G.SFX.play('click'); UI.dirty(); },
+    arenaPick(id) { G.A.pick(id); },
+    arenaFight() { G.A.fight(); },
+    hurry(id) { G.X.hurry(id); G.SFX.play('click'); UI.expDirty(); },
     mclose() { UI.closeModal(); },
     yes() { const f = UI._yes; UI._yes = null; UI.closeModal(); if (f) f(); },
     exportSave() {
@@ -700,16 +703,25 @@
       const next = L < D.MAXLVL ? t('nextCap', { n: U.fmt(Math.floor(D.CAPS[L + 1] * (1 + G.bonus('store')))), g: U.fmt(Math.floor(D.goldCap(L + 1) * (1 + G.bonus('store')))) }) : '';
       return box(ic('i_bag') + ' ' + t('capacity'), rows + (next ? `<div class="hint">${next}</div>` : ''));
     },
-    market() {
-      const rows = D.MAT.filter((r) => G.S.seen[r]).map((r) => {
-        const bt = G.E.batch(r);
-        const buy = G.E.canBuy(r);
-        return `<div class="trade">${ic('r_' + r, 'ic2')}<div class="grow"><div class="nm">${t('res_' + r)}</div>
-          <div class="small"><span class="good">${t('rateSell', { n: bt, g: U.fmt1(G.E.sellPrice(r) * bt) })}</span> · ${buy ? `<span class="warn">${t('rateBuy', { n: bt, g: U.fmt1(G.E.buyPrice(r) * bt) })}</span>` : `<span class="muted">${t('buyLocked', { l: G.E.BUY_LVL[r] })}</span>`}</div></div>
-          <div class="tbtns"><button class="btn small" data-action="sell" data-arg="${r}|${bt}" data-sellr="${r}" data-n="${bt}">−${bt}</button><button class="btn small" data-action="sell" data-arg="${r}|half" data-sellr="${r}" data-n="2">−½</button>${buy ? `<button class="btn small" data-action="buy" data-arg="${r}|${bt}" data-buyr="${r}" data-n="${bt}">+${bt}</button>` : ''}</div></div>`;
-      }).join('');
-      const agent = G.bonus('agent') > 0 ? `<div class="small good">${ic('i_scale')} ${t('agentOn', { g: U.fmt(G.S.stats.autoSold || 0) })}</div>` : `<div class="small muted">${t('agentOff')}</div>`;
-      return box(ic('i_scale') + ' ' + t('rates'), rows + agent + `<div class="hint">${t('marketHint')}</div>`);
+    arena() {
+      const A = G.A, S = G.S.arena, tm = A.team(), why = A.whyNot();
+      const en = A.opp(S.rank, Math.max(1, tm.length)), ch = A.chance();
+      let h = box(ic('i_atk') + ' ' + t('arenaRank', { r: S.rank }) + ` <span class="muted">${t('arenaBest', { n: S.best || 0 })}</span>`, `
+        <div class="arena-opp">${ic(monSpr(en.key), 'ic4')}<div class="grow"><b>${esc(t('mn_' + en.key))}</b> <span class="muted small">${t('arenaChamp')}</span>
+          <div class="small">${ic('i_hp')} ${U.fmt(en.hp)} ${ic('i_atk')} ${U.fmt1(en.atk)}</div>
+          <div class="small">${t('arenaReward')}: ${lootHtml(A.reward(S.rank))}</div>
+          ${tm.length ? `<div class="small ${ch >= 0.7 ? 'good' : ch >= 0.4 ? 'warn' : 'bad'}">${t('winChance')}: <b>${Math.round(ch * 100)}%</b></div>` : ''}</div></div>
+        <div class="small muted">${ic('i_clock')} ${t('arenaNext')}: <b data-b="arenaT"></b></div>
+        <button class="btn primary big" data-action="arenaFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why === 'cd' ? t('arenaWait') : why === 'team' ? t('arenaNoTeam') : why === 'busy' ? t('busyShort') : t('arenaFight')}</button>
+        <div class="hint">${t('arenaHint')}</div>`);
+      const idle = G.S.advs.filter((a) => a.st === 'idle' || (S.team || []).includes(a.id));
+      h += box(ic('i_people') + ' ' + t('arenaTeam') + ` <span class="muted">${tm.length}/${A.teamMax()}</span>`,
+        idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'arenaPick', a.id, (S.team || []).includes(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`);
+      if (S.last) {
+        const R = S.last;
+        h += box(ic('i_scroll') + ' ' + t('arenaLast'), `<div class="${R.win ? 'good' : 'bad'}">${R.win ? t('arenaWon', { r: R.rank }) : t('arenaLost', { r: R.rank })}</div>${R.loot ? `<div>${lootHtml(R.loot)}</div>` : ''}<div class="flog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
+      }
+      return h;
     },
     forge() {
       return G.PANE.craft() +
@@ -746,6 +758,7 @@
     if (G.E.consOf(k)) return G.E.boostSec() > 0 ? `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_hammer')} ${t('helpBuild', { n: U.fmt1(G.E.boostSec()) })}</button>` : '';
     if (L > 0 && d.click) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_pick')} ${t('gatherBtn')} <b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + d.click)}</button>`;
     if (k === 'forge' && L > 0 && G.S.forge.q.length) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_anvil')} ${t('forgeHitBtn', { n: U.fmt1(G.F.boostSec()) })}</button>`;
+    if (k === 'arena' && L > 0 && G.S.arena.cd > 0) return `<button class="btn big popact" data-action="gather" data-arg="${k}">${ic('i_clock')} ${t('arenaBoost', { n: U.fmt1(G.A.boostSec()) })}</button>`;
     if (k === 'academy' && L > 0 && G.R.active().length) return `<button class="btn primary big popact" data-action="gather" data-arg="${k}">${ic('i_book')} ${t('resBoostBtn', { n: U.fmt1(G.R.boostSec()) })}</button>`;
     return '';
   }
@@ -1120,6 +1133,7 @@
     ehp: (id) => { const e = G.X.get(id); return e && e.enemy ? U.fmt(Math.max(0, e.phase === 'fight' ? e.ehp : e.enemy.hp)) + '/' + U.fmt(e.enemy.max) : ''; },
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
+    arenaT: () => (G.S.arena.cd > 0 ? U.fmtTime(G.S.arena.cd) + (G.E.busy('arena') ? ' · ' + t('paused') : '') : t('arenaReady')),
     folkR: () => { const v = G.E.folkTax() * (1 + G.bonus('tax')); return v ? '+' + U.fmt1(v) : ''; },
     cd: (id) => { const v = G.S.king.cd[id] || 0; const b = id === 'rush' ? G.S.king.buff.rush : id === 'rallyS' ? G.S.king.buff.rally : 0; return b > 0 ? U.fmtTime(b) : v > 0 ? U.fmtTime(v) : ''; },
     klvl: () => String(G.S.king.lvl),
@@ -1158,7 +1172,16 @@
   }
 
   UI.refresh = function () {
-    if (UI._d && !UI.pdown) UI.render();
+    if (UI._d && !UI.pdown) { UI.render(); UI._dx = false; }
+    else if (UI._dx && !UI.pdown) {
+      UI._dx = false;
+      if (UI.tab === 'exp') {
+        const p = $('#panel'), st = p.scrollTop;
+        p.innerHTML = PANEL.exp();
+        p.scrollTop = st;
+      }
+      renderTabs();
+    }
     if (UI.slotsDirty) updateSlots();
     if (UI.logDirty) renderLog();
     UI._rates = G.E.rates();
@@ -1181,11 +1204,6 @@
       b.disabled = !G.E.can(c);
     }
     for (const ch of $$('.chip')) ch.classList.toggle('lack', (G.S.res[ch.dataset.r] || 0) < +ch.dataset.n);
-    for (const b of $$('[data-sellr]')) b.disabled = (G.S.res[b.dataset.sellr] || 0) < +b.dataset.n || G.E.full('gold');
-    for (const b of $$('[data-buyr]')) {
-      const r = b.dataset.buyr, n = +b.dataset.n;
-      b.disabled = G.S.res.gold < Math.ceil(n * G.E.buyPrice(r)) || G.S.res[r] + n > G.E.cap(r);
-    }
     for (const b of $$('[data-spell]')) {
       b.disabled = !G.K.ready(b.dataset.spell);
       b.classList.toggle('active', (b.dataset.spell === 'rush' && G.S.king.buff.rush > 0) || (b.dataset.spell === 'rallyS' && G.S.king.buff.rally > 0));

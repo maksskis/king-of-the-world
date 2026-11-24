@@ -8,6 +8,7 @@
     G.F.tick(dt);
     G.T.tick(dt);
     G.X.tick(dt);
+    G.A.tick(dt);
     G.E.checkGoal();
   };
 
@@ -39,6 +40,13 @@
     G.S = loaded || G.newState();
     G.R.sanitize();
     G.X.sanitize();
+    // Рынок заменён Ареной: его уровень, стройка и место в указе переходят Арене
+    if (G.S.b.market) {
+      G.S.b.arena.lvl = Math.max(G.S.b.arena.lvl, G.S.b.market.lvl);
+      delete G.S.b.market;
+      for (const c of G.S.cons) if (c.k === 'market') c.k = 'arena';
+      G.S.decree.build = G.S.decree.build.map((k) => (k === 'market' ? 'arena' : k));
+    }
     G.E.migrateGoals();
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();

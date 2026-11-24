@@ -33,13 +33,15 @@
     return a;
   };
 
-  T.refreshCost = () => ({ gold: 20 * Math.max(1, tl()) });
+  // «Позвать новых» дорожает в 1,6 раза с каждым нажатием; цена сбрасывается, когда новые люди приходят сами (раз в 3 минуты)
+  T.refreshCost = () => ({ gold: Math.ceil(20 * Math.max(1, tl()) * Math.pow(1.6, G.S.tavern.rr || 0)) });
   // цена найма с навыком «Вербовщики» и наследием династии
   T.hireCost = (c) => Math.ceil(c.cost * Math.max(0.4, 1 - G.bonus('hireC')));
   T.refresh = function (free) {
     if (!free && (G.E.busy('tavern') || !G.E.pay(T.refreshCost()))) return;
     G.S.tavern.cands = Array.from({ length: T.candCount() }, T.gen);
-    G.S.tavern.t = T.REFRESH;
+    if (free) { G.S.tavern.t = T.REFRESH; G.S.tavern.rr = 0; } // пришли сами — цена снова базовая
+    else G.S.tavern.rr = (G.S.tavern.rr || 0) + 1; // позвал за золото — следующий раз дороже, таймер не сбрасывается
     G.UI.dirty();
   };
 
