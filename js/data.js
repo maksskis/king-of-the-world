@@ -363,6 +363,8 @@
   // 90 целей: id — для переноса прогресса старых сохранений, t — ключ текста
   // Порядок прежнего списка из 90 целей: по нему переносится прогресс старых сохранений
   D.GOALS_V2 = ['g0', 'g1', 'g2', 'n1', 'g3', 'n2', 'g4', 'n3', 'g5', 'n4', 'n5', 'g6', 'g7', 'n6', 'n7', 'g8', 'g9', 'g10', 'n8', 'g11', 'g12', 'g13', 'n9', 'g14', 'n10', 'n11', 'g15', 'n12', 'n13', 'n14', 'n15', 'g16', 'g17', 'n16', 'n17', 'g18', 'n18', 'g19', 'n19', 'n20', 'n21', 'n22', 'g20', 'n23', 'g21', 'g22', 'n24', 'n25', 'n26', 'n27', 'n28', 'n29', 'n30', 'n31', 'n32', 'n33', 'n34', 'n35', 'n36', 'g23', 'n37', 'n38', 'n39', 'n40', 'n41', 'n42', 'n43', 'g24', 'n44', 'n45', 'n46', 'g25', 'n47', 'n48', 'n49', 'g26', 'n50', 'n51', 'n52', 'n53', 'n54', 'n55', 'n56', 'n57', 'g27', 'n58', 'n59', 'g28', 'n60', 'g29'];
+  // Порядок списка версии 3 (119 целей): по нему переносится прогресс
+  D.GOALS_V3 = ['g0', 'g1', 'g2', 'm1', 'n1', 'g3', 'n2', 'g4', 'm2', 'g5', 'n4', 'm3', 'n5', 'g6', 'g7', 'n6', 'n7', 'g8', 'g9', 'g10', 'm4', 'g11', 'g12', 'g13', 'g14', 'n10', 'm5', 'n11', 'g15', 'm6', 'm7', 'g16', 'g17', 'n16', 'n17', 'm8', 'g18', 'n18', 'g19', 'n20', 'n21', 'm9', 'g20', 'n23', 'm10', 'g21', 'g22', 'n24', 'n25', 'm11', 'n26', 'n27', 'n28', 'n29', 'm12', 'n30', 'n31', 'n32', 'n33', 'n34', 'n35', 'n36', 'm13', 'm14', 'g23', 'n37', 'n38', 'n39', 'n40', 'm15', 'n41', 'n42', 'm16', 'n43', 'g24', 'n44', 'n45', 'n46', 'm17', 'g25', 'n47', 'm18', 'n48', 'n49', 'g26', 'm19', 'n50', 'n51', 'n52', 'm20', 'n53', 'n54', 'n55', 'm21', 'n56', 'n57', 'm22', 'g27', 'm23', 'n58', 'm24', 'n59', 'm25', 'm26', 'g28', 'm27', 'n60', 'm28', 'm29', 'm30', 'g29', 'm31', 'm32', 'm33', 'm34', 'm35', 'm36', 'm37', 'm38'];
   D.GOALS = [
     { id: 'g0', t: 'goal0', h: { b: 'castle', act: 'gather' }, test: (S) => S.stats.clicks >= 10, reward: { gold: 10 } },
     { id: 'g1', t: 'goal1', h: { b: 'lumber', act: 'up' }, test: (S) => S.b.lumber.lvl >= 1, reward: { wood: 15 } },
@@ -465,24 +467,19 @@
     { id: 'm23', t: 'gm_m23', h: { b: 'arena', act: ['arenaPick', 'arenaFight'] }, v: (S) => S.arena.wins || 0, n: 10, d: true, reward: { crystal: 30, mithril: 10 } },
     { id: 'n58', t: 'gn58', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'mine' }, test: (S) => (S.dng.best.mine || 0) >= 15, reward: { mithril: 40 } },
     { id: 'm24', t: 'gm_m24', h: { b: 'tavern', act: 'hire' }, v: (S) => S.advs.length, n: 6, reward: { gold: 2500 } },
-    { id: 'n59', t: 'gn59', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'lair' }, test: (S) => (S.dng.best.lair || 0) >= 4, reward: { gold: 3000 } },
     { id: 'm25', t: 'gm_m25', h: { b: 'castle', act: 'up' }, v: (S) => S.b.castle.lvl, n: 7, reward: { gold: 4000 } },
     { id: 'm26', t: 'gm_m26', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.stats.floors || 0, n: 30, d: true, reward: { mithril: 30, crystal: 30 } },
-    { id: 'g28', t: 'goal28', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'lair' }, test: (S) => S.camp.awake, reward: { gold: 3000 } },
     { id: 'm27', t: 'gm_m27', h: { b: 'forge', act: 'craft' }, test: (S) => S.items.some((i) => i.rar >= 3), reward: { crystal: 50 } },
     { id: 'n60', t: 'gn60', h: { b: 'gate', act: 'fight' }, test: (S) => S.gate.best >= 20, reward: { gold: 5000, bone: 100 } },
     { id: 'm28', t: 'gm_m28', h: { b: 'castle', act: 'up' }, v: (S) => S.b.castle.lvl, n: 8, reward: { gold: 8000 } },
     { id: 'm29', t: 'gm_m29', h: { b: 'warehouse', act: 'up' }, v: (S) => S.b.warehouse.lvl, n: 8, reward: { gold: 5000 } },
     { id: 'm30', t: 'gm_m30', h: { b: 'academy', act: 'research' }, v: (S) => D.RESEARCH.filter((r) => S.research.done[r.id]).length, n: 20, reward: { crystal: 60 } },
-    { id: 'g29', t: 'goal29', h: { b: 'gate', act: 'fightFinal' }, test: (S) => S.camp.won, reward: { gold: 10000 } },
-    { id: 'm31', t: 'gm_m31', h: { el: '#journey-btn' }, v: (S) => (S.dyn.jr && S.dyn.jr.best) || 0, n: 1, reward: { mithril: 30 } },
     { id: 'm32', t: 'gm_m32', h: { b: 'gate', act: 'fight' }, v: (S) => S.gate.best, n: 25, reward: { gold: 8000, bone: 150 } },
     { id: 'm33', t: 'gm_m33', h: { b: 'arena', act: ['arenaPick', 'arenaFight'] }, v: (S) => S.arena.best || 0, n: 10, reward: { crystal: 80 } },
-    { id: 'm34', t: 'gm_m34', h: { el: '#journey-btn' }, v: (S) => (S.dyn.jr && S.dyn.jr.best) || 0, n: 3, reward: { mithril: 50, crystal: 50 } },
     { id: 'm35', t: 'gm_m35', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.dng.best.catacombs || 0, n: 30, reward: { mithril: 60 } },
-    { id: 'm36', t: 'gm_m36', h: { el: '#journey-btn' }, v: (S) => (S.dyn.jr && S.dyn.jr.best) || 0, n: 5, reward: { gold: 15000 } },
-    { id: 'm37', t: 'gm_m37', h: { tab: 'king' }, v: () => G.K.legacyGain(), n: 30, reward: { crystal: 100 } },
-    { id: 'm38', t: 'gm_m38', h: { el: '#journey-btn' }, v: (S) => (S.dyn.jr && S.dyn.jr.best) || 0, n: 10, reward: { mithril: 100, crystal: 100 } },
+    { id: 'm37', t: 'gm_m37', h: { tab: 'king' }, v: () => G.K.legacyGain(), n: 25, reward: { crystal: 100 } },
+    { id: 'g28', t: 'goal28', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'lair' }, test: (S) => S.camp.awake, reward: { gold: 3000 } },
+    { id: 'g29', t: 'goal29', h: { b: 'gate', act: 'fightFinal' }, test: (S) => S.camp.won, reward: { gold: 10000 } },
   ];
 
 })();

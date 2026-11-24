@@ -52,9 +52,15 @@
   // ---------- локации ----------
   X.loc = (id) => D.LOCS[id];
   X.locOpen = function (id) {
+    return !X.lockWhy(id);
+  };
+  // Почему локация закрыта: нет Гильдии, нет исследования или (Логово) ещё не дошли до цели «Разбуди дракона»
+  X.lockWhy = function (id) {
     const L = D.LOCS[id];
-    if (G.E.lvl('tavern') < 1) return false;
-    return !L.unlock || G.R.done(L.unlock);
+    if (G.E.lvl('tavern') < 1) return 'tavern';
+    if (L.unlock && !G.R.done(L.unlock)) return 'research';
+    if (id === 'lair' && !G.S.camp.awake && !G.S.camp.won && !G.E.goalAt('g28')) return 'goal';
+    return '';
   };
   X.best = (id) => G.S.dng.best[id] || 0;
   X.floors = (id) => D.LOCS[id].floors || Infinity;

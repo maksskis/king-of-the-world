@@ -940,7 +940,9 @@
     const nodes = D.LOC_ORDER.map((id) => {
       const L = D.LOCS[id], open = G.X.locOpen(id);
       const best = G.X.best(id), here = G.S.exps.filter((e) => e.loc === id).length;
-      return `<button class="wnode ${cur === id ? 'on' : ''} ${open ? '' : 'locked'}" data-action="loc" data-arg="${id}" style="left:${L.pos[0]}%;top:${L.pos[1]}%" ${open ? '' : 'disabled'}>
+      const why = open ? '' : G.X.lockWhy(id);
+      const tip = why === 'goal' ? t('locLockedGoal', { n: D.GOALS.findIndex((g) => g.id === 'g28') - G.S.goal }) : why === 'research' ? t('locLocked', { r: t('rs_' + L.unlock) }) : '';
+      return `<button class="wnode ${cur === id ? 'on' : ''} ${open ? '' : 'locked'}" data-action="loc" data-arg="${id}" style="left:${L.pos[0]}%;top:${L.pos[1]}%" ${open ? '' : 'disabled'} ${tip ? `title="${esc(tip)}"` : ''}>
         ${ic(L.icon, 'ic3')}<span class="wn">${t('loc_' + id)}</span><span class="wb">${open ? `${ic('i_flag')}${best}${L.floors ? '/' + L.floors : ''}` : ic('i_lock')}</span>${here ? `<i class="wsq">${ic('i_people')}${here}</i>` : ''}</button>`;
     }).join('');
     return `<div class="wmap" style="background-image:url(${G.SPR.worldBg()})"><span class="wcap" style="left:12%;top:74%">${ic('i_crown', 'ic2')}<span class="wn">${t('capital')}</span></span>${nodes}</div>`;
@@ -957,7 +959,10 @@
     h += `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic(D.LOCS[x.loc].icon, 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('loc_' + x.loc)} · ${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}<button class="sqb new ${e ? '' : 'on'}" data-action="squad" data-arg="new">${ic('i_flag', 'ic2')}<span><b>${t('squadNew')}</b><span class="small muted">${ex.length < max ? t('squadFree', { n: max - ex.length }) : t('squadNone')}</span></span></button></div>`;
     const L = D.LOCS[loc];
     h += `<div class="lochead">${ic(L.icon, 'ic3')}<div><h2>${t('loc_' + loc)}</h2><div class="desc">${t('locd_' + loc)}</div><div class="muted small">${t('deepest')}: <b>${G.X.best(loc)}</b>${L.floors ? ' / ' + L.floors : ''} · ${t('difficulty')}: <b>×${U.fmt1(L.diff * G.K.epochMul())}</b></div></div></div>`;
-    if (!G.X.locOpen(loc)) return h + box('', `${ic('i_lock')} ${t('locLocked', { r: t('rs_' + L.unlock) })}`, 'muted');
+    if (!G.X.locOpen(loc) && !e) {
+      const why = G.X.lockWhy(loc), left = D.GOALS.findIndex((g) => g.id === 'g28') - G.S.goal;
+      return h + box('', `${ic('i_lock')} ${why === 'goal' ? t('locLockedGoal', { n: left }) : t('locLocked', { r: t('rs_' + L.unlock) })}`, 'muted');
+    }
     if (e) h += expActive(e);
     else if (ex.length >= max) h += box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
     else h += expSetup(loc);
