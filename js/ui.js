@@ -738,7 +738,11 @@
     warehouse() {
       const L = G.E.lvl('warehouse');
       const rows = ['gold', ...D.MAT].filter((r) => G.S.seen[r]).map((r) => `<div class="srow">${ic('r_' + r)}<span class="grow">${t('res_' + r)}</span><span class="small" data-b="store:${r}"></span>${bar('store:' + r, 'store')}</div>`).join('');
-      if (G.E.noCap()) return box(ic('i_bag') + ' ' + t('capacity'), rows + `<div class="good small">${ic('i_star')} ${t('noCapNote', { p: Math.round(D.STORE_PROD * 100) })}</div>`);
+      if (G.E.noCap()) {
+        const cp = Math.round(G.E.convProd() * 100), ct = Math.round(G.E.convTax() * 100);
+        const conv = cp || ct ? `<div class="small muted">${t('convNote', { p: cp, g: ct })}</div>` : '';
+        return box(ic('i_bag') + ' ' + t('capacity'), rows + `<div class="good small">${ic('i_star')} ${t('noCapNote', { p: Math.round(D.STORE_PROD * 100) })}</div>${conv}`);
+      }
       const next = L + 1 >= D.MAXLVL ? t('bh_warehouse8', { p: Math.round(D.STORE_PROD * 100) })
         : t('nextCap', { n: U.fmt(Math.floor(D.CAPS[L + 1] * (1 + G.bonus('store')))), g: U.fmt(Math.floor(D.goldCap(L + 1) * (1 + G.bonus('store')))) });
       return box(ic('i_bag') + ' ' + t('capacity'), rows + `<div class="hint">${next}</div>`);

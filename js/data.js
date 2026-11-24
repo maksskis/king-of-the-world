@@ -11,6 +11,9 @@
   D.CAPS = [100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
   // Склад 8-го уровня снимает ограничения со всех ресурсов и золота, а вместо вместимости даёт +30% к пассивной добыче
   D.STORE_PROD = 0.3;
+  // Со Складом 8-го уровня бонусы вместимости не пропадают, а превращаются в добычу:
+  // +1% вместимости склада → +0,4% пассивной добычи, +1% лимита золота → +0,5% налогов
+  D.CONV = { store: 0.4, goldCap: 0.5 };
   D.goldCap = (L) => 250 * Math.pow(2, L); // 1 ур. — 500, 2 ур. — 1000 и т. д.
   D.LVLMULT = [1, 2, 4, 8, 16, 32, 64, 128]; // множитель цены перехода L -> L+1
   D.buildTime = (L) => 20 * Math.pow(2, L); // секунды на переход L -> L+1
@@ -269,7 +272,7 @@
     { id: 'smelting', b: 'forge', acad: 7, req: 'workshop', icon: 'i_anvil', cost: { gold: 5000, iron: 3000, stone: 1500 }, t: 1600, eff: { forgeC: 0.2 } },
     { id: 'bellows', b: 'forge', acad: 7, icon: 'i_fire', cost: { gold: 5000, wood: 3000, iron: 2000 }, t: 1600, eff: { craft: 0.4 } },
     // 8
-    { id: 'vault', b: 'warehouse', acad: 8, req: 'storage', icon: 'i_lock', cost: { gold: 9000, stone: 8000 }, t: 2400, eff: { store: 0.15, lootProtect: 0.5 } },
+    { id: 'vault', b: 'warehouse', acad: 8, req: 'storage', icon: 'i_lock', cost: { gold: 9000, stone: 8000 }, t: 2400, eff: { passive: 0.1, lootProtect: 0.5 } },
     { id: 'masons', b: 'gate', acad: 8, req: 'gates', icon: 'i_hammer', cost: { gold: 9000, stone: 9000, iron: 2500 }, t: 2400, eff: { gateRegen: 0.008 } },
   ];
   D.resIn = (r, k) => [].concat(r.b).includes(k);
