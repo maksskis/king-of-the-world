@@ -267,7 +267,7 @@
     { id: 'dragon', b: 'academy', acad: 6, req: 'maps', icon: 'i_dragon', cost: { gold: 4000, mithril: 40, crystal: 60 }, t: 1500, eff: { loc_lair: 1 } },
     { id: 'spikes', b: 'gate', acad: 6, icon: 'i_atk', cost: { gold: 2200, wood: 1500, iron: 600 }, t: 1100, eff: { thorns: 0.5 } },
     // 7
-    { id: 'builders2', b: 'castle', acad: 7, req: 'builders', icon: 'i_hammer', cost: { gold: 5000, wood: 5000, stone: 5000 }, t: 1800, eff: { builders: 1 } },
+    { id: 'guildhall', b: 'tavern', acad: 7, icon: 'i_people', cost: { gold: 5000, wood: 5000, stone: 5000 }, t: 1800, eff: { advCap: 2 } },
     { id: 'fame', b: 'arena', acad: 7, req: 'gladiators', icon: 'i_star', cost: { gold: 5000, wood: 3000, stone: 3000 }, t: 1600, eff: { arenaCd: 0.3 } },
     { id: 'smelting', b: 'forge', acad: 7, req: 'workshop', icon: 'i_anvil', cost: { gold: 5000, iron: 3000, stone: 1500 }, t: 1600, eff: { forgeC: 0.2 } },
     { id: 'bellows', b: 'forge', acad: 7, icon: 'i_fire', cost: { gold: 5000, wood: 3000, iron: 2000 }, t: 1600, eff: { craft: 0.4 } },

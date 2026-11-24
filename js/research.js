@@ -19,6 +19,10 @@
     const S = G.S.research;
     if (!Array.isArray(S.act)) S.act = [];
     if (S.cur) { if (R.get(S.cur.id)) S.act.push(S.cur); S.cur = null; }
+    // «Артель зодчих» заменена «Большим залом Гильдии»: изученное, идущее и записи указа переходят к новому
+    if (S.done.builders2) { delete S.done.builders2; S.done.guildhall = true; }
+    for (const c of S.act) if (c.id === 'builders2') c.id = 'guildhall';
+    G.S.decree.research = G.S.decree.research.map((id) => (id === 'builders2' ? 'guildhall' : id));
     S.act = S.act.filter((c) => R.get(c.id));
     G.S.decree.research = G.S.decree.research.filter((id) => R.get(id));
   };

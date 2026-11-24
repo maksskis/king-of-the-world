@@ -4,7 +4,8 @@
   const tl = () => G.E.lvl('tavern');
 
   T.REFRESH = 180;
-  T.maxAdvs = () => (tl() > 0 ? 1 + tl() : 0);
+  // Мест в Гильдии: 1 + уровень, «Большой зал Гильдии» добавляет ещё 2
+  T.maxAdvs = () => (tl() > 0 ? 1 + tl() + G.bonus('advCap') : 0);
   T.candCount = () => (tl() >= 3 ? 4 : 3);
   T.rarOpen = (i) => tl() >= D.ARAR[i].tav;
 
@@ -119,7 +120,8 @@
 
   T.get = (id) => G.S.advs.find((a) => a.id === id);
 
-  T.gateMax = () => Math.min(6, 1 + G.E.lvl('gate'));
+  // Мест на стене — столько же, сколько в Гильдии: все герои могут встать на защиту
+  T.gateMax = () => T.maxAdvs();
   T.gateCount = () => G.S.advs.filter((a) => a.st === 'gate').length;
   T.setGate = function (id) {
     const a = T.get(id);

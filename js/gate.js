@@ -62,14 +62,17 @@
   function layout(advs) {
     const order = { warrior: 0, rogue: 1, priest: 2, shaman: 3, archer: 4, mage: 5 };
     advs = advs.slice().sort((p, q) => order[p.cls] - order[q.cls]);
-    const meleeN = advs.filter((a) => G.X.isFront(a.cls)).length, meleeRows = Math.ceil(meleeN / 3);
+    // больше 6 героев — ряды по 4 (4 линии вместо 3), чтобы отряд не уходил за стену
+    const per = advs.length > 6 ? 4 : 3, lanes = per === 4 ? [98, 107, 116, 125] : LANES;
+    const meleeN = advs.filter((a) => G.X.isFront(a.cls)).length, meleeRows = Math.ceil(meleeN / per);
+    const rows = meleeRows + Math.ceil((advs.length - meleeN) / per), step = rows > 3 ? 11 : 15;
     return advs.map((a, idx) => {
       const melee = G.X.isFront(a.cls), k = melee ? idx : idx - meleeN;
-      const row = melee ? Math.floor(k / 3) : meleeRows + Math.floor(k / 3), i = k;
+      const row = melee ? Math.floor(k / per) : meleeRows + Math.floor(k / per), i = k;
       const s = G.T.stats(a);
       const sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
-        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - row * 15 - (i % 3) * 3, y: LANES[i % 3], hit: 0, swing: 0,
+        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - row * step - (i % per) * 2, y: lanes[i % per], hit: 0, swing: 0,
         dodge: Math.min(0.5, sk('dodge') + (C.dodge || 0)), crit: Math.min(0.6, sk('crit') + (C.crit || 0)), critMul: Math.min(4, 2 + sk('critDmg')), regen: Math.min(0.1, sk('regen')),
         bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
       };
