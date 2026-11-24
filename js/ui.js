@@ -42,6 +42,7 @@
   function stIcon(a) {
     if (a.st === 'gate') return ic('i_tower') + `<span>${t('st_gate')}</span>`;
     if (a.st === 'dungeon') return ic('i_flag') + `<span>${t('st_dungeon')}</span>`;
+    if (a.st === 'arena') return ic('i_atk') + `<span>${t('st_arena')}</span>`;
     if (a.st === 'wounded') return ic('i_heal') + `<span data-b="wt:${a.id}"></span>`;
     return ic('i_check') + `<span>${t('st_idle')}</span>`;
   }
@@ -327,14 +328,14 @@
 
   function updateSlots() {
     UI.slotsDirty = false;
-    const wt = wallTier();
-    if (wt !== UI.wallTier) { UI.wallTier = wt; G.SPR.mapBg($('#mapbg'), wt); }
+    const wt = wallTier(), st = G.SPR.style();
+    if (wt !== UI.wallTier || st !== UI.wallStyle) { UI.wallTier = wt; UI.wallStyle = st; G.SPR.mapBg($('#mapbg'), wt); }
     const dq = G.S.decree.build;
     for (const el of $$('.slot')) {
       const k = el.dataset.k, L = G.E.lvl(k), d = D.B[k];
-      const key = bSprite(k);
+      const key = bSprite(k), sk = key + '@' + st;
       const img = el.firstElementChild;
-      if (img.dataset.key !== key) { img.src = G.SPR.url(key); img.dataset.key = key; }
+      if (img.dataset.key !== sk) { img.src = G.SPR.url(key); img.dataset.key = sk; }
       el.querySelector('.slot-label').innerHTML = esc(t('bn_' + k)) + (d.noLevel || !L ? '' : ` <b>${L}</b>`);
       el.classList.toggle('sel', UI.pop === k);
       el.classList.toggle('unbuilt', L === 0 && !d.noLevel);
@@ -478,6 +479,15 @@
       UI.dirty();
     },
     sound() { G.S.sound = !G.S.sound; applyStatic(); G.SFX.play('click'); },
+    setStyle(id) {
+      if (id !== 'classic' && !G.GOTH.style(id)) return;
+      G.S.style = id;
+      UI.slotsDirty = true;
+      G.SFX.play('click');
+      G.save();
+      if (UI.win === 'settings') UI.openSettings();
+      UI.dirty();
+    },
     autoToggle() { G.S.king.auto = !G.S.king.auto; G.SFX.play('click'); UI.dirty(); },
     settings() { UI.openSettings(); },
     goals() {
@@ -535,6 +545,7 @@
     fight() { G.W.start(false); UI.dirty(); },
     fightFinal() { G.W.start(true); UI.dirty(); },
     bclose() { G.W.close(); },
+    askip() { G.W.arenaSkip(); },
     bnext() { G.W.next(); },
     cast(id) { G.K.cast(id); },
     talent(id) { G.K.learn(id); },
@@ -719,10 +730,10 @@
           <div class="small">${t('arenaReward')}: ${lootHtml(A.reward(S.rank))}</div>
           ${tm.length ? `<div class="small ${ch >= 0.7 ? 'good' : ch >= 0.4 ? 'warn' : 'bad'}">${t('winChance')}: <b>${Math.round(ch * 100)}%</b></div>` : ''}</div></div>
         <div class="small muted">${ic('i_clock')} ${t('arenaNext')}: <b data-b="arenaT"></b></div>
-        <button class="btn primary big" data-action="arenaFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why === 'cd' ? t('arenaWait') : why === 'team' ? t('arenaNoTeam') : why === 'busy' ? t('busyShort') : t('arenaFight')}</button>
+        <button class="btn primary big" data-action="arenaFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why === 'cd' ? t('arenaWait') : why === 'team' ? t('arenaNoTeam') : why === 'busy' ? t('busyShort') : why === 'fight' ? t('arenaLive') : why === 'battle' ? t('arenaGateBusy') : t('arenaFight')}</button>
         <div class="hint">${t('arenaHint')}</div>`);
       const idle = G.S.advs.filter((a) => a.st === 'idle' || (S.team || []).includes(a.id));
-      h += box(ic('i_people') + ' ' + t('arenaTeam') + ` <span class="muted">${tm.length}/${A.teamMax()}</span>`,
+      h += box(ic('i_people') + ' ' + t('arenaTeam') + ` <span class="muted">${S.live ? S.live.ids.length : tm.length}/${A.teamMax()}</span>`,
         idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'arenaPick', a.id, (S.team || []).includes(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`);
       if (S.last) {
         const R = S.last;
@@ -1053,11 +1064,29 @@
   UI.openSettings = function () {
     UI.modal(`<h2>${t('settings')}</h2>
       ${box(t('language'), `<button class="btn" data-action="lang">${G.LANG === 'ru' ? 'English' : 'Русский'}</button> <button class="btn" data-action="sound">${ic(G.S.sound ? 'i_snd' : 'i_mute')} ${t('sound')}</button>`)}
+      ${box(t('cityStyle'), `<div class="muted small">${t('cityStyleHint')}</div><div class="styles">${styleCards()}</div>`)}
       ${box(t('saveTitle'), `<div class="muted small">${t('saveHint')}</div><textarea id="save-text" rows="3" spellcheck="false"></textarea><div class="row"><button class="btn small" data-action="exportSave">${t('export')}</button><button class="btn small" data-action="importSave">${t('import')}</button><span id="save-msg" class="muted small"></span></div>`)}
       ${box(t('danger'), `<button class="btn danger" data-action="reset">${t('reset')}</button>`)}
       <div class="muted small">${t('about')}</div>
       <div class="right"><button class="btn" data-action="mclose">${t('close')}</button></div>`, 'settings');
   };
+  // Облик города: мини-замок каждого стиля, выбранный подсвечен
+  function styleCards() {
+    const cur = G.SPR.style();
+    const list = G.GOTH.STYLES.map((S) => [S.id, S.id + ' · ' + t('style_' + S.id)]).concat([['classic', t('style_classic')]]);
+    return list.map(([id, name]) => {
+      const src = id === 'classic' ? classicCastle() : G.GOTH.render('castle', id, 4).toDataURL();
+      return `<button class="stylecard ${cur === id ? 'on' : ''}" data-action="setStyle" data-arg="${id}" aria-pressed="${cur === id}"><img src="${src}" alt=""><span>${esc(name)}</span></button>`;
+    }).join('');
+  }
+  // классический замок рисуется без учёта текущего стиля
+  function classicCastle() {
+    const keep = G.S.style;
+    G.S.style = 'classic';
+    const u = G.SPR.url('b_castle:4');
+    G.S.style = keep;
+    return u;
+  }
   UI.offlineReport = function (rep) {
     UI.modal(`<h2>${t('welcomeBack')}</h2><p>${t('awayFor', { t: U.fmtTime(rep.sec) })}</p>${box('', lootHtml(rep.gain) || t('nothing'))}<div class="right"><button class="btn primary" data-action="mclose">${t('ok')}</button></div>`, 'offline');
   };
@@ -1073,11 +1102,17 @@
   };
 
   // ---------- бой у ворот ----------
-  UI.showBattle = function (on) {
+  UI.showBattle = function (on, mode) {
     $('#map').classList.toggle('hidden', on);
     $('#stage').classList.toggle('in-battle', on);
+    $('#stage').classList.toggle('arena-mode', on && mode === 'arena');
     $('#battle').classList.toggle('hidden', !on);
-    if (on) {
+    if (on && mode === 'arena') {
+      // Арена: ранг, чемпион и его здоровье, «Пропустить» до конца боя, «В город» — после
+      $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
+        <span class="grow"></span><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button>`;
+      $('#battle-foot').innerHTML = `<div class="hint">${t('arenaLiveHint', { s: t('ch_' + ((G.W.battle() || {}).stance || 'attack')) })}</div>`;
+    } else if (on) {
       $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
         <span class="grow"></span><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button>`;
       $('#battle-foot').innerHTML = `<div class="hint">${t('battleHint', { d: G.W.kingDmg() })}</div>`;
@@ -1093,6 +1128,24 @@
     $('#bh-left').textContent = t('monstersLeft') + ': ' + left + '/' + B.total;
     $('#bh-gate').style.width = ((B.gate / B.gateMax) * 100).toFixed(1) + '%';
     $('#bh-gtxt').textContent = Math.ceil(B.gate) + '/' + B.gateMax;
+  };
+  UI.arenaHud = function (B) {
+    const w = $('#bh-wave');
+    if (!w) return;
+    const m = B.mons[0];
+    w.textContent = t('arenaRank', { r: B.n });
+    $('#bh-left').textContent = t('mn_' + B.champ) + (B.ri >= 0 && B.state === 'run' ? ' · ' + t('arenaRound', { n: Math.min(B.ri + 1, B.tl.length) }) : '');
+    $('#bh-gate').style.width = (m ? (Math.max(0, m.hp) / m.max) * 100 : 0).toFixed(1) + '%';
+    $('#bh-gtxt').textContent = m ? U.fmt(Math.max(0, Math.ceil(m.hp))) + '/' + U.fmt(m.max) : '';
+  };
+  UI.arenaResult = function (r) {
+    const h = r.win
+      ? `<div class="res-win">${t('arenaWonTitle', { r: r.rank })}</div><div>${lootHtml(r.loot)} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('arenaRest', { n: r.wounded }) : ''} · <span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`
+      : `<div class="res-lose">${t('arenaLostTitle', { r: r.rank })}</div><div>${r.wounded ? t('arenaRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`;
+    $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
+    const sk = $('#bh-skip');
+    if (sk) sk.remove();
+    $('#bh-city').disabled = false;
   };
   UI.battleResult = function (r) {
     let h;

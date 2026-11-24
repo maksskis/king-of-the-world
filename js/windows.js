@@ -153,7 +153,7 @@
       return `<div class="skill cat-${sk.cat}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b>${t('sk_' + sk.id)}</b> <span class="small muted">${r}/${D.SKILL_MAX}</span> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
     }).join('');
     const xpw = Math.min(100, (a.xp / G.T.xpNeed(a.lvl)) * 100).toFixed(1);
-    const canDismiss = a.st !== 'dungeon' && !(G.W.active() && a.st === 'gate');
+    const canDismiss = a.st !== 'dungeon' && a.st !== 'arena' && !(G.W.active() && a.st === 'gate');
     return `<div class="box charbox" style="--rc:${R.color}">
       <div class="chead"><div class="por big" style="--rc:${R.color}">${ic('c_' + a.cls, 'ic4')}</div>
         <div class="grow"><h2 style="color:${R.color}">${esc(nm(a.name))}</h2>

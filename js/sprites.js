@@ -685,6 +685,12 @@
     let white = false, k = key;
     if (k.endsWith('|w')) { white = true; k = k.slice(0, -2); }
     const [name, arg] = k.split(':');
+    // облик города: готические стили A–E рисует gothic.js, «Классика» — эти спрайты
+    const st = G.SPR.style();
+    if (st !== 'classic' && name.startsWith('b_') && G.GOTH && G.GOTH.has(name.slice(2))) {
+      const cv = G.GOTH.render(name.slice(2), st, +arg || 1, white);
+      if (cv) return cv;
+    }
     const d = DEF[name];
     if (!d) return new Buf(1, 1).canvas();
     const b = new Buf(d.w, d.h);
@@ -693,7 +699,11 @@
     return b.canvas(white);
   }
   G.SPR = {
-    canvas(key) { return cache[key] || (cache[key] = build(key)); },
+    style: () => (G.S && G.S.style) || 'A',
+    canvas(key) {
+      const ck = key.startsWith('b_') ? key + '@' + G.SPR.style() : key;
+      return cache[ck] || (cache[ck] = build(key));
+    },
     url(key) {
       const c = this.canvas(key);
       if (!c._url) c._url = c.toDataURL();
@@ -707,6 +717,8 @@
     wt = wt || 0;
     const M = G.D.MAP, W = M.w, H = M.h, b = new Buf(W, H), r = G.U.seeded(1337);
     const ell = (x, y) => Math.hypot((x + 0.5 - M.cx) / M.wrx, (y + 0.5 - M.wcy) / M.wry);
+    const GS = G.GOTH && G.GOTH.style(G.SPR.style());
+    const WS = GS ? { s: GS.B1, d: GS.MO, l: GS.BH, m: GS.B2, ring: GS.TL, top: GS.BN } : { s: P.stone, d: P.stoneD, l: P.stoneL, m: P.stoneM, ring: P.stoneL, top: P.red };
     const WALL_IN = 0.955, WALL_OUT = 1.0, MOAT = 1.065;
 
     // трава: внутри ухоженная, снаружи дикая
@@ -793,8 +805,8 @@
             const seg = Math.floor(((a + Math.PI) / (2 * Math.PI)) * 220);
             const inner = d < WALL_IN + 0.012;
             if (wt === 1) b.px(x, y, seg % 2 ? (inner ? P.woodL : P.wood) : P.woodD);
-            else if (inner) b.px(x, y, seg % 2 ? P.stoneL : P.stoneD);
-            else b.px(x, y, (seg + Math.floor(d * 400)) % 5 === 0 ? P.stoneD : d > WALL_OUT - 0.01 ? P.stoneD : P.stone);
+            else if (inner) b.px(x, y, seg % 2 ? WS.l : WS.d);
+            else b.px(x, y, (seg + Math.floor(d * 400)) % 5 === 0 ? WS.d : d > WALL_OUT - 0.01 ? WS.d : WS.s);
           }
         }
       }
@@ -808,9 +820,9 @@
           continue;
         }
         b.ellipse(tx + 1, ty + 3, 9, 5, '#2f5a26');
-        b.disc(tx, ty, 8, P.k); b.disc(tx, ty, 7, P.stoneD); b.disc(tx, ty - 1, 6, P.stone); b.disc(tx, ty - 1, 4.5, P.stoneM);
-        for (let j = 0; j < 8; j++) { const aa = (j / 8) * Math.PI * 2; b.px(tx + Math.cos(aa) * 5.5, ty - 1 + Math.sin(aa) * 5.5, P.stoneL); }
-        b.px(tx, ty - 1, P.red);
+        b.disc(tx, ty, 8, P.k); b.disc(tx, ty, 7, WS.d); b.disc(tx, ty - 1, 6, WS.s); b.disc(tx, ty - 1, 4.5, WS.m);
+        for (let j = 0; j < 8; j++) { const aa = (j / 8) * Math.PI * 2; b.px(tx + Math.cos(aa) * 5.5, ty - 1 + Math.sin(aa) * 5.5, WS.ring); }
+        b.px(tx, ty - 1, WS.top);
       }
       if (wt >= 3) {
         for (let y = M.wcy + M.wry - 6; y < M.wcy + M.wry + 14; y++) {
@@ -901,6 +913,53 @@
     b.rect(18, 78 + OFF, 15, 48, P.woodD); for (let x = 20; x < 33; x += 3) b.rect(x, 78 + OFF, 1, 48, P.wood);
     b.rect(18, 92 + OFF, 15, 1, P.ironD); b.rect(18, 108 + OFF, 15, 1, P.ironD);
     b.rect(37, 70 + OFF, 1, 6, P.woodD); b.px(37, 69 + OFF, P.glow); b.px(37, 68 + OFF, P.glowL);
+    return b.canvas();
+  };
+
+  // Арена для окна боя: ночное небо, трибуны со зрителями из кирпича выбранного облика, песок
+  G.SPR.arenaBg = function () {
+    const OFF = 80, W = 320, H = 130 + OFF, b = new Buf(W, H), r = G.U.seeded(77);
+    const GS = G.GOTH && G.GOTH.style(G.SPR.style());
+    const K = GS || { MO: BRK.MO, B1: BRK.B1, B2: BRK.B2, B3: BRK.B3, BH: BRK.BH, T: P.stoneL, TL: P.white, TD: P.stoneD, BN: P.red, FI: P.gold };
+    const sky = ['#140f24', '#1a1330', '#1d1530', '#261b3d', '#30214a'];
+    for (let y = 0; y < 40 + OFF; y++) { const c = sky[Math.min(4, Math.floor(y / 24))]; for (let x = 0; x < W; x++) b.px(x, y, c); }
+    for (let i = 0; i < 70; i++) b.px(Math.floor(r() * W), Math.floor(r() * (20 + OFF)), r() < 0.5 ? '#ffffff' : '#c8b8ff');
+    b.disc(48, 30, 8, '#f3e9c8'); b.disc(45, 28, 2, '#d8ccaa');
+    // верх трибун: парапет с зубцами и флагами
+    const top = 18 + OFF;
+    for (let x = 0; x < W; x += 5) { b.rect(x, top - 3, 3, 3, K.B1); b.px(x, top - 3, K.BH); }
+    b.rect(0, top, W, 3, K.B1); b.rect(0, top, W, 1, K.BH);
+    for (let x = 20; x < W; x += 70) { b.rect(x, top - 16, 1, 13, P.woodD); b.poly([[x + 1, top - 16], [x + 9, top - 13.5], [x + 1, top - 11]], K.BN); }
+    // ярусы трибун со зрителями
+    const crowd = [P.skin, P.skinD, P.red, P.blue, P.plaster, P.green, P.purple, P.dirtL, P.gold];
+    for (let tier = 0; tier < 5; tier++) {
+      const y0 = top + 3 + tier * 9;
+      b.rect(0, y0, W, 9, tier % 2 ? K.B3 : K.B1);
+      b.rect(0, y0 + 7, W, 1, K.T); b.rect(0, y0 + 8, W, 1, K.MO);
+      for (let x = 1; x < W - 1; x += 3) {
+        if (r() < 0.18) continue;
+        const c = crowd[Math.floor(r() * crowd.length)], hy = y0 + 2 + (r() < 0.3 ? -1 : 0);
+        b.px(x, hy, P.skin); b.rect(x, hy + 1, 2, 3, c);
+      }
+    }
+    // стена арены с арками и знамёнами
+    const wy = top + 48;
+    for (let y = wy; y < wy + 14; y++) for (let x = 0; x < W; x++) {
+      const rr = Math.floor((y - wy) / 3), inRow = (y - wy) % 3, off = rr % 2 ? 3 : 0, inCol = (x + off) % 6;
+      b.px(x, y, inRow === 2 || inCol === 5 ? K.MO : ((Math.floor((x + off) / 6) + rr) % 4 === 0 ? K.B2 : K.B1));
+    }
+    b.rect(0, wy, W, 1, K.TL);
+    for (let x = 10; x < W; x += 40) {
+      b.rect(x, wy + 4, 6, 10, '#0d0a12'); b.rect(x + 1, wy + 3, 4, 1, '#0d0a12'); b.rect(x + 2, wy + 2, 2, 1, '#0d0a12');
+      if ((x / 40) % 2) { b.rect(x + 18, wy + 2, 5, 9, K.BN); b.px(x + 20, wy + 4, K.FI); }
+    }
+    // песок
+    const sand = ['#d8b26a', '#cfa85f', '#c49c56', '#b48e4c'];
+    for (let y = wy + 14; y < H; y++) for (let x = 0; x < W; x++) {
+      const n = r();
+      b.px(x, y, y < wy + 16 ? sand[3] : n < 0.08 ? sand[3] : n < 0.25 ? sand[2] : n < 0.6 ? sand[1] : sand[0]);
+    }
+    for (let i = 0; i < 6; i++) { const y = wy + 24 + i * 7; for (let x = 0; x < W; x++) if ((x + i * 7) % 11 < 6) b.px(x, y, sand[2]); }
     return b.canvas();
   };
 

@@ -46,40 +46,57 @@
   };
   A.whyNot = function () {
     if (A.lvl() < 1) return 'build';
+    if (A.S().live) return 'fight';
     if (G.E.busy('arena')) return 'busy';
     if (A.S().cd > 0) return 'cd';
     if (!A.team().length) return 'team';
+    if (G.W.running()) return 'battle';
     return '';
   };
 
+  // Бой: исход считается сразу, а окно боя проигрывает его по раундам.
+  // Пока идёт показ, бойцы заняты; награда и раны — в A.finish (в конце показа, по «Пропустить» или при загрузке).
   A.fight = function () {
     if (A.whyNot()) return;
     const S = A.S(), tm = A.team(), rank = S.rank;
     const en = A.opp(rank, tm.length);
     const res = G.X.duel(tm, en);
-    for (const p of res.ps) {
-      p.a.hp = Math.max(0, p.hp);
-      if (p.a.hp <= 0) G.T.wound(p.a, 30); // на Арене не гибнут
-    }
-    const xp = Math.round(10 * Math.pow(1.15, rank));
-    for (const a of tm) if (a.hp > 0) G.T.giveXp(a, xp);
-    G.K.xp(3 * rank);
-    let loot = null;
-    if (res.win) {
-      loot = A.reward(rank);
-      G.E.addAll(loot);
-      S.rank = rank + 1;
-      S.best = Math.max(S.best || 0, rank);
+    S.live = {
+      rank, key: en.key, ids: tm.map((a) => a.id), win: res.win, hp: res.ps.map((p) => Math.max(0, p.hp)),
+      loot: res.win ? A.reward(rank) : null, log: res.out.map(([k, p, c]) => ({ k, p, c })),
+    };
+    for (const a of tm) a.st = 'arena';
+    if (!G.W.arena(res, en, tm, rank)) A.finish();
+    G.UI.dirty();
+  };
+
+  A.finish = function () {
+    const S = A.S(), L = S.live;
+    if (!L) return null;
+    S.live = null;
+    const xp = Math.round(10 * Math.pow(1.15, L.rank));
+    let wounded = 0;
+    L.ids.forEach((id, i) => {
+      const a = G.T.get(id);
+      if (!a) return;
+      if (a.st === 'arena') a.st = 'idle';
+      a.hp = Math.min(G.T.stats(a).hp, L.hp[i]);
+      if (a.hp <= 0) { G.T.wound(a, 30); wounded++; } // на Арене не гибнут
+      else G.T.giveXp(a, xp);
+    });
+    G.K.xp(3 * L.rank);
+    if (L.win) {
+      G.E.addAll(L.loot);
+      S.rank = L.rank + 1;
+      S.best = Math.max(S.best || 0, L.rank);
       S.wins = (S.wins || 0) + 1;
-      G.log('logArenaWin', { r: rank, loot }, 'good');
-      G.SFX.play('win');
-    } else {
-      G.log('logArenaLose', { r: rank }, 'bad');
-      G.SFX.play('lose');
-    }
-    S.last = { win: res.win, rank, key: en.key, loot, log: res.out.map(([k, p, c]) => ({ k, p, c })) };
+      G.log('logArenaWin', { r: L.rank, loot: L.loot }, 'good');
+    } else G.log('logArenaLose', { r: L.rank }, 'bad');
+    S.last = { win: L.win, rank: L.rank, key: L.key, loot: L.loot, log: L.log };
     S.cd = A.cdTime();
     G.UI.dirty();
+    G.UI.slotsDirty = true;
+    return { win: L.win, rank: L.rank, key: L.key, loot: L.loot, xp, wounded };
   };
 
   A.tick = function (dt) {

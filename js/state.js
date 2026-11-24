@@ -8,6 +8,7 @@
       v: 3,
       lang: 'ru',
       sound: true,
+      style: 'A', // облик города: A–E готика или classic
       res: { gold: 0, wood: 10, stone: 0, iron: 0, bone: 0, crystal: 0, mithril: 0 },
       seen: { gold: true, wood: true },
       b,

@@ -139,12 +139,12 @@
       if (!al.length) break;
       const front = al.filter((p) => X.isFront(p.cls));
       const tg = front.length && Math.random() < X.FRONT_HIT ? G.U.pick(front) : G.U.pick(al);
-      if (tg.dodge && Math.random() < tg.dodge) { if (out) out.push(['fr_dodge', { name: tg.a.name }, 'good']); continue; }
+      if (tg.dodge && Math.random() < tg.dodge) { if (out) out.push(['fr_dodge', { name: tg.a.name, id: tg.a.id }, 'good']); continue; }
       const dmg = (((en.atk / hits) * takenM * G.U.rand(0.85, 1.15) * 20) / (20 + tg.def)) * (1 - dr);
       tg.hp = Math.max(0, tg.hp - dmg);
       if (out) {
-        out.push(['fr_dmg', { name: tg.a.name, d: Math.round(dmg) }, 'bad']);
-        if (tg.hp <= 0) out.push(['fr_down', { name: tg.a.name }, 'bad']);
+        out.push(['fr_dmg', { name: tg.a.name, d: Math.round(dmg), id: tg.a.id }, 'bad']);
+        if (tg.hp <= 0) out.push(['fr_down', { name: tg.a.name, id: tg.a.id }, 'bad']);
       }
     }
     // лечение: жрецы, аура мага, второе дыхание
@@ -154,7 +154,7 @@
       if (!al.length) continue;
       const h = pr.atk * 0.9 * (1 + pr.heal);
       al[0].hp = Math.min(al[0].max, al[0].hp + h);
-      if (out) out.push(['fr_heal', { name: pr.a.name, who: al[0].a.name, h: Math.round(h) }, 'good']);
+      if (out) out.push(['fr_heal', { name: pr.a.name, who: al[0].a.name, h: Math.round(h), id: al[0].a.id }, 'good']);
     }
     const aura = P.reduce((s, p) => s + (p.hp > 0 ? p.aura : 0), 0);
     for (const p of P) {
@@ -176,18 +176,23 @@
     }
     return best;
   };
-  // Полный бой сразу (Арена): тактику выбирает отряд, возвращает исход, здоровье бойцов и строки боя
+  // Полный бой сразу (Арена): тактику выбирает отряд, возвращает исход, здоровье бойцов, строки боя
+  // и запись по раундам (tl), по которой окно боя проигрывает схватку
   X.duel = function (members, en) {
-    const ps = snap(members), out = [];
+    const ps = snap(members), out = [], tl = [];
     let ca = 0, cd = 0;
     for (let i = 0; i < 20; i++) { if (X.sim(ps, en, 'attack')) ca++; if (X.sim(ps, en, 'defend')) cd++; }
     const stance = ca >= cd ? 'attack' : 'defend';
     let ehp = en.hp, r = 0;
-    while (r++ < MAX_ROUNDS && ps.some((p) => p.hp > 0)) {
-      ehp = roundCore(ps, en, ehp, stance, out);
+    while (r < MAX_ROUNDS && ps.some((p) => p.hp > 0)) {
+      r++;
+      const ev = [];
+      ehp = roundCore(ps, en, ehp, stance, ev);
+      out.push(...ev);
+      tl.push({ ev, ehp: Math.max(0, ehp), hp: ps.map((p) => Math.max(0, p.hp)) });
       if (ehp <= 0) break;
     }
-    return { win: ehp <= 0, rounds: r, ps, stance, out: out.slice(-10) };
+    return { win: ehp <= 0, rounds: r, ps, stance, out: out.slice(-10), tl };
   };
 
   X.sim = function (ps, en, stance) {
@@ -327,7 +332,8 @@
     const depth = e.floor * D.LOCS[e.loc].diff;
     const ti = Math.min(3, Math.floor(depth / 5));
     const k = 0.05 * e.floor + G.bonus('luck');
-    const rar = G.U.weighted(D.IRAR.map((r, i) => r.w * Math.pow(1 + k, i)));
+    const leg = Math.min(D.LEG.cap, (D.LEG.dun + D.LEG.dunFloor * e.floor) * (1 + G.bonus('luck'))) * (boss ? D.LEG.boss : 1);
+    const rar = G.U.weighted(G.F.weightsFor(k, leg));
     const it = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
     e.items.push(it);
     xlog(e, 'xItem', { item: G.F.nameObj(it) }, it.rar >= 3 ? 'epic' : 'good');

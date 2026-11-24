@@ -51,6 +51,7 @@
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();
+    if (G.S.arena.live) G.A.finish(); // бой на Арене прервался перезагрузкой — подводим итог сразу
     G.K.xp(0); // опыт по старой кривой сразу даёт уровни
     let rep = null;
     if (loaded) {

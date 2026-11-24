@@ -4,8 +4,11 @@
   const LW = 320, LH = 130, SC = 3, TOP = 80; // TOP — небо над полем боя
   const LANES = [100, 112, 124];
   let B = null, raf = 0, lastT = 0, cv = null, ctx = null, bg = null;
+  const abg = {}; // фон Арены по облику города
 
-  W.active = () => !!B && B.state === 'run';
+  // active — идёт бой у ворот; running — идёт любой бой в окне (ворота или Арена)
+  W.active = () => !!B && B.state === 'run' && B.mode !== 'arena';
+  W.running = () => !!B && B.state === 'run';
   W.battle = () => B;
   W.wallHp = () => Math.round(120 * Math.pow(1.6, G.E.lvl('gate') - 1) * (1 + G.bonus('gateHp')));
   W.kingDmg = function () {
@@ -55,16 +58,12 @@
     return '';
   };
 
-  W.start = function (final) {
-    if (W.active() || W.whyNot()) return;
-    const n = final ? 'final' : G.S.gate.sel;
-    if (final && !W.finalReady()) return;
-    if (!final && n > G.S.gate.best + 1) return;
+  // Расстановка героев: ближний бой — передние ряды, дальний — за ним (по 3 в ряду)
+  function layout(advs) {
     const order = { warrior: 0, rogue: 1, priest: 2, shaman: 3, archer: 4, mage: 5 };
-    const advs = G.S.advs.filter((a) => a.st === 'gate' && a.hp > 0).sort((p, q) => order[p.cls] - order[q.cls]);
-    // ряды: ближний бой — передние, дальний — за ним (по 3 в ряду)
+    advs = advs.slice().sort((p, q) => order[p.cls] - order[q.cls]);
     const meleeN = advs.filter((a) => G.X.isFront(a.cls)).length, meleeRows = Math.ceil(meleeN / 3);
-    const defs = advs.map((a, idx) => {
+    return advs.map((a, idx) => {
       const melee = G.X.isFront(a.cls), k = melee ? idx : idx - meleeN;
       const row = melee ? Math.floor(k / 3) : meleeRows + Math.floor(k / 3), i = k;
       const s = G.T.stats(a);
@@ -75,6 +74,15 @@
         bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
       };
     });
+  }
+
+  W.start = function (final) {
+    if (W.running() || W.whyNot()) return;
+    const n = final ? 'final' : G.S.gate.sel;
+    if (final && !W.finalReady()) return;
+    if (!final && n > G.S.gate.best + 1) return;
+    const advs = G.S.advs.filter((a) => a.st === 'gate' && a.hp > 0);
+    const defs = layout(advs);
     const queue = W.comp(n);
     B = {
       n, state: 'run', t: 0, queue, mons: [], defs, guards: [], proj: [], fl: [], slash: [], boom: 0,
@@ -96,7 +104,7 @@
   };
 
   // «Дальше»: сразу следующая волна после победы
-  W.canNext = () => !!B && B.state === 'won' && B.n !== 'final' && !W.whyNot();
+  W.canNext = () => !!B && B.mode !== 'arena' && B.state === 'won' && B.n !== 'final' && !W.whyNot();
   W.next = function () {
     if (!W.canNext()) return;
     W.close();
@@ -104,7 +112,7 @@
   };
 
   W.close = function () {
-    if (W.active()) return;
+    if (W.running()) return;
     B = null;
     cancelAnimationFrame(raf);
     G.UI.showBattle(false);
@@ -115,10 +123,11 @@
     if (!B) return;
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    if (B.state === 'run') update(dt);
+    if (B.state === 'run') (B.mode === 'arena' ? updateArena : update)(dt);
+    if (!B) return;
     updateFx(dt);
     draw();
-    G.UI.battleHud(B);
+    if (B.mode === 'arena') G.UI.arenaHud(B); else G.UI.battleHud(B);
     raf = requestAnimationFrame(frame);
   }
 
@@ -329,7 +338,7 @@
     for (const s of B.slash) s.t += dt;
     B.slash = B.slash.filter((s) => s.t < 0.2);
     for (const m of B.mons) if (m.dead) m.deadT -= dt;
-    B.mons = B.mons.filter((m) => !m.dead || m.deadT > 0);
+    B.mons = B.mons.filter((m) => !m.dead || m.deadT > 0 || m.champ);
   }
 
   function end(win) {
@@ -387,9 +396,141 @@
     G.save();
   }
 
+  // ---------- Арена: показ боя по записи раундов ----------
+  // Исход уже посчитан (G.X.duel); здесь он проигрывается: герои бьют, чемпион отвечает, жрецы лечат.
+  W.arena = function (res, en, tm, rank) {
+    if (W.running()) return false;
+    cancelAnimationFrame(raf);
+    const defs = layout(tm);
+    for (const d of defs) { d.hpv = d.a.hp; d.x += 70; } // на Арене отряд стоит ближе к центру
+
+    const spr = G.SPR.canvas(sprKey(en.key));
+    const sc = spr.height <= 20 ? 2 : 1.5;
+    const mon = {
+      k: en.key, hp: en.hp, max: en.hp, x: 215, y: LANES[1] + 4, w: spr.width, h: spr.height, sc, flash: 0, dead: false, deadT: 0,
+      boss: true, champ: true, walk: 0, stun: 0, lunge: 0, jit: 0,
+    };
+    const rt = Math.max(0.45, Math.min(1, 14 / Math.max(1, res.tl.length)));
+    B = {
+      mode: 'arena', n: rank, state: 'run', t: 0, queue: [], mons: [mon], defs, guards: [], proj: [], fl: [], slash: [], boom: 0, shake: 0,
+      tl: res.tl, ids: tm.map((a) => a.id), ri: -1, rs: 0, rt, step: 0, wait: 0.7, stance: res.stance, total: 1, champ: en.key,
+    };
+    cv = document.getElementById('battlecv');
+    cv.width = LW * SC;
+    cv.height = (LH + TOP) * SC;
+    ctx = cv.getContext('2d');
+    G.UI.showBattle(true, 'arena');
+    G.SFX.play('horn');
+    lastT = performance.now();
+    raf = requestAnimationFrame(frame);
+    return true;
+  };
+  const defById = (id) => B.defs.find((d) => d.a.id === id);
+
+  function arenaRound(R) {
+    const m = B.mons[0], T = B.rt, s = B.rs;
+    // 1) герои атакуют
+    if (B.step === 0) {
+      B.step = 1;
+      for (const d of B.defs) {
+        if (d.hpv <= 0) continue;
+        if (d.cls === 'warrior') { d.swing = 0.2; B.slash.push({ x: m.x - 4 + G.U.randInt(-3, 3), y: m.y - 10, t: 0 }); }
+        else {
+          const kind = d.cls === 'archer' ? 'arrow' : d.cls === 'rogue' ? 'knife' : d.cls === 'mage' ? 'orb' : d.cls === 'shaman' ? 'spirit' : 'holy';
+          B.proj.push({ x: d.x + 4, y: d.y - 10, tg: m, kind, spd: 260 });
+        }
+      }
+    }
+    // 2) урон по чемпиону
+    if (B.step === 1 && s >= 0.35 * T) {
+      B.step = 2;
+      const e = R.ev.find((x) => x[0] === 'fr_party' || x[0] === 'fr_partyCrit');
+      if (e) {
+        const crit = e[0] === 'fr_partyCrit';
+        float(m.x, m.y - m.h * m.sc - 8, '-' + G.U.fmt(e[1].d), crit ? '#ffd84a' : '#ffffff');
+        if (crit) B.shake = 0.12;
+      }
+      m.hp = R.ehp;
+      m.flash = 0.12;
+      G.SFX.play('hit');
+      if (m.hp <= 0) { m.dead = true; m.deadT = 1.2; B.step = 9; return; }
+    }
+    // 3) чемпион отвечает
+    if (B.step === 2 && s >= 0.55 * T) {
+      B.step = 3;
+      for (const [k, p] of R.ev) {
+        const d = p && p.id != null ? defById(p.id) : null;
+        if (k === 'fr_stun') { m.stun = 0.9 * T; float(m.x, m.y - m.h * m.sc - 14, G.t('stunned'), '#7fe7ff'); }
+        else if (k === 'fr_dodge' && d) float(d.x, d.y - 20, G.t('dodged'), '#9ad0ff');
+        else if (k === 'fr_dmg' && d) { m.lunge = 0.18; d.hpv = Math.max(0, d.hpv - p.d); d.hit = 0.15; float(d.x, d.y - 20, '-' + Math.ceil(p.d), '#ff6a6a'); }
+        else if (k === 'fr_down' && d) float(d.x, d.y - 28, G.t('downed'), '#ffb0b0');
+      }
+    }
+    // 4) лечение и итог раунда
+    if (B.step === 3 && s >= 0.8 * T) {
+      B.step = 4;
+      for (const [k, p] of R.ev) {
+        if (k !== 'fr_heal') continue;
+        const d = defById(p.id);
+        if (d) float(d.x, d.y - 20, '+' + p.h, '#7dff7a');
+      }
+      R.hp.forEach((v, i) => { const d = defById(B.ids[i]); if (d) d.hpv = v; });
+    }
+  }
+
+  function updateArena(dt) {
+    B.t += dt;
+    if (B.shake > 0) B.shake -= dt;
+    const m = B.mons[0];
+    if (m.flash > 0) m.flash -= dt;
+    if (m.stun > 0) m.stun -= dt;
+    if (m.lunge > 0) m.lunge -= dt;
+    for (const d of B.defs) { if (d.hit > 0) d.hit -= dt; if (d.swing > 0) d.swing -= dt; }
+    for (const p of B.proj) {
+      const tx = p.tg.x, ty = p.tg.y - (p.tg.h * (p.tg.sc || 1)) / 2;
+      const dx = tx - p.x, dy = ty - p.y, dist = Math.hypot(dx, dy), step = p.spd * dt;
+      p.ang = Math.atan2(dy, dx);
+      if (dist <= step + 2) p.done = true;
+      else { p.x += (dx / dist) * step; p.y += (dy / dist) * step; }
+    }
+    B.proj = B.proj.filter((p) => !p.done);
+    if (B.wait > 0) { B.wait -= dt; return; }
+    if (B.step === 9) { if (m.deadT <= 0.2) endArena(); return; }
+    B.rs += dt;
+    if (B.ri < 0 || B.rs >= B.rt) {
+      B.ri++;
+      B.rs = 0;
+      B.step = 0;
+      if (B.ri >= B.tl.length) { B.wait = 0; endArena(); return; }
+    }
+    arenaRound(B.tl[B.ri]);
+  }
+
+  function endArena() {
+    if (!B || B.state !== 'run') return;
+    const last = B.tl[B.tl.length - 1];
+    if (last) {
+      B.mons[0].hp = last.ehp;
+      last.hp.forEach((v, i) => { const d = defById(B.ids[i]); if (d) d.hpv = v; });
+    }
+    const r = G.A.finish() || { win: false, rank: B.n, loot: null, xp: 0, wounded: 0 };
+    B.state = r.win ? 'won' : 'lost';
+    B.result = r;
+    if (r.win && !B.mons[0].dead) { B.mons[0].dead = true; B.mons[0].deadT = 1.2; }
+    G.SFX.play(r.win ? 'win' : 'lose');
+    G.UI.arenaResult(r);
+    G.save();
+  }
+  // «Пропустить»: сразу к итогу
+  W.arenaSkip = function () {
+    if (!B || B.mode !== 'arena' || B.state !== 'run') return;
+    B.proj = [];
+    endArena();
+  };
+
   // Клик короля по монстру
   W.click = function (ev) {
-    if (!B || B.state !== 'run') return;
+    if (!B || B.state !== 'run' || B.mode === 'arena') return;
     const r = cv.getBoundingClientRect();
     const x = ((ev.clientX - r.left) / r.width) * LW, y = ((ev.clientY - r.top) / r.height) * (LH + TOP) - TOP;
     let hit = null;
@@ -412,15 +553,18 @@
     ctx.setTransform(SC, 0, 0, SC, 0, TOP * SC);
     ctx.imageSmoothingEnabled = false;
     const sx = B.shake > 0 ? Math.round((Math.random() - 0.5) * 3) : 0;
-    ctx.drawImage(bg, sx, -TOP);
-
-    const g = B.gate / B.gateMax;
-    ctx.fillStyle = '#1b1424';
-    if (g < 0.66) { ctx.fillRect(24 + sx, 86, 1, 10); ctx.fillRect(25 + sx, 95, 1, 6); }
-    if (g < 0.33) { ctx.fillRect(29 + sx, 100, 1, 12); ctx.fillRect(22 + sx, 110, 4, 1); }
-
-    const gs = G.SPR.canvas('guard');
-    for (let i = 0; i < Math.min(6, B.guards.length); i++) ctx.drawImage(gs, 1 + i * 5 + sx, 0);
+    if (B.mode === 'arena') {
+      const st = G.SPR.style();
+      ctx.drawImage(abg[st] || (abg[st] = G.SPR.arenaBg()), sx, -TOP);
+    } else {
+      ctx.drawImage(bg, sx, -TOP);
+      const g = B.gate / B.gateMax;
+      ctx.fillStyle = '#1b1424';
+      if (g < 0.66) { ctx.fillRect(24 + sx, 86, 1, 10); ctx.fillRect(25 + sx, 95, 1, 6); }
+      if (g < 0.33) { ctx.fillRect(29 + sx, 100, 1, 12); ctx.fillRect(22 + sx, 110, 4, 1); }
+      const gs = G.SPR.canvas('guard');
+      for (let i = 0; i < Math.min(6, B.guards.length); i++) ctx.drawImage(gs, 1 + i * 5 + sx, 0);
+    }
 
     const ents = [];
     for (const m of B.mons) ents.push({ y: m.y, m });
@@ -496,9 +640,10 @@
     const key = sprKey(m.k);
     const spr = G.SPR.canvas(m.flash > 0 ? key + '|w' : key);
     const bob = !m.dead && Math.sin(m.walk * 12) > 0 ? -1 : 0;
-    const x = Math.round(m.x - m.w / 2), y = Math.round(m.y - m.h + bob);
-    if (m.dead) ctx.globalAlpha = Math.max(0, m.deadT / 0.5);
-    ctx.drawImage(spr, x, y);
+    const sc = m.sc || 1, lunge = m.lunge > 0 ? -5 : 0;
+    const x = Math.round(m.x - (m.w * sc) / 2 + lunge), y = Math.round(m.y - m.h * sc + bob);
+    if (m.dead) ctx.globalAlpha = Math.max(0, m.deadT / (m.champ ? 1.2 : 0.5));
+    ctx.drawImage(spr, x, y, m.w * sc, m.h * sc);
     ctx.globalAlpha = 1;
     if (!m.dead && m.stun > 0) {
       ctx.strokeStyle = '#7fe7ff';
@@ -507,13 +652,14 @@
       ctx.ellipse(m.x, m.y - 1, m.w / 2 + 1, 3, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    if (!m.dead && m.hp < m.max) hpBar(x, y - 4, Math.max(10, m.w - 2), m.hp / m.max, m.boss ? '#ff9a3c' : '#d64545');
+    if (!m.dead && (m.hp < m.max || m.champ)) hpBar(x, y - 4, Math.max(10, m.w * sc - 2), m.hp / m.max, m.boss ? '#ff9a3c' : '#d64545');
   }
 
   function drawDef(d) {
     const spr = G.SPR.canvas(d.hit > 0 ? 'c_' + d.cls + '|w' : 'c_' + d.cls);
-    const x = Math.round(d.x - 8 + (d.swing > 0 ? 2 : 0)), y = Math.round(d.y - 16);
-    if (d.a.hp <= 0) {
+    const x = Math.round(d.x - 8 + (d.swing > 0 ? (B.mode === 'arena' ? 6 : 2) : 0)), y = Math.round(d.y - 16);
+    const hp = d.hpv != null ? d.hpv : d.a.hp;
+    if (hp <= 0) {
       ctx.save();
       ctx.globalAlpha = 0.55;
       ctx.translate(x + 8, y + 12);
@@ -523,6 +669,6 @@
       return;
     }
     ctx.drawImage(spr, x, y);
-    hpBar(x + 1, y - 4, 14, d.a.hp / d.max, '#7ddc7a');
+    hpBar(x + 1, y - 4, 14, hp / d.max, '#7ddc7a');
   }
 })();

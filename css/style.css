@@ -903,3 +903,20 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
   .goal-hl:not(.slot), .slot.goal-hl::before, .goal-flash, .slot.goal-ping::after { animation: none; }
   .scene.fighting .foe img, .scene.fighting .fig img, .float, .slot.bump .slot-img { animation: none; }
 }
+
+/* Облик города в настройках */
+.styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+.stylecard { display: grid; justify-items: center; gap: 4px; padding: 8px 6px; font: inherit; font-size: 12.5px; color: var(--text); background: #589a47; border: 2px solid transparent; border-radius: 6px; cursor: pointer; }
+.stylecard img { width: 96px; height: 96px; image-rendering: pixelated; }
+.stylecard span { background: rgba(15, 12, 20, 0.8); padding: 1px 6px; border-radius: 4px; text-align: center; }
+.stylecard:hover, .stylecard:focus-visible { border-color: var(--line); outline: none; }
+.stylecard.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(247, 201, 72, 0.35); }
+
+/* Бой на Арене в окне боя: заклинаний нет, полоса — здоровье чемпиона */
+#stage.arena-mode #spellbar { display: none; }
+#stage.arena-mode #battle-foot { padding-left: 10px; }
+#stage.arena-mode #battlecv { cursor: default; }
+#battle-head .champbar { min-width: 80px; }
+#battle-head .champbar i { background: #d64545; }
+#stage.arena-mode #battle-head { flex-wrap: wrap; row-gap: 4px; }
+#stage.arena-mode .res-win, #stage.arena-mode .res-lose { font-size: 20px; }
