@@ -7,7 +7,11 @@
   E.maxLevel = (k) => (k === 'castle' ? D.MAXLVL : Math.min(D.MAXLVL, E.lvl('castle')));
 
   // ---------- склад ----------
+  // Склад на 8-м уровне: ограничений нет, вместо вместимости — прибавка к пассивной добыче (рабочие и налоги)
+  E.noCap = () => E.lvl('warehouse') >= D.MAXLVL;
+  E.storeProd = () => (E.noCap() ? D.STORE_PROD : 0);
   E.cap = function (r) {
+    if (E.noCap()) return Infinity;
     const L = E.lvl('warehouse');
     const base = r === 'gold' ? D.goldCap(L) : D.CAPS[L];
     return Math.floor(base * (1 + G.bonus('store') + (r === 'gold' ? G.bonus('goldCap') : 0)));
@@ -170,7 +174,7 @@
   E.maxWorkers = (k) => (E.lvl(k) > 0 ? D.WORKERS[E.lvl(k)] + G.bonus('crews') + G.bonus('crews_' + k) : 0); // «Бригады» и навыки зданий дают места
   E.workerRate = function (k) {
     const L = Math.max(1, E.lvl(k));
-    return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * E.rush();
+    return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * (1 + E.storeProd()) * E.rush();
   };
   E.workerCost = (k) => ({ gold: Math.ceil(15 * Math.pow(1.45, G.S.b[k].w)) });
   E.hireWorker = function (k) {
@@ -205,7 +209,7 @@
     const every = E.folkEvery();
     while (S.folkT >= every && S.folk < cap) { S.folkT -= every; S.folk++; }
   };
-  E.tax = () => (E.lvl('castle') * 0.3 + 0.04 * E.pop() + E.folkTax()) * (1 + G.bonus('tax'));
+  E.tax = () => (E.lvl('castle') * 0.3 + 0.04 * E.pop() + E.folkTax()) * (1 + G.bonus('tax')) * (1 + E.storeProd());
 
   E.rates = function () {
     const r = { gold: E.tax() };

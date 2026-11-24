@@ -684,7 +684,8 @@
     const cost = G.E.upCost(k);
     const queued = G.S.decree.build.filter((x) => x === k).length;
     const look = [3, 5, 7].includes(L + 1) ? ` <span class="newlook">${ic('i_star')} ${t('newLook')}</span>` : '';
-    let h = `<div class="hint top">${t('bh_' + k)}${look}</div><div class="row">${costHtml(cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
+    const bh = k === 'warehouse' && L + 1 >= D.MAXLVL ? t('bh_warehouse8', { p: Math.round(D.STORE_PROD * 100) }) : t('bh_' + k);
+    let h = `<div class="hint top">${bh}${look}</div><div class="row">${costHtml(cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.E.upTime(k))}</span></div>`;
     if (why === 'castle') h += `<div class="warn small">${ic('i_lock')} ${t('needCastle', { l: L + 1 })}</div>`;
     else if (why === 'storage') h += `<div class="warn small">${ic('i_bag')} ${t('needStorage')}</div>`;
     else if (why === 'builders') h += `<div class="warn small">${ic('i_hammer')} ${t('needBuilders')}</div>`;
@@ -737,8 +738,10 @@
     warehouse() {
       const L = G.E.lvl('warehouse');
       const rows = ['gold', ...D.MAT].filter((r) => G.S.seen[r]).map((r) => `<div class="srow">${ic('r_' + r)}<span class="grow">${t('res_' + r)}</span><span class="small" data-b="store:${r}"></span>${bar('store:' + r, 'store')}</div>`).join('');
-      const next = L < D.MAXLVL ? t('nextCap', { n: U.fmt(Math.floor(D.CAPS[L + 1] * (1 + G.bonus('store')))), g: U.fmt(Math.floor(D.goldCap(L + 1) * (1 + G.bonus('store')))) }) : '';
-      return box(ic('i_bag') + ' ' + t('capacity'), rows + (next ? `<div class="hint">${next}</div>` : ''));
+      if (G.E.noCap()) return box(ic('i_bag') + ' ' + t('capacity'), rows + `<div class="good small">${ic('i_star')} ${t('noCapNote', { p: Math.round(D.STORE_PROD * 100) })}</div>`);
+      const next = L + 1 >= D.MAXLVL ? t('bh_warehouse8', { p: Math.round(D.STORE_PROD * 100) })
+        : t('nextCap', { n: U.fmt(Math.floor(D.CAPS[L + 1] * (1 + G.bonus('store')))), g: U.fmt(Math.floor(D.goldCap(L + 1) * (1 + G.bonus('store')))) });
+      return box(ic('i_bag') + ' ' + t('capacity'), rows + `<div class="hint">${next}</div>`);
     },
     arena() {
       const A = G.A, S = G.S.arena, tm = A.team(), why = A.whyNot();
@@ -1250,7 +1253,7 @@
     kxpT: () => U.fmt(G.S.king.xp) + ' / ' + U.fmt(G.K.need()),
   };
   const BAR = {
-    store: (r) => (G.S.res[r] || 0) / G.E.cap(r),
+    store: (r) => (G.E.noCap() ? 1 : (G.S.res[r] || 0) / G.E.cap(r)),
     cons: (k) => { const c = G.E.consOf(k); return c ? 1 - c.t / c.total : 0; },
     forge: () => { const j = G.S.forge.q[0]; return j ? 1 - j.t / j.total : 0; },
     hp: (id) => { const a = G.T.get(id); return a ? a.hp / G.T.stats(a).hp : 0; },
