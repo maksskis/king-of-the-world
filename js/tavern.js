@@ -62,6 +62,7 @@
     delete c.cost;
     c.st = 'idle';
     G.S.advs.push(c);
+    G.S.stats.hires = (G.S.stats.hires || 0) + 1;
     G.log('logHired', { name: c.name, cls: { k: 'cl_' + c.cls } }, 'good');
     G.SFX.play('coin');
     G.UI.dirty();

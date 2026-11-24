@@ -710,7 +710,7 @@
     if (i >= D.GOALS.length) { el.innerHTML = `<button class="goal-go" data-action="goals">${ic('i_star')} <span class="gtxt">${t('goalsDone')}</span></button>${all}`; return; }
     const g = D.GOALS[i];
     const gr = g.h && g.h.act === 'research' && g.h.arg;
-    el.innerHTML = `<button class="goal-go" data-action="goGoal" ${gr ? `data-tip="s:${gr}"` : `title="${t('goalGoTip')}"`}>${ic('i_star')}<span class="gtxt"><b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> ${t(g.t)} <span class="muted">${lootHtml(g.reward)}</span></span><span class="go">${t('goalGo')} ›</span></button>${all}`;
+    el.innerHTML = `<button class="goal-go" data-action="goGoal" ${gr ? `data-tip="s:${gr}"` : `title="${t('goalGoTip')}"`}>${ic('i_star')}<span class="gtxt"><b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> ${t(g.t)}${g.v ? ` <b class="gprog" data-b="goalP"></b>` : ''} <span class="muted">${lootHtml(g.reward)}</span></span><span class="go">${t('goalGo')} ›</span></button>${all}`;
   }
 
   // ---------- окно здания ----------
@@ -1296,6 +1296,7 @@
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
     tavT: () => U.fmtTime(Math.max(0, G.S.tavern.t)),
+    goalP: () => { const p = G.E.goalProg(D.GOALS[G.S.goal]); return p ? '(' + U.fmt(p.cur) + '/' + U.fmt(p.n) + ')' : ''; },
     arenaT: () => (G.S.arena.cd > 0 ? U.fmtTime(G.S.arena.cd) + (G.E.busy('arena') ? ' · ' + t('paused') : '') : t('arenaReady')),
     folkR: () => { const v = G.E.folkTax() * (1 + G.bonus('tax')); return v ? '+' + U.fmt1(v) : ''; },
     cd: (id) => { const v = G.S.king.cd[id] || 0; const b = id === 'rush' ? G.S.king.buff.rush : id === 'rallyS' ? G.S.king.buff.rally : 0; return b > 0 ? U.fmtTime(b) : v > 0 ? U.fmtTime(v) : ''; },
@@ -1320,7 +1321,7 @@
     const g = D.GOALS[G.S.goal];
     const h = (g && g.h) || {};
     if (!g || (tab ? h.tab !== tab : !h.b || h.tab || h.b !== k)) return '';
-    return `<div class="goal-note">${ic('i_star')} <span><b>${t('goalLabel')}:</b> ${t(g.t)} <span class="muted small">${t('goalNoteHint')}</span></span></div>`;
+    return `<div class="goal-note">${ic('i_star')} <span><b>${t('goalLabel')}:</b> ${t(g.t)}${g.v ? ` <b class="gprog" data-b="goalP"></b>` : ''} <span class="muted small">${t('goalNoteHint')}</span></span></div>`;
   }
 
   // Клик по цели: открыть нужное здание или вкладку и мигнуть тем, что нажать

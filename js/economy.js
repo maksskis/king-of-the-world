@@ -172,6 +172,7 @@
     }
     const n = E.add(d.click, amount);
     G.S.stats.clicks++;
+    G.S.stats['g_' + d.click] = (G.S.stats['g_' + d.click] || 0) + n; // собрано кликами — для целей
     G.K.xp(0.3);
     return n;
   };
@@ -273,21 +274,44 @@
   E.sellPrice = (r) => E.PRICE[r] * (1 + G.bonus('trade'));
 
   // ---------- цели ----------
+  // Перенос прогресса: v1 — старые 30 целей (g0–g29), v2 — список из 90 целей, v3 — нынешний список
   E.migrateGoals = function () {
     const S = G.S;
-    if (S.goalV >= 2) return;
-    const old = S.goal || 0;
-    const idx = old >= 30 ? D.GOALS.findIndex((g) => g.id === 'g29') + 1 : D.GOALS.findIndex((g) => g.id === 'g' + old);
-    S.goal = Math.max(0, idx);
-    S.goalV = 2;
+    if (S.goalV >= 3) return;
+    const after = D.GOALS.findIndex((g) => g.id === 'g29') + 1; // всё пройдено — к целям после дракона
+    if (!(S.goalV >= 2)) {
+      const old = S.goal || 0;
+      const idx = old >= 30 ? after : D.GOALS.findIndex((g) => g.id === 'g' + old);
+      S.goal = Math.max(0, idx);
+    } else {
+      let idx = -1;
+      for (let i = S.goal || 0; i < D.GOALS_V2.length && idx < 0; i++) idx = D.GOALS.findIndex((g) => g.id === D.GOALS_V2[i]);
+      S.goal = idx < 0 ? after : idx;
+    }
+    S.goalBase = null;
+    S.goalV = 3;
+  };
+  // Цель с числом: v — значение, n — сколько нужно; d — считать только то, что сделано с момента, когда цель стала текущей
+  E.goalProg = function (g) {
+    if (!g || !g.v) return null;
+    const S = G.S, v = g.v(S) || 0;
+    if (g.d && S.goalBase == null) S.goalBase = v;
+    const cur = g.d ? v - S.goalBase : v;
+    return { cur: Math.max(0, Math.min(g.n, Math.floor(cur))), n: g.n };
+  };
+  E.goalDone = function (g) {
+    const p = E.goalProg(g);
+    return p ? p.cur >= p.n : g.test(G.S);
   };
   E.checkGoal = function () {
     const S = G.S;
     const g = D.GOALS[S.goal];
-    if (!g || !g.test(S)) return;
+    if (!g || !E.goalDone(g)) return;
     E.addAll(g.reward);
     G.log('logGoal', { gi: g.t, loot: g.reward }, 'good');
     S.goal++;
+    S.goalBase = null;
+    E.goalProg(D.GOALS[S.goal]); // счёт новой цели начинается сейчас
     G.SFX.play('level');
     G.UI.dirty();
   };

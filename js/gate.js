@@ -368,6 +368,7 @@
         G.log('logFinalWon', {}, 'epic');
       } else {
         if (n > G.S.gate.best) G.S.gate.best = n;
+        G.S.stats.waves = (G.S.stats.waves || 0) + 1;
         G.S.gate.sel = Math.min(G.S.gate.best + 1, n + 1);
         G.K.xp(8 * n);
         G.log('logWaveWon', { n, loot: { gold: B.gold, bone: B.bone } }, 'good');

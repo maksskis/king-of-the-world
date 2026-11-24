@@ -976,3 +976,6 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 /* Слово с подсказкой при наведении (исследования, очки наследия) */
 .tipword { border-bottom: 1px dotted currentColor; cursor: help; }
 .perk[data-tip], .tal[data-tip], .bskill[data-tip], .rcard2[data-tip], .job[data-tip], .dq[data-tip], .dynbox h3 [data-tip], .dynbox .hint[data-tip] { cursor: help; }
+
+/* Прогресс цели с числом */
+.gprog { color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }

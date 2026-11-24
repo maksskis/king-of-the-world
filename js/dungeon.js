@@ -366,6 +366,7 @@
     }
     const boss = e.enemy.boss;
     e.cleared = e.floor;
+    G.S.stats.floors = (G.S.stats.floors || 0) + 1;
     if (e.floor > X.best(e.loc)) G.S.dng.best[e.loc] = e.floor;
     const ms = X.members(e);
     const lootMul = (1 + G.T.partySum(ms, 'loot')) * G.K.epochReward() * X.scale(e.loc, e.n).loot;
