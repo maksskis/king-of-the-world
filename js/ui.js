@@ -263,6 +263,27 @@
     }
     if (type === 'b') return tipHtml(id, false);
     if (type === 'h') return UI.hints[id] ? `<div class="htip">${UI.hints[id]}</div>` : '';
+    if (type === 'sk') {
+      const [aid, sid] = id.split('|'), a = G.T.get(aid), sk = a && D.SKILLS[a.cls].find((x) => x.id === sid);
+      if (!sk) return '';
+      const r = (a.sk && a.sk[sid]) || 0, sp = G.T.sp(a);
+      return `<b>${ic(sk.icon)} ${t('sk_' + sid)}</b> <span class="muted">${t('skc_' + sk.cat)} · ${t('rankOf', { r, m: D.SKILL_MAX })}</span><div>${t('skd_' + sid)}</div>`
+        + `<div class="${sp > 0 && r < D.SKILL_MAX ? 'good' : 'muted'}">${r >= D.SKILL_MAX ? t('maxLevel') : t('skillPts') + ': ' + sp}</div>`;
+    }
+    if (type === 'ad') {
+      const a = D.ADVISORS.find((x) => x.id === id);
+      if (!a) return '';
+      const l = G.K.advLvl(id);
+      return `<b>${ic('adv_' + id)} ${t('ad_' + id)}</b> <span class="muted">${t('rankOf', { r: l, m: D.ADV_MAX })}</span><div>${t('add_' + id)}</div>`
+        + (G.K.advOpen(a) ? '' : `<div class="warn">${ic('i_lock')} ${t('needCastleLvl', { l: a.castle })}</div>`);
+    }
+    if (type === 'sp') {
+      const sp = G.K.spell(id);
+      if (!sp) return '';
+      return `<b>${ic(sp.icon)} ${t('sp_' + id)}</b>${sp.battle ? ` <span class="muted">${t('inBattle')}</span>` : ''}<div>${t('spd_' + id, { d: G.K.meteorDmg() })}</div>`
+        + `<div class="muted">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}${G.S.king.lvl < sp.lvl ? ` · ${ic('i_lock')} ${t('lv')} ${sp.lvl}` : ''}</div>`;
+    }
+    if (type === 'cl') return `<b>${ic('c_' + id)} ${t('cl_' + id)}</b><div>${t('cld_' + id)}</div>`;
     if (key === 'auto') return `<b>${ic('i_pick')} ${t('autoTitle')}: ${G.S.king.auto ? t('on') : t('off')}</b><div>${t('autoTip', { n: UI.autoRate() })}</div>`;
     if (key === 'folk') {
       const n = G.E.folk(), cap = G.E.homes();
@@ -917,7 +938,7 @@
         if (AL) act += ` <button class="btn small" data-action="resQueue" data-arg="${r.id}" ${q >= 0 ? 'disabled' : ''}>${ic('i_scroll')} ${q >= 0 ? t('queuedPos', { n: q + 1 }) : t('toDecree')}</button>`;
         act += '</div>';
       }
-      return `<div class="bskill st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${act}</div></div>`;
+      return `<div class="bskill st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b class="hastip">${t('rs_' + r.id)}<i class="qh">?</i></b>${act}</div></div>`;
     }).join('');
     const done = list.filter((r) => G.R.done(r.id)).length;
     return box(ic('i_book') + ' ' + t('bSkills') + ` <span class="muted">${done}/${list.length}</span>`, rows, '', 'bSkillsHint');
@@ -1092,7 +1113,7 @@
     const open = D.RESEARCH.filter((r) => !G.R.done(r.id) && !dq.research.includes(r.id) && G.R.state(r.id) !== 'cur');
     const resInfo = (id) => { const r = G.R.get(id); return `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${U.fmtTime(G.R.time(r))}</span>${G.PANE.resWait(id)}</div>`; };
     h += box(ic('i_book') + ' ' + t('decreeRes'), qList('research', 'rs_', (x) => G.R.get(x).icon, resInfo) +
-      (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b>${t('rs_' + r.id)}</b><span class="small muted">${G.R.state(r.id) === 'locked' ? t('needAcad', { l: r.acad }) : t('rsd_' + r.id)}</span>${costHtml(r.cost)}</span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
+      (G.E.lvl('academy') ? `<h4>${t('decreeAddRes')}</h4><div class="dgrid">${open.map((r) => `<button class="dcard" data-action="resQueue" data-arg="${r.id}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<span class="grow"><b class="hastip">${t('rs_' + r.id)}<i class="qh">?</i></b>${G.R.state(r.id) === 'locked' ? `<span class="small muted">${t('needAcad', { l: r.acad })}</span>` : ''}${costHtml(r.cost)}</span>${ic('i_scroll')}</button>`).join('')}</div>` : `<div class="muted small">${t('needAcademy')}</div>`));
     return h;
   }
 
@@ -1102,7 +1123,7 @@
     let h = `<div class="bhead">${ic('c_king', 'bimg')}<div><h2>${t('king')}</h2><div class="lvl">${tipTitle(`${t('lv')} <b>${k.lvl}</b> / ${D.KING_MAX}`, 'kingXpHow')}</div>${bar('kxp', 'xp')}<div class="muted small" data-b="kxpT"></div><div class="small">${t('talentPts')}: <b class="${tp ? 'good' : ''}">${tp}</b></div></div></div>`;
     h += box(ic('i_fire') + ' ' + t('spells'), D.SPELLS.map((sp) => {
       const open = k.lvl >= sp.lvl;
-      return `<div class="spl ${open ? '' : 'locked'}">${ic(sp.icon, 'ic2')}<div class="grow"><b>${t('sp_' + sp.id)}</b> <span class="muted small">${sp.battle ? t('inBattle') : ''}</span><div class="small">${t('spd_' + sp.id, { d: G.K.meteorDmg() })}</div><div class="muted small">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}</div></div>${open ? `<button class="btn small" data-action="cast" data-arg="${sp.id}" data-spell="${sp.id}">${t('cast')} <span data-b="cd:${sp.id}"></span></button>` : `<span class="muted small">${ic('i_lock')} ${t('lv')} ${sp.lvl}</span>`}</div>`;
+      return `<div class="spl ${open ? '' : 'locked'}" data-tip="sp:${sp.id}">${ic(sp.icon, 'ic2')}<div class="grow"><b class="hastip">${t('sp_' + sp.id)}<i class="qh">?</i></b> <span class="muted small">${sp.battle ? t('inBattle') : ''}</span><div class="muted small">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}</div></div>${open ? `<button class="btn small" data-action="cast" data-arg="${sp.id}" data-spell="${sp.id}">${t('cast')} <span data-b="cd:${sp.id}"></span></button>` : `<span class="muted small">${ic('i_lock')} ${t('lv')} ${sp.lvl}</span>`}</div>`;
     }).join(''));
     const br = ['hand', 'eco', 'build', 'war'];
     h += box(ic('i_star') + ' ' + t('talents') + ` <span class="muted">${tp}</span>`, `<div class="tal3">${br.map((b) => `<div class="tcol"><div class="tbr">${t('br_' + b)}</div>${D.TALENTS.filter((x) => x.br === b).map((x) => {
@@ -1112,7 +1133,7 @@
     }).join('')}</div>`).join('')}</div>`);
     h += box(ic('i_people') + ' ' + t('council'), `<div class="advs">${D.ADVISORS.map((a) => {
       const l = G.K.advLvl(a.id), open = G.K.advOpen(a);
-      return `<div class="advc ${open ? '' : 'locked'}">${ic('adv_' + a.id, 'ic3')}<div class="grow"><b>${t('ad_' + a.id)}</b> ${pips(l, D.ADV_MAX)}<div class="small muted">${t('add_' + a.id)}</div>
+      return `<div class="advc ${open ? '' : 'locked'}" data-tip="ad:${a.id}">${ic('adv_' + a.id, 'ic3')}<div class="grow"><b class="hastip">${t('ad_' + a.id)}<i class="qh">?</i></b> ${pips(l, D.ADV_MAX)}
         ${!open ? `<div class="small">${ic('i_lock')} ${t('needCastleLvl', { l: a.castle })}</div>` : l >= D.ADV_MAX ? `<div class="small good">${t('maxLevel')}</div>` : btn(l ? t('promote') : t('hireAdv'), 'advisor', a.id, { cost: G.K.advCost(a.id), cls: 'small' })}</div></div>`;
     }).join('')}</div>`);
     const dyn = G.S.dyn;
@@ -1122,7 +1143,7 @@
     dh += `<div class="perks">${D.PERKS.map((p) => {
       const r = G.K.perkRank(p.id);
       const nextB = p.id === 'found' && r < D.FOUND_ORDER.length ? `<div class="small good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>` : '';
-      return `<div class="perk" data-tip="pk:${p.id}">${ic(p.icon, 'ic2')}<div class="grow"><b>${t('pk_' + p.id)}</b> ${pips(Math.min(r, 10), D.PERK_MAX)}<div class="small muted">${t('pkd_' + p.id)}</div>${nextB}</div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
+      return `<div class="perk" data-tip="pk:${p.id}">${ic(p.icon, 'ic2')}<div class="grow"><b class="hastip">${t('pk_' + p.id)}<i class="qh">?</i></b> ${pips(Math.min(r, 10), D.PERK_MAX)}${nextB}</div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
     }).join('')}</div>`;
     h += box(`<span class="hastip" data-tip="dyn">${ic('i_crown')} ${t('dynasty')}<i class="qh">?</i></span>`, dh, 'dynbox');
     return h;

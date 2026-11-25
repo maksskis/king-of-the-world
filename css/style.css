@@ -590,7 +590,7 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 .tal3 { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .tbr { font-weight: 600; color: var(--gold); margin-bottom: 4px; }
 .tal { margin: 4px 0; }
-.tal .pips { margin-left: 8px; }
+.tal .pips, b.hastip + .pips { margin-left: 8px; }
 .advs { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .advc { padding: 6px; background: var(--panel2); border-radius: 6px; }
 .advc.locked { opacity: 0.6; }

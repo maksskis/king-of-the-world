@@ -110,9 +110,8 @@
       return `<div class="hcard" style="--rc:${R.color}">
         <div class="por">${ic('c_' + c.cls, 'ic3')}</div>
         <div class="nm" style="color:${R.color}">${esc(nm(c.name))}</div>
-        <div class="small">${ic('c_' + c.cls)} ${t('cl_' + c.cls)} · <b style="color:${R.color}">${t('ar_' + c.rar)}</b></div>
+        <div class="small"><span class="hastip" data-tip="cl:${c.cls}">${ic('c_' + c.cls)} ${t('cl_' + c.cls)}<i class="qh">?</i></span> · <b style="color:${R.color}">${t('ar_' + c.rar)}</b></div>
         <div class="stats">${ic('i_hp')}${s.hp} ${ic('i_atk')}${s.atk} ${ic('i_def')}${s.def}</div>
-        <div class="small muted">${t('cld_' + c.cls)}</div>
         ${btn(t('hire'), 'hire', i, { cost: { gold: G.T.hireCost(c) }, cls: 'primary small', lock: full })}</div>`;
     }).join('');
     return `<div class="box"><h3>${h().tipTitle(ic('i_people') + ' ' + t('candidates'), 'rerollHint', t('rerollHint') + (G.S.tavern.rr ? ' ' + t('rerollCount', { n: G.S.tavern.rr }) : ''))} <span class="muted">${t('guildSize')}: ${S.advs.length}/${G.T.maxAdvs()}</span></h3>
@@ -135,7 +134,7 @@
     const queue = q.length ? q.map((id, i) => {
       const r = G.R.get(id), st = G.R.state(id);
       const note = P.resWait(id);
-      return `<div class="dq" data-tip="s:${id}">${ic(r.icon, 'ic2')}<div class="grow">${i + 1}. <b>${t('rs_' + id)}</b><div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span>${note}</div></div>
+      return `<div class="dq" data-tip="s:${id}">${ic(r.icon, 'ic2')}<div class="grow">${i + 1}. <b class="hastip">${t('rs_' + id)}<i class="qh">?</i></b><div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span>${note}</div></div>
         <button class="btn small" data-action="decreeUp" data-arg="research|${i}" ${i ? '' : 'disabled'} title="${t('prioUp')}">▲</button><button class="btn small" data-action="decreeDown" data-arg="research|${i}" ${i < q.length - 1 ? '' : 'disabled'} title="${t('prioDown')}">▼</button><button class="btn small" data-action="decreeDel" data-arg="research|${i}" title="${t('cancel')}">${ic('i_x')}</button></div>`;
     }).join('') : `<div class="muted small">${t('acadQueueEmpty')}</div>`;
     top += `<div class="muted small">${t('resDone', { n: G.R.doneCount(), m: D.RESEARCH.length })} · ${t('resSpeed', { n: G.R.speed().toFixed(1) })}</div>`;
@@ -151,7 +150,7 @@
         else ra += `<span class="muted small">${ic('i_lock')} ${r.req && !G.R.done(r.req) ? t('needRes', { r: `<span class="tipword" data-tip="s:${r.req}">${t('rs_' + r.req)}</span>` }) : t('needAcad', { l: r.acad })}</span>`;
         ra += ` <button class="btn small" data-action="resQueue" data-arg="${r.id}" ${queued ? 'disabled' : ''}>${ic('i_scroll')} ${queued ? t('queuedPos', { n: G.S.decree.research.indexOf(r.id) + 1 }) : t('toDecree')}</button>`;
       }
-      return `<div class="rcard2 st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${st === 'done' ? '' : `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span></div>`}<div class="row">${ra}</div></div></div>`;
+      return `<div class="rcard2 st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b class="hastip">${t('rs_' + r.id)}<i class="qh">?</i></b>${st === 'done' ? '' : `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span></div>`}<div class="row">${ra}</div></div></div>`;
     }).join('')}</div>`).join('');
     return `<div class="box"><h3>${ic('i_book')} ${t('researchNow')} <span class="muted">${act.length}/${G.R.slots()}</span></h3>${top}</div>
       <div class="box"><h3>${h().tipTitle(ic('i_scroll') + ' ' + t('acadQueue'), 'acadQueueHint')} <span class="muted">${q.length}/12</span></h3>${queue}</div>
@@ -175,7 +174,7 @@
     const R = D.ARAR[a.rar], s = G.T.stats(a), sp = G.T.sp(a);
     const skills = D.SKILLS[a.cls].map((sk) => {
       const r = (a.sk && a.sk[sk.id]) || 0;
-      return `<div class="skill cat-${sk.cat}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b>${t('sk_' + sk.id)}</b> <span class="small muted">${r}/${D.SKILL_MAX}</span> ${pips(r, D.SKILL_MAX)}<div class="small muted">${t('skd_' + sk.id)}</div></div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
+      return `<div class="skill cat-${sk.cat}" data-tip="sk:${a.id}|${sk.id}">${ic(sk.icon, 'ic2')}<div class="grow"><span class="skcat">${ic(D.SKILL_CATS[sk.cat])} ${t('skc_' + sk.cat)}</span><b class="hastip">${t('sk_' + sk.id)}<i class="qh">?</i></b> <span class="small muted">${r}/${D.SKILL_MAX}</span> ${pips(r, D.SKILL_MAX)}</div><button class="btn small" data-action="learn" data-arg="${a.id}|${sk.id}" ${sp > 0 && r < D.SKILL_MAX ? '' : 'disabled'}>+</button></div>`;
     }).join('');
     const xpw = Math.min(100, (a.xp / G.T.xpNeed(a.lvl)) * 100).toFixed(1);
     const canDismiss = a.st !== 'dungeon' && a.st !== 'arena' && a.st !== 'journey' && !(G.W.active() && a.st === 'gate');
