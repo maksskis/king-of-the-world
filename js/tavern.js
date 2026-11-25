@@ -107,7 +107,7 @@
 
   T.xpNeed = (l) => Math.round(40 * Math.pow(1.4, l - 1));
   T.giveXp = function (a, n) {
-    a.xp += n * (1 + G.bonus('xp') + G.bonus('advXp'));
+    a.xp += n * (1 + G.bonus('xp') + G.bonus('advXp') + T.skillSum(a, 'xp'));
     let up = false;
     while (a.xp >= T.xpNeed(a.lvl)) {
       a.xp -= T.xpNeed(a.lvl);

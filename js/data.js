@@ -88,6 +88,10 @@
       { id: 'w3', cat: 'heal', icon: 'i_heal', eff: { regen: 0.03 } },
       { id: 'w4', cat: 'loot', icon: 'i_chest', eff: { loot: 0.06 } },
       { id: 'w5', cat: 'spec', icon: 'i_shield2', eff: { guard: 0.05 } },
+      // новые навыки: боевой клич (атака всего отряда), шипы, охотник на боссов, вампиризм, опыт
+      { id: 'w6', cat: 'spec', icon: 'i_flag', eff: { partyAtk: 0.04 } },
+      { id: 'w7', cat: 'def', icon: 'i_helmet', eff: { thorns: 0.15 } },
+      { id: 'w8', cat: 'atk', icon: 'i_dragon', eff: { bossAtk: 0.12 } },
     ],
     archer: [
       { id: 'a1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.1, crit: 0.05 } },
@@ -95,6 +99,10 @@
       { id: 'a3', cat: 'heal', icon: 'i_heal', eff: { regen: 0.02, hp: 0.05 } },
       { id: 'a4', cat: 'loot', icon: 'i_chest', eff: { drop: 0.15, flee: 0.05 } },
       { id: 'a5', cat: 'spec', icon: 'it_bow:0', eff: { volley: 0.12 } },
+      // новые навыки: боевой клич (атака всего отряда), шипы, охотник на боссов, вампиризм, опыт
+      { id: 'a6', cat: 'atk', icon: 'i_star', eff: { critDmg: 0.3 } },
+      { id: 'a7', cat: 'atk', icon: 'i_dragon', eff: { bossAtk: 0.12 } },
+      { id: 'a8', cat: 'loot', icon: 'i_map', eff: { flee: 0.05, xp: 0.1 } },
     ],
     mage: [
       { id: 'm1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
@@ -102,6 +110,10 @@
       { id: 'm3', cat: 'heal', icon: 'i_heal', eff: { aura: 0.015 } },
       { id: 'm4', cat: 'loot', icon: 'r_crystal', eff: { loot: 0.08 } },
       { id: 'm5', cat: 'spec', icon: 'i_fire', eff: { splash: 0.2 } },
+      // новые навыки: боевой клич (атака всего отряда), шипы, охотник на боссов, вампиризм, опыт
+      { id: 'm6', cat: 'atk', icon: 'i_gem', eff: { crit: 0.05, critDmg: 0.25 } },
+      { id: 'm7', cat: 'def', icon: 'i_def', eff: { dodge: 0.05, def: 0.1 } },
+      { id: 'm8', cat: 'loot', icon: 'i_book', eff: { xp: 0.15 } },
     ],
     priest: [
       { id: 'p1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
@@ -109,6 +121,10 @@
       { id: 'p3', cat: 'heal', icon: 'i_heal', eff: { heal: 0.2 } },
       { id: 'p4', cat: 'loot', icon: 'i_gem', eff: { drop: 0.15, loot: 0.04 } },
       { id: 'p5', cat: 'spec', icon: 'i_star', eff: { save: 0.1 } },
+      // новые навыки: боевой клич (атака всего отряда), шипы, охотник на боссов, вампиризм, опыт
+      { id: 'p6', cat: 'spec', icon: 'i_crown', eff: { partyAtk: 0.04 } },
+      { id: 'p7', cat: 'heal', icon: 'i_heal', eff: { aura: 0.01 } },
+      { id: 'p8', cat: 'atk', icon: 'i_dragon', eff: { bossAtk: 0.15 } },
     ],
     rogue: [
       { id: 'r1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.1, crit: 0.05 } },
@@ -116,6 +132,10 @@
       { id: 'r3', cat: 'heal', icon: 'i_heal', eff: { regen: 0.025 } },
       { id: 'r4', cat: 'loot', icon: 'i_bag', eff: { loot: 0.08, drop: 0.1 } },
       { id: 'r5', cat: 'spec', icon: 'it_dagger:0', eff: { critDmg: 0.5 } },
+      // новые навыки: боевой клич (атака всего отряда), шипы, охотник на боссов, вампиризм, опыт
+      { id: 'r6', cat: 'heal', icon: 'i_hp', eff: { life: 0.06 } },
+      { id: 'r7', cat: 'atk', icon: 'i_dragon', eff: { bossAtk: 0.15 } },
+      { id: 'r8', cat: 'def', icon: 'i_boot', eff: { dodge: 0.05, flee: 0.06 } },
     ],
     shaman: [
       { id: 's1', cat: 'atk', icon: 'i_atk', eff: { atk: 0.12 } },
@@ -123,6 +143,10 @@
       { id: 's3', cat: 'heal', icon: 'i_heal', eff: { aura: 0.012 } },
       { id: 's4', cat: 'loot', icon: 'i_gem', eff: { drop: 0.1, loot: 0.05 } },
       { id: 's5', cat: 'spec', icon: 'it_totem:0', eff: { stun: 0.06 } },
+      // новые навыки: боевой клич (атака всего отряда), шипы, охотник на боссов, вампиризм, опыт
+      { id: 's6', cat: 'spec', icon: 'i_fire', eff: { partyAtk: 0.04 } },
+      { id: 's7', cat: 'heal', icon: 'i_heal', eff: { regen: 0.02, aura: 0.008 } },
+      { id: 's8', cat: 'def', icon: 'i_shield2', eff: { thorns: 0.12 } },
     ],
   };
 

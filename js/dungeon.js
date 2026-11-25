@@ -107,10 +107,12 @@
   function snap(members) {
     const cap = 1 + G.bonus('captain');
     const shield = 1 + Math.min(0.6, members.reduce((s, a) => s + (a.hp > 0 ? G.T.skillSum(a, 'partyDef') : 0), 0));
+    const war = 1 + Math.min(0.3, members.reduce((s, a) => s + (a.hp > 0 ? G.T.skillSum(a, 'partyAtk') : 0), 0)); // боевой клич
     return members.map((a) => {
       const s = G.T.stats(a), sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
-        a, cls: a.cls, hp: a.hp, max: s.hp, atk: s.atk * cap, def: s.def * cap * shield,
+        a, cls: a.cls, hp: a.hp, max: s.hp, atk: s.atk * cap * war, def: s.def * cap * shield,
+        bossAtk: sk('bossAtk'), thorns: Math.min(0.8, sk('thorns')), life: Math.min(0.3, sk('life')),
         heal: sk('heal'), splash: sk('splash'), guard: sk('guard'), regen: Math.min(0.1, sk('regen')), aura: Math.min(0.06, sk('aura')),
         dodge: Math.min(0.5, sk('dodge') + (C.dodge || 0)), crit: Math.min(0.6, sk('crit') + (C.crit || 0)), critMul: Math.min(4, 2 + sk('critDmg')), stun: Math.min(0.35, (C.stun || 0) + sk('stun')),
       };
@@ -135,6 +137,8 @@
       let hit = p.cls === 'priest' ? p.atk * 0.6 : p.cls === 'shaman' ? p.atk * 0.8 : p.atk;
       if (p.cls === 'mage' && en.count > 1) hit += p.atk * (0.3 + p.splash);
       if (p.crit && Math.random() < p.crit) { hit *= p.critMul; crits++; }
+      if (en.boss && p.bossAtk) hit *= 1 + p.bossAtk; // «охотник на боссов»
+      if (p.life) p.hp = Math.min(p.max, p.hp + hit * p.life); // вампиризм
       d += hit;
     }
     d *= dealtM * G.U.rand(0.85, 1.15) * (en.boss ? 1 + G.bonus('bossDmg') : 1); // «Драконоборцы» бьют боссов сильнее
@@ -157,6 +161,7 @@
       if (tg.dodge && Math.random() < tg.dodge) { if (out) out.push(['fr_dodge', { name: tg.a.name, id: tg.a.id }, 'good']); continue; }
       const dmg = (((en.atk / hits) * takenM * G.U.rand(0.85, 1.15) * 20) / (20 + tg.def)) * (1 - dr);
       tg.hp = Math.max(0, tg.hp - dmg);
+      if (tg.thorns) ehp -= dmg * tg.thorns * 3; // шипы возвращают часть удара (враг бьёт крупно, отряд мелко — ×3)
       if (out) {
         out.push(['fr_dmg', { name: tg.a.name, d: Math.round(dmg), id: tg.a.id }, 'bad']);
         if (tg.hp <= 0) out.push(['fr_down', { name: tg.a.name, id: tg.a.id }, 'bad']);

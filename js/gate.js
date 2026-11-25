@@ -78,6 +78,7 @@
         a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - row * step - (i % per) * 2, y: lanes[i % per], hit: 0, swing: 0,
         dodge: Math.min(0.5, sk('dodge') + (C.dodge || 0)), crit: Math.min(0.6, sk('crit') + (C.crit || 0)), critMul: Math.min(4, 2 + sk('critDmg')), regen: Math.min(0.1, sk('regen')),
         bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
+        bossAtk: sk('bossAtk'), thorns: Math.min(0.8, sk('thorns')),
       };
     });
   }
@@ -192,6 +193,7 @@
       if (d.dodge && Math.random() < d.dodge) { float(d.x, d.y - 18, G.t('dodged'), '#9ad0ff'); return; }
       const dmg = Math.max(1, ((m.atk * 20) / (20 + d.def)) * (1 - B.guardDr));
       d.a.hp = Math.max(0, d.a.hp - dmg);
+      if (d.thorns) hitMon(m, dmg * d.thorns * 1.5, '#c8a060'); // шипы
       d.hit = 0.15;
       float(d.x, d.y - 18, '-' + Math.ceil(dmg), '#ff6a6a');
       if (d.a.hp <= 0) float(d.x, d.y - 26, G.t('downed'), '#ffb0b0');
@@ -264,7 +266,8 @@
       B.proj.push({ x: 6 + (i % 6) * 5, y: 6, tg, dmg: gdmg, kind: 'arrow', spd: 240 });
     });
 
-    const mul = dmgMul();
+    const war = 1 + Math.min(0.3, alive.reduce((s, d) => s + G.T.skillSum(d.a, 'partyAtk'), 0)); // боевой клич
+    const mul = dmgMul() * war;
     const aura = alive.reduce((s, d) => s + G.T.skillSum(d.a, 'aura'), 0);
     for (const d of alive) {
       // «Второе дыхание» и аура мага: восстановление здоровья раз в 1,5 с
@@ -275,6 +278,7 @@
       if (d.swing > 0) d.swing -= dt;
       if (d.cd > 0) continue;
       const tg = front();
+      const bm = tg && tg.boss && d.bossAtk ? 1 + d.bossAtk : 1;
       if (d.cls === 'priest') {
         const hurt = alive.filter((o) => o.a.hp < o.max * 0.9).sort((p, q) => p.a.hp / p.max - q.a.hp / q.max)[0];
         if (hurt) {
@@ -288,23 +292,23 @@
       }
       if (!tg) { d.cd = 0.2; continue; }
       if (d.cls === 'warrior') {
-        if (tg.x - tg.w / 2 <= d.x + 24) { const cr = Math.random() < d.crit; hitMon(tg, d.atk * mul * (cr ? 2 : 1), cr ? '#ffd84a' : '#ffffff'); d.cd = 1.0; d.swing = 0.15; }
+        if (tg.x - tg.w / 2 <= d.x + 24) { const cr = Math.random() < d.crit; hitMon(tg, d.atk * mul * bm * (cr ? 2 : 1), cr ? '#ffd84a' : '#ffffff'); d.cd = 1.0; d.swing = 0.15; }
         else d.cd = 0.15;
       } else if (d.cls === 'archer') {
-        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * (Math.random() < d.crit ? 2 : 1), kind: 'arrow', spd: 260 });
+        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * bm * (Math.random() < d.crit ? 2 : 1), kind: 'arrow', spd: 260 });
         if (Math.random() < G.T.skillSum(d.a, 'volley')) B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * mul, kind: 'arrow', spd: 240 });
         d.cd = 1.0;
       } else if (d.cls === 'mage') {
-        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 1.3 * mul, kind: 'orb', spd: 170, splash: 26, sm: 0.5 + G.T.skillSum(d.a, 'splash') });
+        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 1.3 * mul * bm, kind: 'orb', spd: 170, splash: 26, sm: 0.5 + G.T.skillSum(d.a, 'splash') });
         d.cd = 1.5;
       } else if (d.cls === 'rogue') {
         // быстрые броски кинжалов, крит бьёт сильнее обычного
         const cr = Math.random() < d.crit;
-        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * (cr ? d.critMul : 1), kind: 'knife', spd: 300, crit: cr });
+        B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * bm * (cr ? d.critMul : 1), kind: 'knife', spd: 300, crit: cr });
         d.cd = 0.7;
       } else if (d.cls === 'shaman') {
         // дух-оковы: врагов рядом с целью сковывает на несколько секунд
-        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 0.8 * mul, kind: 'spirit', spd: 160, bind: d.bind });
+        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 0.8 * mul * bm, kind: 'spirit', spd: 160, bind: d.bind });
         d.cd = 2.8;
       }
     }
