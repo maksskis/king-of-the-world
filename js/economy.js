@@ -51,7 +51,8 @@
   // ---------- стройка ----------
   // Цена и время перехода с уровня L на L+1 (нужно и для очереди указов)
   E.costAt = (k, L) => G.U.scaleCost(D.B[k].base, D.LVLMULT[Math.min(L, D.LVLMULT.length - 1)] * Math.max(0.6, 1 - G.bonus('buildC')));
-  E.timeAt = (k, L) => D.buildTime(L) * Math.max(0.3, 1 - G.bonus('buildT'));
+  // ускорение стройки делит время (а не вычитает проценты) — сколько ни складывай, время не станет нулём
+  E.timeAt = (k, L) => D.buildTime(L) / (1 + G.bonus('buildT'));
   E.upCost = (k) => E.costAt(k, E.lvl(k));
   E.upTime = (k) => E.timeAt(k, E.lvl(k));
   E.builders = () => 1 + G.bonus('builders');
@@ -102,6 +103,7 @@
     const c = E.consOf(k);
     if (!c || E.boostSec() <= 0) return false;
     c.t -= E.boostSec();
+    G.K.handXp(D.KXP.help); // опыт Короля за помощь стройке
     return true;
   };
 
@@ -110,7 +112,7 @@
     G.S.b[k].lvl++;
     const L = G.S.b[k].lvl;
     G.log(L === 1 ? 'logBuilt' : 'logUpgraded', { b: { k: 'bn_' + k }, l: L }, 'good');
-    G.K.xp(5 * L * L);
+    G.K.xp(D.KXP.build * L * L); // опыт Короля за постройку
     if (k === 'tavern' && L === 1) G.T.refresh(true);
     G.SFX.play('build');
     G.UI.dirty();
@@ -173,11 +175,12 @@
     const n = E.add(d.click, amount);
     G.S.stats.clicks++;
     G.S.stats['g_' + d.click] = (G.S.stats['g_' + d.click] || 0) + n; // собрано кликами — для целей
-    G.K.xp(0.3);
+    G.K.handXp(D.KXP.click); // опыт Короля за добычу
     return n;
   };
 
-  E.maxWorkers = (k) => (E.lvl(k) > 0 ? D.WORKERS[E.lvl(k)] + G.bonus('crews') + G.bonus('crews_' + k) : 0); // «Бригады» и навыки зданий дают места
+  // «Бригады» дают места, но не больше штата самого здания (полные +6 — с 5-го уровня); навыки зданий — сверх того
+  E.maxWorkers = (k) => { const L = E.lvl(k); if (L <= 0) return 0; const base = D.WORKERS[L]; return base + Math.min(base, G.bonus('crews')) + G.bonus('crews_' + k); };
   E.workerRate = function (k) {
     const L = Math.max(1, E.lvl(k));
     return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * (1 + E.passive()) * E.rush();

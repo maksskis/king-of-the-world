@@ -49,11 +49,12 @@
   };
 
   // Клик по Академии ускоряет первое из идущих исследований (сильнее с уровнем Академии)
-  R.boostSec = () => R.speed() * (1 + G.bonus('resBoost'));
+  R.boostSec = () => R.speed() * (1 + G.bonus('resBoost')) * G.K.foreman();
   R.boost = function () {
     const c = R.active()[0];
     if (!c || !G.E.usable('academy')) return false;
     c.t -= R.boostSec();
+    G.K.handXp(D.KXP.help);
     R.tick(0);
     return true;
   };
@@ -73,7 +74,6 @@
     G.log('logResDone', { r: { k: 'rs_' + c.id } }, 'epic');
     if (r.eff.loc_mine) G.log('logLocOpen', { l: { k: 'loc_mine' } }, 'epic');
     if (r.eff.loc_lair) G.log('logLocOpen', { l: { k: 'loc_lair' } }, 'epic');
-    G.K.xp(20 * r.acad);
     G.SFX.play('level');
     G.UI.dirty();
   }

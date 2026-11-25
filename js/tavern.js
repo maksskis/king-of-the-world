@@ -39,10 +39,11 @@
   // цена найма с навыком «Вербовщики» и наследием династии
   T.hireCost = (c) => Math.ceil(c.cost * Math.max(0.4, 1 - G.bonus('hireC')));
   // Клик по Гильдии: новые люди приходят на секунду раньше; когда таймер дошёл до нуля — приходят сразу
-  T.boostSec = () => 1 + 0.25 * Math.max(0, tl() - 1);
+  T.boostSec = () => (1 + 0.25 * Math.max(0, tl() - 1)) * G.K.foreman();
   T.boost = function () {
     if (tl() < 1 || G.E.busy('tavern')) return false;
     G.S.tavern.t -= T.boostSec();
+    G.K.handXp(D.KXP.help);
     if (G.S.tavern.t <= 0) { T.refresh(true); G.log('logRecruitsCame', {}, 'good'); return 'came'; }
     return true;
   };
@@ -179,7 +180,8 @@
           G.log('logRecovered', { name: a.name }, 'info');
           G.UI.dirty();
         }
-      } else if (a.st === 'idle' || (a.st === 'gate' && !inBattle)) {
+      } else if (G.K.medic() && (a.st === 'idle' || (a.st === 'gate' && !inBattle))) {
+        // сами восстанавливаются только с талантом «Лекари»
         const mx = T.stats(a).hp;
         if (a.hp < mx) a.hp = Math.min(mx, a.hp + mx * 0.03 * (1 + G.bonus('medic')) * dt);
       }

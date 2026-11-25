@@ -18,7 +18,24 @@
     return cache[key] || 0;
   };
 
+  // «Прораб»: множитель всех ускорений кликом, кроме стройки (Кузница, Академия, Арена, Гильдия, Катакомбы)
+  K.foreman = () => 1 + G.bonus('boostAll');
+  // «Лекари»: без них герои сами не восстанавливают здоровье
+  K.medic = () => (G.S.king.tal.medic || 0) > 0;
+  // Старые сохранения: убранные таланты возвращают очки, ранги сверх нового предела — тоже
+  K.sanitizeTalents = function () {
+    const tal = G.S.king.tal;
+    for (const id of Object.keys(tal)) {
+      const x = D.TALENTS.find((q) => q.id === id);
+      if (!x) delete tal[id];
+      else if (tal[id] > K.talMax(x)) tal[id] = K.talMax(x);
+    }
+    G.invalidateBonus();
+  };
+
   // ---------- уровень короля ----------
+  // Опыт за клики самого игрока (добыча и помощь зданиям); автоклик «Королевской сноровки» опыта не даёт
+  K.handXp = (n) => { if (!(G.UI && G.UI.autoNow)) K.xp(n); };
   K.need = () => D.kingXp(G.S.king.lvl);
   K.xp = function (n) {
     const k = G.S.king;
@@ -49,7 +66,7 @@
 
   // ---------- заклинания ----------
   K.spell = (id) => D.SPELLS.find((s) => s.id === id);
-  K.spellCd = (sp) => sp.cd * Math.max(0.4, 1 - G.bonus('spellCd'));
+  K.spellCd = (sp) => sp.cd * Math.max(0.25, 1 - G.bonus('spellCd')); // Придворный маг 5-го уровня: −75%
   K.meteorDmg = () => 25 + 15 * G.S.king.lvl;
   K.ready = function (id) {
     const sp = K.spell(id);
@@ -164,7 +181,7 @@
     G.S.story = 'epoch'; // после перезагрузки — рассказ о новых землях
     G.invalidateBonus();
     const st = K.perkRank('start');
-    if (st) G.E.addAll({ gold: 100 * st, wood: 100 * st, stone: 100 * st });
+    if (st) G.E.addAll({ gold: 500 * st, wood: 500 * st, stone: 500 * st });
     K.applyFounders();
     G.log('logEpoch', { n: dyn.epoch + 1 }, 'epic');
     G.save();

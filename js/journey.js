@@ -68,9 +68,14 @@
     const atk = Math.round(9 * gr.atk * Math.pow(diff, 0.8) * D.BOSS.atk * 1.1 * 0.8 * sc.atk * 10) / 10;
     return { key, count: 1, hp, max: hp, atk, boss: true, f: J.floorOf(s), hits: sc.hits + (key === 'dragon' ? 2 : 1) };
   };
-  // Награда — только адамантий: полная за первую победу, 30% — за повтор
+  // Награда: адамантий, золото и кости (как с босса Катакомб того же этажа ×2); полная за первую победу, 30% — за повтор
   J.reward = function (s, first) {
-    return { adamant: Math.max(1, Math.round((4 + 1.5 * s) * G.K.epochReward() * (first ? 1 : 0.3))) };
+    const m = G.K.epochReward() * (first ? 1 : 0.3), l = D.LOCS.catacombs.loot(J.floorOf(s), true);
+    return {
+      adamant: Math.max(1, Math.round((4 + 1.5 * s) * m)),
+      gold: Math.max(1, Math.round(l.gold * 2 * m)),
+      bone: Math.max(1, Math.round(l.bone * 2 * m)),
+    };
   };
   J.itemChance = () => 0;
   J.xp = (s) => Math.round(25 * Math.pow(1.12, s));
@@ -124,7 +129,7 @@
       if (a.hp <= 0) { G.T.wound(a, 60); wounded++; } // в Путешествии не гибнут, но отдыхают дольше
       else G.T.giveXp(a, xp);
     });
-    G.K.xp(10 * L.s);
+    if (L.win && L.first) G.K.xp(D.KXP.journey * L.s); // опыт Короля за сражение
     if (L.win) {
       G.E.addAll(L.loot);
       if (L.item) { G.S.items.push(L.item); G.log('logJourneyItem', { item: G.F.nameObj(L.item) }, L.item.rar >= 3 ? 'epic' : 'good'); }

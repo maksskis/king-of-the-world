@@ -178,7 +178,7 @@
   ];
   // Легендарная вещь — ровно 1% везде, где она может выпасть (кузница с 7-го уровня, подземелья, Путешествие).
   // Удача сдвигает остальные редкости мягко: множитель (1 + удача/2) на ступень, удача не выше 1,6.
-  D.LEG = { p: 0.01, kMax: 1.6 };
+  D.LEG = { p: 0.01, kMax: 2.4 };
   // Боссы: подземелья (каждый 5-й этаж и последний) — здоровье ×5 и урон ×2,1 к обычному этажу (было ×3,5 и ×1,6);
   // у ворот тролль, лич, страж и дракон — здоровье ×1,5 и урон ×1,4 к своим базовым
   D.BOSS = { hp: 5, atk: 2.1, gateHp: 1.5, gateAtk: 1.4 };
@@ -226,28 +226,31 @@
 
   // ---------- король ----------
   D.KING_MAX = 30;
-  D.kingXp = (L) => Math.round(50 * Math.pow(1.35, L - 1));
+  // Опыт Короля: кривая степенная (40·L^2,3), а опыт дают только стройка, помощь зданиям, добыча и сражения
+  D.kingXp = (L) => Math.round(40 * Math.pow(L, 2.3));
+  // click — клик-добыча, help — клик-помощь зданию (стройка, Кузница, Академия, Арена, Гильдия, «Поторопить»),
+  // build — ×L² за постройку/улучшение до уровня L, wave — ×n² за волну n, final — за дракона, hit — удар по врагу,
+  // floor — ×f² за этаж f Катакомб, arena — ×ранг за победу, journey — ×этап за первое прохождение
+  // rep — доля опыта за повтор уже пройденной волны или этажа (полный опыт — только за новый рекорд)
+  D.KXP = { click: 1.5, help: 1.5, build: 16, wave: 6, final: 30000, hit: 1, floor: 0.2, arena: 5, journey: 300, rep: 0.1 };
   // Таланты короля: упор на автоматизацию. max — предел рангов таланта.
   D.TAL_MAX = 5;
   D.TALENTS = [
-    { id: 'pick', br: 'hand', icon: 'i_pick', eff: { gather: 0.2 } },
-    { id: 'strike', br: 'hand', icon: 'i_atk', eff: { click: 0.2 } },
-    { id: 'lucky', br: 'hand', icon: 'i_star', eff: { clickCrit: 0.04 } },
-    { id: 'example', br: 'hand', icon: 'i_crown', eff: { clickProd: 1 } },
-    { id: 'mentor', br: 'hand', icon: 'i_book', eff: { resBoost: 0.5 } },
-    { id: 'hammer', br: 'hand', icon: 'i_anvil', eff: { forgeBoost: 0.5 } },
-    { id: 'autoclick', br: 'hand', icon: 'i_pick', max: 3, eff: { autoClick: 1 } },
+    // Рука короля
     { id: 'wisdom', br: 'hand', icon: 'i_book', eff: { kingXp: 0.2 } },
-    { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.08 } },
-    { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1 } },
-    { id: 'settlers', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 1, smiths: 1 } },
-    { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.1 } },
-    { id: 'agent', br: 'eco', icon: 'i_scale', max: 3, eff: { agent: 1, trade: 0.1 } },
-    { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.08 } },
-    { id: 'foreman', br: 'build', icon: 'i_hammer', eff: { boost: 1 } },
-    { id: 'thrift', br: 'build', icon: 'r_stone', eff: { buildC: 0.04 } },
-    { id: 'store', br: 'build', icon: 'i_bag', eff: { store: 0.1 } },
-    { id: 'rally', br: 'war', icon: 'i_flag', eff: { defAtk: 0.05 } },
+    { id: 'autoclick', br: 'hand', icon: 'i_pick', max: 3, eff: { autoClick: 1 } },
+    { id: 'lucky', br: 'hand', icon: 'i_star', eff: { clickCrit: 0.04 } },
+    { id: 'strike', br: 'hand', icon: 'i_atk', eff: { click: 0.2 } },
+    { id: 'pick', br: 'hand', icon: 'i_pick', eff: { gather: 0.2 } },
+    // Хозяйство
+    { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.1 } },
+    { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 2 } },
+    { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.15 } },
+    // Строительство: «Прораб» — все ускорения кликом (стройка, Кузница, Академия, Арена, Гильдия, Катакомбы)
+    { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.1 } },
+    { id: 'foreman', br: 'build', icon: 'i_hammer', eff: { boost: 1, boostAll: 0.5 } },
+    { id: 'thrift', br: 'build', icon: 'r_stone', max: 3, eff: { buildC: 0.1 } },
+    // Армия: «Лекари» включают восстановление здоровья героев
     { id: 'walls', br: 'war', icon: 'i_def', eff: { gateHp: 0.1 } },
     { id: 'captain', br: 'war', icon: 'i_map', eff: { captain: 0.06 } },
     { id: 'medic', br: 'war', icon: 'i_heal', eff: { medic: 0.2 } },
@@ -260,10 +263,10 @@
   ];
   D.ADV_MAX = 5;
   D.ADVISORS = [
-    { id: 'treasurer', castle: 2, icon: 'r_gold', eff: { tax: 0.1 } },
-    { id: 'marshal', castle: 3, icon: 'i_helmet', eff: { defAtk: 0.06, gateHp: 0.06 } },
-    { id: 'builder', castle: 3, icon: 'i_hammer', eff: { buildT: 0.06 } },
-    { id: 'magister', castle: 4, icon: 'i_book', eff: { spellCd: 0.08, luck: 0.04 } },
+    { id: 'treasurer', castle: 2, icon: 'r_gold', eff: { tax: 0.15 } },
+    { id: 'marshal', castle: 3, icon: 'i_helmet', eff: { defAtk: 0.1, defDef: 0.1, gateHp: 0.1 } },
+    { id: 'builder', castle: 3, icon: 'i_hammer', eff: { buildT: 0.1 } },
+    { id: 'magister', castle: 4, icon: 'i_book', eff: { spellCd: 0.15, forgeLuck: 0.1 } },
   ];
   D.advisorCost = (lvl) => ({ gold: Math.round(250 * Math.pow(2.4, lvl)) });
 
@@ -378,24 +381,25 @@
   D.FOUND_ORDER = ['lumber', 'quarry', 'warehouse', 'mine', 'forge', 'tavern', 'gate', 'academy', 'arena', 'barracks'];
   D.PERKS = [
     { id: 'found', icon: 'i_hammer', eff: {} },
+    // Навыки рода выровнены по силе: каждый ранг ощутим, ни один путь не «единственно верный»
     { id: 'prod', icon: 'i_pick', eff: { prod: 0.1 } },
     { id: 'click', icon: 'i_atk', eff: { gather: 0.25, click: 0.25 } },
-    { id: 'luck', icon: 'i_gem', eff: { luck: 0.03 } },
+    { id: 'luck', icon: 'i_gem', eff: { luck: 0.1 } },
     { id: 'start', icon: 'i_chest', eff: { start: 1 } },
-    { id: 'xp', icon: 'i_star', eff: { xp: 0.1 } },
-    { id: 'cap', icon: 'i_bag', eff: { store: 0.1 } },
-    { id: 'build', icon: 'i_clock', eff: { buildT: 0.05 } },
-    { id: 'tax', icon: 'r_gold', eff: { tax: 0.1 } },
-    { id: 'trade', icon: 'i_atk', eff: { arenaLoot: 0.1 } }, // «Слава арены» (бывший Торговый дом)
-    { id: 'craft', icon: 'i_anvil', eff: { craft: 0.1 } },
-    { id: 'hero', icon: 'i_people', eff: { advXp: 0.1 } },
-    { id: 'hire', icon: 'i_coin', eff: { hireC: 0.05 } },
-    { id: 'guards', icon: 'i_helmet', eff: { guardAtk: 0.1 } },
-    { id: 'walls', icon: 'i_def', eff: { gateHp: 0.1 } },
-    { id: 'captain', icon: 'i_map', eff: { captain: 0.04 } },
-    { id: 'medic', icon: 'i_heal', eff: { medic: 0.1, save: 0.02 } },
-    { id: 'research', icon: 'i_book', eff: { resSpeed: 0.1 } },
-    { id: 'crit', icon: 'i_star', eff: { clickCrit: 0.01 } },
+    { id: 'xp', icon: 'i_star', eff: { xp: 0.15 } },
+    { id: 'cap', icon: 'i_bag', eff: { passive: 0.08 } },
+    { id: 'build', icon: 'i_clock', eff: { buildT: 0.1 } },
+    { id: 'tax', icon: 'r_gold', eff: { tax: 0.15 } },
+    { id: 'trade', icon: 'i_atk', eff: { arenaLoot: 0.15 } }, // «Слава арены» (бывший Торговый дом)
+    { id: 'craft', icon: 'i_anvil', eff: { craft: 0.15 } },
+    { id: 'hero', icon: 'i_people', eff: { advXp: 0.15 } },
+    { id: 'hire', icon: 'i_coin', eff: { hireC: 0.06 } },
+    { id: 'guards', icon: 'i_helmet', eff: { guardAtk: 0.15 } },
+    { id: 'walls', icon: 'i_def', eff: { gateHp: 0.15 } },
+    { id: 'captain', icon: 'i_map', eff: { captain: 0.06 } },
+    { id: 'medic', icon: 'i_heal', eff: { medic: 0.15, save: 0.03 } },
+    { id: 'research', icon: 'i_book', eff: { resSpeed: 0.15 } },
+    { id: 'crit', icon: 'i_star', eff: { clickCrit: 0.03 } },
   ];
 
   // ---------- цели (обучение и кампания) ----------

@@ -10,7 +10,7 @@
   X.isFront = (cls) => !!X.FRONT[cls];
   X.FRONT_HIT = 0.75;
   // Клик по Катакомбам торопит отряды в пути между этажами и по дороге домой
-  X.hurrySec = () => 1;
+  X.hurrySec = () => 1 * G.K.foreman();
   X.hurry = function (id) {
     let n = 0;
     for (const e of id ? [X.get(id)].filter(Boolean) : X.list()) {
@@ -18,7 +18,7 @@
       e.t -= X.hurrySec();
       n++;
     }
-    if (n) X.tick(0);
+    if (n) { X.tick(0); G.K.handXp(D.KXP.help); }
     return n > 0;
   };
   // Сколько отрядов в походе одновременно: 1, с 4-го уровня Гильдии — 2, с 7-го — 3
@@ -351,7 +351,7 @@
     const crit = Math.random() < G.bonus('clickCrit');
     const d = G.W.kingDmg() * (crit ? 3 : 1);
     e.ehp -= d;
-    G.K.xp(0.2);
+    G.K.xp(D.KXP.hit);
     if (e.ehp <= 0) { flog(e, 'fr_king', {}, 'good'); X.endFight(e, true); }
     G.UI.expDirty();
     return { d, crit };
@@ -388,7 +388,8 @@
     const boss = e.enemy.boss;
     e.cleared = e.floor;
     G.S.stats.floors = (G.S.stats.floors || 0) + 1;
-    if (e.floor > X.best(e.loc)) G.S.dng.best[e.loc] = e.floor;
+    const rec = e.floor > X.best(e.loc); // новый рекорд — полный опыт Короля, повтор — малая доля
+    if (rec) G.S.dng.best[e.loc] = e.floor;
     const ms = X.members(e);
     const lootMul = (1 + G.T.partySum(ms, 'loot')) * G.K.epochReward() * X.scale(e.loc, e.n).loot;
     const loot = L.loot(e.floor, boss);
@@ -396,7 +397,7 @@
     dropItem(e, boss);
     const xp = Math.round(12 * (e.floor <= D.CAT.f0 ? Math.pow(1.17, e.floor - 1) : Math.pow(1.17, D.CAT.f0 - 1) * Math.pow(D.CAT.xpG, e.floor - D.CAT.f0)) * L.diff * (boss ? 2 : 1));
     for (const a of ms) if (a.hp > 0) G.T.giveXp(a, xp);
-    G.K.xp(4 * e.floor * L.diff);
+    G.K.xp(D.KXP.floor * e.floor * e.floor * (rec ? 1 : D.KXP.rep)); // опыт Короля за сражение
     xlog(e, 'xWin', { f: e.floor, loot }, 'good');
     flog(e, 'fr_win', { f: e.floor }, 'good');
     for (const a of fell) if (!dead.includes(a)) xlog(e, 'xDowned', { name: a.name }, 'warn');

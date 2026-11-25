@@ -48,6 +48,7 @@
       G.S.decree.build = G.S.decree.build.map((k) => (k === 'market' ? 'arena' : k));
     }
     G.E.migrateGoals();
+    G.K.sanitizeTalents();
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();

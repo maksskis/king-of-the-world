@@ -86,7 +86,7 @@
       if (a.hp <= 0) { G.T.wound(a, 30); wounded++; } // на Арене не гибнут
       else G.T.giveXp(a, xp);
     });
-    G.K.xp(3 * L.rank);
+    if (L.win) G.K.xp(D.KXP.arena * L.rank); // опыт Короля за сражение
     if (L.win) {
       G.E.addAll(L.loot);
       S.rank = L.rank + 1;
@@ -106,11 +106,12 @@
     if (S.cd > 0 && G.E.usable('arena')) S.cd = Math.max(0, S.cd - dt);
   };
   // Клик по Арене ускоряет подготовку к бою
-  A.boostSec = () => 1;
+  A.boostSec = () => 1 * G.K.foreman();
   A.boost = function () {
     const S = A.S();
     if (!(S.cd > 0) || !G.E.usable('arena')) return false;
     S.cd = Math.max(0, S.cd - A.boostSec());
+    G.K.handXp(D.KXP.help);
     return true;
   };
 })();

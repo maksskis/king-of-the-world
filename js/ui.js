@@ -229,7 +229,8 @@
       // с кнопки «Добыть» цифры всплывают над самим зданием на карте
       let pos = UI.autoPos;
       if (UI.auto.btn) { const r = el.getBoundingClientRect(); pos = { clientX: r.left + r.width / 2, clientY: r.top + r.height * 0.4 }; }
-      UI.slotClick(UI.auto.k, Object.assign({ type: 'auto' }, pos), el);
+      UI.autoNow = true;
+      try { UI.slotClick(UI.auto.k, Object.assign({ type: 'auto' }, pos), el); } finally { UI.autoNow = false; }
     }
   }
 
@@ -944,6 +945,7 @@
     if (!G.T.get(UI.selAdv)) UI.selAdv = A[0] ? A[0].id : null;
     let h = box(ic('i_people') + ' ' + t('guild') + ` <span class="muted">${A.length}/${G.T.maxAdvs()}</span>`,
       `${G.E.lvl('tavern') < 1 ? `<div class="warn small">${t('heirsWait')}</div>` : ''}<div class="muted small">${A.length ? t('guildTip') : t('guildEmpty')}</div><div class="row"><button class="btn small" data-action="goto" data-arg="tavern">${ic('i_people')} ${t('toTavern')}</button></div>`);
+    if (!G.K.medic() && A.some((a) => a.hp > 0 && a.hp < G.T.stats(a).hp)) h += `<div class="warn small">${ic('i_heal')} ${t('noMedicHint')}</div>`;
     h += `<div class="tiles">${A.map((a) => advTile(a, 'char', a.id, a.id === UI.selAdv)).join('')}</div>`;
     if (UI.selAdv) h += G.PANE.char(UI.selAdv);
     return h;
@@ -1019,7 +1021,8 @@
       <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_skull')} ${t('condDown')}</span><button class="btn small ${Dn.down && !push ? 'primary' : ''}" data-action="condDown" ${off}>${Dn.down && !push ? t('yes') : t('no')}</button></div>
       <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_crown')} ${t('condBoss')}</span><button class="btn small ${Dn.boss && !push ? 'primary' : ''}" data-action="condBoss" ${off}>${Dn.boss && !push ? t('yes') : t('no')}</button></div>
       <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_boot')} ${t('condAvoid')}</span><span class="seg">${[0, 0.3, 0.5, 0.7].map((v) => `<button class="btn small ${(push ? !v : Dn.avoid === v) ? 'primary' : ''}" data-action="condAvoid" data-arg="${v}" ${off}>${v ? '< ' + v * 100 + '%' : t('never')}</button>`).join('')}</span></div>`);
-    h += box(ic('i_flag') + ' ' + t('sendTitle') + ` <span class="muted">${UI.party.size}/${pmax}</span>`, big +
+    const hurt = !G.K.medic() && G.S.advs.some((a) => a.hp > 0 && a.hp < G.T.stats(a).hp);
+    h += box(ic('i_flag') + ' ' + t('sendTitle') + ` <span class="muted">${UI.party.size}/${pmax}</span>`, big + (hurt ? `<div class="warn small">${ic('i_heal')} ${t('noMedicHint')}</div>` : '') +
       (idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`)
       + `<button class="btn primary big" data-action="send" ${UI.party.size ? '' : 'disabled'}>${ic('i_flag')} ${t('sendParty')}</button>`);
     return h;
@@ -1097,7 +1100,7 @@
   // ---------- вкладка «Король» ----------
   function kingPanel() {
     const k = G.S.king, tp = G.K.tp();
-    let h = `<div class="bhead">${ic('c_king', 'bimg')}<div><h2>${t('king')}</h2><div class="lvl">${t('lv')} <b>${k.lvl}</b> / ${D.KING_MAX}</div>${bar('kxp', 'xp')}<div class="muted small" data-b="kxpT"></div><div class="small">${t('talentPts')}: <b class="${tp ? 'good' : ''}">${tp}</b></div><div class="hint">${t('kingXpHint')}</div></div></div>`;
+    let h = `<div class="bhead">${ic('c_king', 'bimg')}<div><h2>${t('king')}</h2><div class="lvl">${t('lv')} <b>${k.lvl}</b> / ${D.KING_MAX}</div>${bar('kxp', 'xp')}<div class="muted small" data-b="kxpT"></div><div class="small">${t('talentPts')}: <b class="${tp ? 'good' : ''}">${tp}</b></div><div class="hint">${t('kingXpHow')}</div></div></div>`;
     h += box(ic('i_fire') + ' ' + t('spells'), D.SPELLS.map((sp) => {
       const open = k.lvl >= sp.lvl;
       return `<div class="spl ${open ? '' : 'locked'}">${ic(sp.icon, 'ic2')}<div class="grow"><b>${t('sp_' + sp.id)}</b> <span class="muted small">${sp.battle ? t('inBattle') : ''}</span><div class="small">${t('spd_' + sp.id, { d: G.K.meteorDmg() })}</div><div class="muted small">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}</div></div>${open ? `<button class="btn small" data-action="cast" data-arg="${sp.id}" data-spell="${sp.id}">${t('cast')} <span data-b="cd:${sp.id}"></span></button>` : `<span class="muted small">${ic('i_lock')} ${t('lv')} ${sp.lvl}</span>`}</div>`;

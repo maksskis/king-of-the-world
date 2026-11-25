@@ -75,7 +75,7 @@
       const s = G.T.stats(a);
       const sk = (k) => G.T.skillSum(a, k), C = D.CLS[a.cls];
       return {
-        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def, cd: Math.random() * 0.5, x: 66 - row * step - (i % per) * 2, y: lanes[i % per], hit: 0, swing: 0,
+        a, cls: a.cls, max: s.hp, atk: s.atk, def: s.def * (1 + G.bonus('defDef')), cd: Math.random() * 0.5, x: 66 - row * step - (i % per) * 2, y: lanes[i % per], hit: 0, swing: 0,
         dodge: Math.min(0.5, sk('dodge') + (C.dodge || 0)), crit: Math.min(0.6, sk('crit') + (C.crit || 0)), critMul: Math.min(4, 2 + sk('critDmg')), regen: Math.min(0.1, sk('regen')),
         bind: 1.5 + 8 * sk('stun'), // сколько секунд держат оковы шамана
         bossAtk: sk('bossAtk'), thorns: Math.min(0.8, sk('thorns')),
@@ -367,13 +367,14 @@
       for (const d of downed) G.T.wound(d.a, 60);
       if (final) {
         G.S.camp.won = true;
-        G.K.xp(2000);
+        G.K.xp(D.KXP.final);
         G.log('logFinalWon', {}, 'epic');
       } else {
-        if (n > G.S.gate.best) G.S.gate.best = n;
+        const rec = n > G.S.gate.best; // новая волна — полный опыт Короля, повтор — малая доля
+        if (rec) G.S.gate.best = n;
         G.S.stats.waves = (G.S.stats.waves || 0) + 1;
         G.S.gate.sel = Math.min(G.S.gate.best + 1, n + 1);
-        G.K.xp(8 * n);
+        G.K.xp(D.KXP.wave * n * n * (rec ? 1 : D.KXP.rep)); // опыт Короля за сражение
         G.log('logWaveWon', { n, loot: { gold: B.gold, bone: B.bone } }, 'good');
       }
       B.result = { win, final, gold: B.gold, bone: B.bone, xp, wounded: downed.length };
@@ -566,7 +567,7 @@
     m.hp = Math.max(0, m.hp - d);
     m.flash = 0.1;
     float(m.x, m.y - h - 2, '−' + G.U.fmt(Math.round(d)), crit ? '#ff9a3c' : '#f7c948');
-    G.K.xp(0.2);
+    G.K.xp(D.KXP.hit);
     if (m.hp <= 0) { B.forceWin = true; m.dead = true; m.deadT = 1.2; B.step = 9; B.wait = 0; }
   }
 
@@ -587,7 +588,7 @@
     if (hit) {
       const crit = Math.random() < G.bonus('clickCrit');
       hitMon(hit, W.kingDmg() * (crit ? 3 : 1), crit ? '#ff9a3c' : '#f7c948');
-      G.K.xp(0.2);
+      G.K.xp(D.KXP.hit);
     }
     G.SFX.play('click');
   };

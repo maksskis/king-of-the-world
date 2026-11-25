@@ -51,7 +51,7 @@
     w[4] = legP > 0 ? (s * legP) / (1 - legP) : 0;
     return w;
   };
-  F.luckK = () => 0.12 * (lvl() - 1) + 0.04 * G.S.b.forge.w + G.bonus('luck');
+  F.luckK = () => 0.12 * (lvl() - 1) + 0.04 * G.S.b.forge.w + G.bonus('luck') + G.bonus('forgeLuck'); // Придворный маг — удача кузницы
   F.legChance = () => (F.rarOpen(4) ? D.LEG.p : 0);
   F.rarWeights = () => F.weightsFor(F.luckK(), F.legChance(), F.rarOpen);
   F.rarChances = function () {
@@ -72,12 +72,13 @@
     }
   };
   // Удар молотом: сколько секунд ковки сокращает один клик («Подмастерья кузнеца», «Молот короля»)
-  F.boostSec = () => 0.5 * (1 + G.bonus('forgeBoost'));
+  F.boostSec = () => 0.5 * (1 + G.bonus('forgeBoost')) * G.K.foreman();
   F.boost = function () {
     const q = G.S.forge.q;
     if (!q.length || !G.E.usable('forge')) return false;
     q[0].t -= F.boostSec() * F.speed();
     F.tick(0);
+    G.K.handXp(D.KXP.help);
     return true;
   };
 
@@ -85,7 +86,6 @@
     const it = F.make(job.type, job.ti, G.U.weighted(F.rarWeights()));
     G.S.items.push(it);
     G.S.stats.crafted++;
-    G.K.xp(3 * (job.ti + 1));
     G.log('logCrafted', { item: F.nameObj(it) }, it.rar >= 3 ? 'epic' : 'good');
     G.SFX.play(it.rar >= 3 ? 'level' : 'build');
     G.UI.dirty();
