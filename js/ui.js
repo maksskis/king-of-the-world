@@ -934,39 +934,23 @@
   }
 
   // ---------- вкладка «Походы» ----------
-  function worldMap() {
-    const view = G.X.get(UI.expView);
-    const cur = view ? view.loc : G.S.dng.loc;
-    const nodes = D.LOC_ORDER.map((id) => {
-      const L = D.LOCS[id], open = G.X.locOpen(id);
-      const best = G.X.best(id), here = G.S.exps.filter((e) => e.loc === id).length;
-      const why = open ? '' : G.X.lockWhy(id);
-      const tip = why === 'goal' ? t('locLockedGoal', { n: D.GOALS.findIndex((g) => g.id === 'g28') - G.S.goal }) : why === 'research' ? t('locLocked', { r: t('rs_' + L.unlock) }) : '';
-      return `<button class="wnode ${cur === id ? 'on' : ''} ${open ? '' : 'locked'}" data-action="loc" data-arg="${id}" style="left:${L.pos[0]}%;top:${L.pos[1]}%" ${open ? '' : 'disabled'} ${tip ? `title="${esc(tip)}"` : ''}>
-        ${ic(L.icon, 'ic3')}<span class="wn">${t('loc_' + id)}</span><span class="wb">${open ? `${ic('i_flag')}${best}${L.floors ? '/' + L.floors : ''}` : ic('i_lock')}</span>${here ? `<i class="wsq">${ic('i_people')}${here}</i>` : ''}</button>`;
-    }).join('');
-    return `<div class="wmap" style="background-image:url(${G.SPR.worldBg()})"><span class="wcap" style="left:12%;top:74%">${ic('i_crown', 'ic2')}<span class="wn">${t('capital')}</span></span>${nodes}</div>`;
-  }
-
+  // Вкладка «Катакомбы»: сверху условия похода, под ними отправка отряда, ниже — отряды в походе
   function expBody() {
     if (G.E.lvl('tavern') < 1) return box('', t('needTavernDungeon'), 'muted');
-    const ex = G.S.exps, max = G.X.maxSquads();
-    if (UI.expView !== 'new' && !G.X.get(UI.expView)) UI.expView = ex.length ? ex[0].id : 'new';
+    const ex = G.S.exps, max = G.X.maxSquads(), loc = 'catacombs';
+    if (!G.X.get(UI.expView)) UI.expView = ex.length ? ex[0].id : null;
     const e = G.X.get(UI.expView);
-    const loc = e ? e.loc : G.S.dng.loc;
-    let h = worldMap();
-    // отряды: по одной кнопке на каждый поход и «Новый отряд»
-    h += `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic(D.LOCS[x.loc].icon, 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('loc_' + x.loc)} · ${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}<button class="sqb new ${e ? '' : 'on'}" data-action="squad" data-arg="new">${ic('i_flag', 'ic2')}<span><b>${t('squadNew')}</b><span class="small muted">${ex.length < max ? t('squadFree', { n: max - ex.length }) : t('squadNone')}</span></span></button></div>`;
-    const L = D.LOCS[loc];
-    h += `<div class="lochead">${ic(L.icon, 'ic3')}<div><h2>${t('loc_' + loc)}</h2><div class="desc">${t('locd_' + loc)}</div><div class="muted small">${t('deepest')}: <b>${G.X.best(loc)}</b>${L.floors ? ' / ' + L.floors : ''} · ${t('difficulty')}: <b>×${U.fmt1(L.diff * G.K.epochMul())}</b></div></div></div>`;
-    if (!G.X.locOpen(loc) && !e) {
-      const why = G.X.lockWhy(loc), left = D.GOALS.findIndex((g) => g.id === 'g28') - G.S.goal;
-      return h + box('', `${ic('i_lock')} ${why === 'goal' ? t('locLockedGoal', { n: left }) : t('locLocked', { r: t('rs_' + L.unlock) })}`, 'muted');
-    }
-    if (e) h += expActive(e);
-    else if (ex.length >= max) h += box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
-    else h += expSetup(loc);
-    if (!e && G.S.lastExp) {
+    const best = G.X.best(loc), nb = Object.keys(D.CAT_BOSS).map(Number).find((f) => f > best);
+    let h = `<div class="lochead">${ic('b_dungeon:1', 'ic3')}<div class="grow"><h2>${t('loc_catacombs')}</h2><div class="desc">${t('locd_catacombs')}</div>
+      <div class="muted small">${t('deepest')}: <b>${best}</b> · ${t('difficulty')}: <b>×${U.fmt1(G.K.epochMul())}</b>${nb ? ` · ${t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) })}` : ''}</div>
+      ${G.S.camp.awake && !G.S.camp.won ? `<div class="good small">${ic('i_dragon')} ${t('catDragonAwake')}</div>` : G.S.camp.won ? `<div class="muted small">${ic('i_crown')} ${t('catDragonWon')}</div>` : ''}</div>
+      ${nb ? `<span class="nextboss" title="${esc(t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) }))}">${ic(monSpr(D.CAT_BOSS[nb]), 'ic3')}<b>${nb}</b></span>` : ''}</div>`;
+    if (ex.length < max) h += expSetup(loc);
+    else h += box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
+    if (ex.length) {
+      h += `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic('b_dungeon:1', 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}</div>`;
+      if (e) h += expActive(e);
+    } else if (G.S.lastExp) {
       const R = G.S.lastExp;
       h += box(ic('i_scroll') + ' ' + t('lastReport'), `<div class="${R.ok ? 'good' : 'bad'}">${R.ok ? t('lastOk', { f: R.floor, l: t('loc_' + R.loc) }) : t('lastFail', { f: R.floor, l: t('loc_' + R.loc) })}</div><div>${lootHtml(R.loot) || '—'}${R.items ? ' · ' + t('itemsN', { n: R.items }) : ''}</div><div class="xlog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
     }
@@ -987,9 +971,7 @@
     const mf = Math.max(Dn.maxFloor, sf), push = Dn.hp <= 0, off = push ? 'disabled' : '';
     const sc = G.X.scale(loc, UI.party.size);
     const big = pmax > G.X.maxParty ? `<div class="hint top">${t('partyScale', { m: pmax, k: U.fmt1(sc.hp), a: U.fmt1(sc.atk), l: U.fmt1(sc.loot) })}</div>` : '';
-    let h = box(ic('i_people') + ' ' + t('party') + ` <span class="muted">${UI.party.size}/${pmax}</span>`, big +
-      (idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`));
-    h += box(ic('i_scroll') + ' ' + t('retreatTitle'), `<div class="hint top">${t('retreatHint')}</div>
+    let h = box(ic('i_scroll') + ' ' + t('retreatTitle'), `<div class="hint top">${t('retreatHint')}</div>
       <div class="cond"><span class="grow">${ic('i_stairs')} ${t('startFloor')}<span class="small muted cnote">${so.length > 1 ? t('startHint') : t('startLocked')}</span></span><button class="btn small" data-action="startf" data-arg="-1" ${si > 0 ? '' : 'disabled'}>◀</button><b>${sf}</b><button class="btn small" data-action="startf" data-arg="1" ${si < so.length - 1 ? '' : 'disabled'}>▶</button></div>
       <div class="cond"><span class="grow">${ic('i_flag')} ${t('maxFloor')}</span><button class="btn small" data-action="maxf" data-arg="-5">−5</button><button class="btn small" data-action="maxf" data-arg="-1">◀</button><b>${mf}</b><button class="btn small" data-action="maxf" data-arg="1">▶</button><button class="btn small" data-action="maxf" data-arg="5">+5</button></div>
       <div class="cond"><span class="grow">${ic('i_hp')} ${t('condHp')}</span><button class="btn small" data-action="condHp" data-arg="-0.1" ${push ? 'disabled' : ''}>◀</button><b class="${push ? 'bad' : ''}">${push ? '0% · ' + t('condPush') : Math.round(Dn.hp * 100) + '%'}</b><button class="btn small" data-action="condHp" data-arg="0.1">▶</button></div>
@@ -997,7 +979,9 @@
       <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_skull')} ${t('condDown')}</span><button class="btn small ${Dn.down && !push ? 'primary' : ''}" data-action="condDown" ${off}>${Dn.down && !push ? t('yes') : t('no')}</button></div>
       <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_crown')} ${t('condBoss')}</span><button class="btn small ${Dn.boss && !push ? 'primary' : ''}" data-action="condBoss" ${off}>${Dn.boss && !push ? t('yes') : t('no')}</button></div>
       <div class="cond ${push ? 'off' : ''}"><span class="grow">${ic('i_boot')} ${t('condAvoid')}</span><span class="seg">${[0, 0.3, 0.5, 0.7].map((v) => `<button class="btn small ${(push ? !v : Dn.avoid === v) ? 'primary' : ''}" data-action="condAvoid" data-arg="${v}" ${off}>${v ? '< ' + v * 100 + '%' : t('never')}</button>`).join('')}</span></div>`);
-    h += `<button class="btn primary big" data-action="send" ${UI.party.size ? '' : 'disabled'}>${ic('i_flag')} ${t('sendParty')}</button>`;
+    h += box(ic('i_flag') + ' ' + t('sendTitle') + ` <span class="muted">${UI.party.size}/${pmax}</span>`, big +
+      (idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'pickParty', a.id, UI.party.has(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`)
+      + `<button class="btn primary big" data-action="send" ${UI.party.size ? '' : 'disabled'}>${ic('i_flag')} ${t('sendParty')}</button>`);
     return h;
   }
 

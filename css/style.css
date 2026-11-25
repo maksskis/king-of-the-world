@@ -979,3 +979,7 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 
 /* Прогресс цели с числом */
 .gprog { color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Вкладка «Катакомбы»: следующий особый страж справа в шапке */
+.lochead .grow { flex: 1; min-width: 0; }
+.nextboss { flex: none; display: grid; justify-items: center; gap: 2px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13, 10, 18, 0.5); font-size: 12px; color: var(--gold); }

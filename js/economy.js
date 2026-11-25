@@ -276,20 +276,23 @@
   // ---------- цели ----------
   // Перенос прогресса: v1 — старые 30 целей (g0–g29), v2 — список из 90 целей, v3 — 119 целей, v4 — нынешний
   // (дракон — две последние цели)
+  // убранные цели, у которых есть прямая замена: Шахта 5 → Катакомбы 20, Шахта до конца → 50, 30-й этаж → 75
+  const ALIAS = { n44: 'c20', n58: 'c50', m35: 'c75' };
   const fromOrder = (list, at) => {
-    for (let i = at || 0; i < list.length; i++) { const k = D.GOALS.findIndex((g) => g.id === list[i]); if (k >= 0) return k; }
+    for (let i = at || 0; i < list.length; i++) { const id = ALIAS[list[i]] || list[i]; const k = D.GOALS.findIndex((g) => g.id === id); if (k >= 0) return k; }
     return -1;
   };
   E.migrateGoals = function () {
     const S = G.S;
-    if (S.goalV === 3) {
-      const k = fromOrder(D.GOALS_V3, S.goal);
+    // v3 и v4 — переносим по порядку той версии (v4 → v5: цели Шахты и Логова заменены целями Катакомб)
+    if (S.goalV === 3 || S.goalV === 4) {
+      const k = fromOrder(S.goalV === 3 ? D.GOALS_V3 : D.GOALS_V4, S.goal);
       S.goal = k < 0 ? D.GOALS.length : k;
       S.goalBase = null;
-      S.goalV = 4;
+      S.goalV = 5;
       return;
     }
-    if (S.goalV >= 4) return;
+    if (S.goalV >= 5) return;
     const after = D.GOALS.findIndex((g) => g.id === 'g29') + 1; // всё пройдено
     if (!(S.goalV >= 2)) {
       const old = S.goal || 0;
@@ -300,7 +303,7 @@
       S.goal = idx < 0 ? after : idx;
     }
     S.goalBase = null;
-    S.goalV = 4;
+    S.goalV = 5;
   };
   // Дошёл ли игрок до цели id (она текущая или уже выполнена)
   E.goalAt = (id) => G.S.goal >= D.GOALS.findIndex((g) => g.id === id);

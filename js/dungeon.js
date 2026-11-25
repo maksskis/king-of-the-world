@@ -37,6 +37,7 @@
   // Старые сохранения: один поход в G.S.exp
   X.sanitize = function () {
     if (!Array.isArray(G.S.exps)) G.S.exps = [];
+    G.S.dng.loc = 'catacombs'; // одна локация
     if (G.S.exp) { G.S.exps.push(G.S.exp); G.S.exp = null; }
     for (const e of G.S.exps) {
       if (!e.id) e.id = G.U.uid();
@@ -46,8 +47,9 @@
       if (!e.items) e.items = [];
     }
   };
-  X.travelTime = (f) => Math.round(Math.min(12, 4 + 0.4 * f));
-  X.returnTime = (f) => Math.round(Math.min(15, 5 + 0.4 * f));
+  // «Карты катакомб» сокращают дорогу между этажами и путь домой
+  X.travelTime = (f) => Math.round(Math.min(12, 4 + 0.4 * f) * (1 - G.bonus('expTravel')));
+  X.returnTime = (f) => Math.round(Math.min(15, 5 + 0.4 * f) * (1 - G.bonus('expTravel')));
 
   // ---------- локации ----------
   X.loc = (id) => D.LOCS[id];
@@ -55,11 +57,10 @@
     return !X.lockWhy(id);
   };
   // Почему локация закрыта: нет Гильдии, нет исследования или (Логово) ещё не дошли до цели «Разбуди дракона»
+  // Почему локация закрыта: нет Гильдии; ходить можно только в Катакомбы
   X.lockWhy = function (id) {
-    const L = D.LOCS[id];
     if (G.E.lvl('tavern') < 1) return 'tavern';
-    if (L.unlock && !G.R.done(L.unlock)) return 'research';
-    if (id === 'lair' && !G.S.camp.awake && !G.S.camp.won && !G.E.goalAt('g28')) return 'goal';
+    if (id !== 'catacombs') return 'gone';
     return '';
   };
   X.best = (id) => G.S.dng.best[id] || 0;
@@ -76,17 +77,25 @@
     return X.startOptions(id).filter((f) => f <= want).pop();
   };
 
+  // Рост силы врагов с этажом: до D.CAT.f0 прежний (×1,26 здоровье, ×1,19 урон), дальше — мягче
+  X.growth = function (f) {
+    const C = D.CAT, e = Math.min(f, C.f0) - 1, m = Math.max(0, Math.min(f, C.f1) - C.f0), l = Math.max(0, f - C.f1);
+    return { hp: Math.pow(1.26, e) * Math.pow(C.gh, m) * Math.pow(C.gh2, l), atk: Math.pow(1.19, e) * Math.pow(C.ga, m) * Math.pow(C.ga2, l) };
+  };
+  X.bigBoss = (f) => !!D.CAT_BOSS[f];
   X.enemy = function (locId, f, n) {
     const L = D.LOCS[locId];
     const boss = f % 5 === 0 || f === L.floors;
+    const big = locId === 'catacombs' && X.bigBoss(f);
     const key = boss ? L.boss(f) : G.U.pick(L.pool(f));
     const count = boss ? 1 : G.U.randInt(2, 4);
-    const diff = L.diff * G.K.epochMul();
-    const hp = Math.round(60 * Math.pow(1.26, f - 1) * diff * (boss ? D.BOSS.hp : 1) * (count / 3));
+    const diff = L.diff * G.K.epochMul(), gr = X.growth(f);
+    const bh = big ? (f === 100 ? D.CAT.wardHp : D.CAT.bigHp) : 1, ba = big ? (f === 100 ? D.CAT.wardAtk : D.CAT.bigAtk) : 1;
+    const hp = Math.round(60 * gr.hp * diff * (boss ? D.BOSS.hp : 1) * bh * (count / 3));
     const sc = X.scale(locId, n || X.maxParty);
     const hpS = Math.round(hp * sc.hp);
-    const atk = Math.round(9 * Math.pow(1.19, f - 1) * Math.pow(diff, 0.8) * (boss ? D.BOSS.atk : 1) * (0.7 + count * 0.1) * sc.atk * 10) / 10;
-    return { key, count, hp: hpS, max: hpS, atk, boss, f, hits: sc.hits };
+    const atk = Math.round(9 * gr.atk * Math.pow(diff, 0.8) * (boss ? D.BOSS.atk : 1) * ba * (0.7 + count * 0.1) * sc.atk * 10) / 10;
+    return { key, count, hp: hpS, max: hpS, atk, boss, big, f, hits: sc.hits + (big ? 1 : 0) };
   };
   X.enemyName = function (en) {
     if (en.boss) return { k: 'mn_' + en.key };
@@ -128,7 +137,7 @@
       if (p.crit && Math.random() < p.crit) { hit *= p.critMul; crits++; }
       d += hit;
     }
-    d *= dealtM * G.U.rand(0.85, 1.15);
+    d *= dealtM * G.U.rand(0.85, 1.15) * (en.boss ? 1 + G.bonus('bossDmg') : 1); // «Драконоборцы» бьют боссов сильнее
     ehp -= d;
     if (out) out.push([crits ? 'fr_partyCrit' : 'fr_party', { d: Math.round(d) }, 'good']);
     if (ehp <= 0) return ehp;
@@ -379,7 +388,7 @@
     const loot = L.loot(e.floor, boss);
     for (const k in loot) { loot[k] = Math.round(loot[k] * lootMul); e.loot[k] = (e.loot[k] || 0) + loot[k]; }
     dropItem(e, boss);
-    const xp = Math.round(12 * Math.pow(1.17, e.floor - 1) * L.diff * (boss ? 2 : 1));
+    const xp = Math.round(12 * (e.floor <= D.CAT.f0 ? Math.pow(1.17, e.floor - 1) : Math.pow(1.17, D.CAT.f0 - 1) * Math.pow(D.CAT.xpG, e.floor - D.CAT.f0)) * L.diff * (boss ? 2 : 1));
     for (const a of ms) if (a.hp > 0) G.T.giveXp(a, xp);
     G.K.xp(4 * e.floor * L.diff);
     xlog(e, 'xWin', { f: e.floor, loot }, 'good');
@@ -388,7 +397,8 @@
     e.enemy = null;
     e.lastBoss = boss;
     G.SFX.play('win');
-    if (L.final && e.floor >= L.floors && !G.S.camp.awake) {
+    // 100-й этаж Катакомб: пал Страж драконьего сна — Древний дракон пробуждается, его можно вызвать к воротам
+    if ((e.loc === 'catacombs' ? e.floor >= 100 : L.final && e.floor >= L.floors) && !G.S.camp.awake) {
       G.S.camp.awake = true;
       G.log('logDragonAwake', {}, 'epic');
       G.UI.story('awake');

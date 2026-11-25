@@ -367,18 +367,97 @@
     b.rect(8, 1, 6, 2, P.gold); b.px(8, 0, P.gold); b.px(10, 0, P.gold); b.px(13, 0, P.gold);
     b.rect(3, 4, 1, 18, P.woodD); b.disc(3.5, 3, 1.8, P.ghost);
   } };
-  DEF.m_dragon = { w: 52, h: 38, draw(b) {
-    const c = P.red, cd = P.redD, cl = P.redL;
-    b.poly([[20, 16], [34, 2], [44, 1], [38, 8], [48, 6], [40, 14], [30, 20]], cd);
-    b.poly([[22, 16], [33, 5], [41, 4], [36, 10], [44, 9], [36, 15]], c);
-    b.poly([[40, 24], [50, 20], [51, 25], [45, 26]], c);
-    b.ellipse(30, 25, 12, 7, c); b.ellipse(30, 28, 9, 3.5, P.glowL);
-    b.poly([[20, 22], [12, 12], [8, 13], [16, 25]], c);
-    b.ellipse(8, 12, 6, 4, c); b.poly([[2, 12], [-1, 14], [4, 15]], c); b.rect(1, 13, 5, 1, cd);
-    b.poly([[8, 8], [11, 3], [11, 9]], P.boneD); b.poly([[5, 9], [6, 4], [8, 9]], P.boneD);
-    b.px(6, 11, P.gold); b.px(7, 11, P.gold);
-    b.rect(22, 30, 4, 6, cd); b.rect(34, 30, 4, 6, cd); b.px(21, 35, P.boneL); b.px(33, 35, P.boneL);
-    b.line(26, 18, 34, 18, cl);
+  // Древний дракон: крупнее и грозней, цвета — из выбранного облика города (тёмная чешуя, крылья цвета крыш,
+  // глаза и пламя — цвета огней в окнах, рога и когти — камень обрамлений, шипы — навершия); «Классика» — красный
+  DEF.m_dragon = { w: 64, h: 48, draw(b) {
+    const S = G.GOTH && G.GOTH.style(G.SPR.style());
+    const K = S ? { body: S.B1, dark: S.MO, hi: S.BH, mid: S.B2, wing: S.RD, wingL: S.R, wingH: S.RL, eye: S.GL, eyeL: S.GLL, horn: S.TL, hornD: S.T, spike: S.FI, belly: S.TD }
+      : { body: P.red, dark: P.redD, hi: P.redL, mid: '#a83030', wing: P.redD, wingL: P.red, wingH: P.redL, eye: P.gold, eyeL: P.goldL, horn: P.boneL, hornD: P.boneD, spike: P.gold, belly: P.glowL };
+    // дальнее крыло
+    b.poly([[34, 20], [44, 4], [52, 2], [50, 10], [58, 9], [52, 18], [42, 24]], K.dark);
+    // ближнее крыло: перепонка и кости-пальцы
+    b.poly([[30, 22], [36, 6], [46, 0], [63, 3], [55, 9], [62, 13], [52, 16], [57, 22], [44, 24]], K.wing);
+    b.poly([[33, 21], [38, 8], [46, 3], [58, 5], [50, 10], [56, 14], [48, 16], [51, 21], [42, 23]], K.wingL);
+    b.line(36, 7, 46, 0, K.wingH); b.line(46, 0, 63, 3, K.wingH); b.line(40, 12, 58, 5, K.hornD); b.line(40, 15, 56, 14, K.hornD); b.line(41, 19, 51, 21, K.hornD);
+    // хвост с шипом
+    b.poly([[46, 30], [56, 32], [62, 38], [63, 43], [58, 40], [52, 36], [44, 35]], K.body);
+    b.poly([[58, 40], [63, 38], [63, 46], [59, 45]], K.spike);
+    // тело и брюхо
+    b.ellipse(36, 31, 13, 9, K.body); b.ellipse(34, 28, 9, 4, K.mid);
+    b.ellipse(33, 36, 10, 3.5, K.belly); for (let x = 25; x < 42; x += 3) b.rect(x, 34, 1, 5, K.dark);
+    // задняя лапа и передняя лапа с когтями
+    b.poly([[42, 34], [49, 37], [49, 45], [44, 45], [44, 40], [40, 38]], K.body); b.rect(43, 45, 7, 2, K.dark);
+    b.px(43, 47, K.horn); b.px(46, 47, K.horn); b.px(49, 47, K.horn);
+    b.poly([[24, 34], [29, 35], [27, 44], [22, 44]], K.body); b.rect(20, 44, 8, 2, K.dark);
+    b.px(20, 46, K.horn); b.px(23, 46, K.horn); b.px(26, 46, K.horn);
+    // шея
+    b.poly([[26, 27], [16, 14], [22, 11], [33, 24]], K.body); b.line(18, 13, 30, 25, K.hi);
+    // голова: вытянутая морда, нижняя челюсть с клыками
+    b.poly([[1, 19], [8, 13], [18, 10], [23, 14], [20, 19], [10, 21]], K.body);
+    b.poly([[3, 21], [12, 21], [19, 19], [16, 24], [6, 24]], K.mid);
+    b.rect(4, 20, 9, 1, '#0d0a12');
+    for (const x of [5, 8, 11]) { b.px(x, 19, '#ffffff'); b.px(x + 1, 21, '#ffffff'); }
+    b.px(2, 18, K.dark); b.px(3, 17, K.dark); // ноздря
+    // рога назад-вверх и гребень
+    b.poly([[15, 11], [25, 1], [27, 2], [19, 12]], K.horn); b.line(17, 11, 25, 3, K.hornD);
+    b.poly([[19, 12], [30, 6], [30, 8], [21, 14]], K.horn);
+    for (const [x, y] of [[24, 13], [27, 16], [30, 19], [34, 22], [38, 22], [42, 23], [46, 26], [50, 29]]) b.poly([[x - 1.5, y + 1], [x, y - 3], [x + 1.5, y + 1]], K.spike);
+    // горящий глаз и угли из пасти
+    b.rect(13, 13, 3, 2, K.eye); b.px(14, 13, K.eyeL); b.px(12, 14, '#0d0a12');
+    b.px(0, 20, K.eye); b.px(1, 22, K.eyeL); b.px(0, 23, K.eye);
+  } };
+  // Костяной колосс — страж 25-го этажа: великан-скелет с рогами и костяной палицей
+  DEF.m_colossus = { w: 30, h: 32, draw(b) {
+    const bn = P.bone, bd = P.boneD;
+    b.rect(10, 23, 3, 8, bn); b.rect(17, 23, 3, 8, bn); b.rect(9, 30, 5, 2, bd); b.rect(16, 30, 5, 2, bd);
+    b.rect(9, 20, 12, 3, bd);
+    b.ellipse(15, 14, 8, 7, bn); for (let y = 10; y < 20; y += 2) b.rect(8, y, 14, 1, bd); b.rect(14, 8, 2, 13, bd);
+    b.disc(15, 14, 1.6, P.ghost);
+    b.line(22, 11, 27, 19, bn); b.line(23, 11, 28, 19, bd);
+    b.line(8, 11, 4, 17, bn); b.line(7, 11, 3, 17, bd);
+    b.ellipse(3, 21, 3, 5, bn); b.px(2, 19, bd); b.px(4, 22, bd); b.px(3, 24, bd);
+    b.disc(15, 5, 5, bn); b.rect(11, 4, 3, 2, P.k); b.rect(16, 4, 3, 2, P.k); b.px(12, 5, '#ff3b3b'); b.px(17, 5, '#ff3b3b');
+    b.rect(12, 8, 7, 2, bd); for (let x = 12; x < 19; x += 2) b.px(x, 8, P.white);
+    b.poly([[11, 2], [6, -1], [9, 4]], bd); b.poly([[19, 2], [24, -1], [21, 4]], bd);
+  } };
+  // Демон бездны — страж 50-го этажа: багровый, с перепончатыми крыльями, рогами и огнём в лапе
+  DEF.m_demon = { w: 32, h: 32, draw(b) {
+    const c = '#5a1418', cl = '#8a2222', cd = '#3a0c10';
+    b.poly([[12, 11], [1, 3], [3, 12], [0, 17], [10, 17]], cd); b.poly([[20, 11], [31, 3], [29, 12], [32, 17], [22, 17]], cd);
+    b.line(1, 3, 10, 15, P.redD); b.line(31, 3, 22, 15, P.redD);
+    b.line(22, 25, 28, 28, c); b.poly([[28, 26], [31, 28], [28, 30]], P.redD);
+    b.rect(11, 24, 3, 6, cd); b.rect(18, 24, 3, 6, cd); b.rect(10, 30, 4, 2, P.k); b.rect(18, 30, 4, 2, P.k);
+    b.ellipse(16, 18, 7, 8, c); b.ellipse(15, 17, 4, 5, cl);
+    b.line(10, 15, 5, 19, c); b.line(10, 16, 5, 20, c); b.px(4, 20, P.boneL); b.px(4, 18, P.boneL);
+    b.disc(4, 21, 2.2, P.glow); b.px(4, 20, P.glowL); b.px(3, 18, P.glow);
+    b.disc(15, 9, 4.5, c); b.rect(12, 11, 6, 1, P.k); b.px(13, 11, P.white); b.px(16, 11, P.white);
+    b.px(13, 8, P.glowL); b.px(17, 8, P.glowL);
+    b.poly([[11, 7], [7, 0], [12, 5]], P.boneD); b.poly([[19, 7], [23, 0], [18, 5]], P.boneD);
+  } };
+  // Повелитель кошмаров — страж 75-го этажа: тень в рваном капюшоне с косой и фиолетовым светом
+  DEF.m_wraith = { w: 28, h: 32, draw(b) {
+    const r = '#1a1426', rl = '#2c2240', glow = '#c08aff';
+    b.line(5, 3, 10, 31, P.woodD);
+    b.poly([[3, 2], [13, 0], [15, 2], [6, 4], [2, 8]], P.ironL); b.line(3, 7, 7, 3, P.ironD);
+    b.poly([[10, 5], [18, 5], [23, 30], [19, 27], [16, 31], [13, 27], [10, 31], [7, 27]], r);
+    b.poly([[12, 7], [16, 7], [19, 26], [14, 24]], rl);
+    b.line(11, 14, 8, 17, r); b.line(11, 15, 8, 18, r);
+    b.disc(14, 7, 5, r); b.disc(13.5, 8, 3, '#05030a'); b.px(12, 8, glow); b.px(15, 8, glow);
+    for (const [x, y] of [[3, 14], [24, 10], [22, 20], [2, 24], [25, 27]]) b.px(x, y, glow);
+  } };
+  // Страж драконьего сна — страж 100-го этажа: каменный рыцарь в чешуйчатых латах с огненными трещинами,
+  // щит с гербом дракона и двуручный меч; его поражение будит Древнего дракона
+  DEF.m_warden = { w: 32, h: 34, draw(b) {
+    const st = '#3a3440', sp = '#4a4250', sl = '#5e5468';
+    b.rect(11, 26, 4, 7, st); b.rect(18, 26, 4, 7, st); b.rect(10, 32, 6, 2, P.k); b.rect(17, 32, 6, 2, P.k);
+    b.poly([[7, 12], [25, 12], [26, 26], [6, 26]], sp);
+    for (let y = 14; y < 26; y += 3) for (let x = 8 + (y % 2); x < 25; x += 4) b.px(x, y, sl);
+    b.line(10, 15, 13, 22, P.glow); b.line(20, 14, 18, 20, P.glow); b.px(16, 24, P.glowL);
+    b.rect(26, 12, 3, 10, sp); b.line(29, 1, 29, 27, P.ironL); b.line(30, 1, 30, 27, P.ironD); b.rect(27, 21, 5, 1, P.goldD);
+    b.rect(12, 4, 9, 8, sl); b.rect(13, 7, 7, 1, P.glow); b.px(16, 7, P.glowL);
+    b.poly([[12, 5], [8, 0], [13, 4]], P.gold); b.poly([[21, 5], [25, 0], [20, 4]], P.gold);
+    b.poly([[1, 13], [10, 13], [10, 24], [5.5, 29], [1, 24]], P.goldD); b.poly([[2.5, 14.5], [8.5, 14.5], [8.5, 23], [5.5, 27], [2.5, 23]], P.redD);
+    b.px(5, 17, P.gold); b.px(4, 18, P.gold); b.px(6, 18, P.gold); b.px(5, 19, P.gold); b.px(5, 21, P.gold);
   } };
 
   // ---------- здания 3/4 (48×48), аргумент — облик 1..4: меняется на 3, 5 и 7 уровнях ----------
@@ -702,7 +781,7 @@
   G.SPR = {
     style: () => (G.S && G.S.style) || 'A',
     canvas(key) {
-      const ck = key.startsWith('b_') ? key + '@' + G.SPR.style() : key;
+      const ck = key.startsWith('b_') || key.startsWith('m_dragon') ? key + '@' + G.SPR.style() : key;
       return cache[ck] || (cache[ck] = build(key));
     },
     url(key) {

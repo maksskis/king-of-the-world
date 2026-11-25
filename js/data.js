@@ -175,6 +175,11 @@
     golem: { hp: 500, atk: 20, spd: 8, gold: 50, boss: true },
     guardian: { hp: 700, atk: 28, spd: 8, gold: 80, boss: true, spr: 'm_golem:r' },
     dragon: { hp: 2500, atk: 45, spd: 9, gold: 1000, boss: true },
+    // особые стражи Катакомб (25, 50, 75, 100-й этаж); сила в походе считается по этажу, эти числа — для ворот
+    colossus: { hp: 900, atk: 30, spd: 7, gold: 150, boss: true },
+    demon: { hp: 1200, atk: 38, spd: 9, gold: 250, boss: true },
+    wraith: { hp: 1500, atk: 45, spd: 10, gold: 400, boss: true },
+    warden: { hp: 2000, atk: 50, spd: 7, gold: 600, boss: true },
   };
 
   D.NAMES = [
@@ -250,7 +255,7 @@
     { id: 'bows', b: 'barracks', acad: 3, icon: 'it_bow:0', cost: { gold: 400, wood: 300, iron: 120 }, t: 300, eff: { guardAtk: 0.25 } },
     { id: 'gates', b: 'gate', acad: 3, icon: 'i_def', cost: { gold: 400, stone: 500, iron: 150 }, t: 360, eff: { gateHp: 0.25 } },
     { id: 'workshop', b: 'forge', acad: 3, req: 'mining', icon: 'i_anvil', cost: { gold: 500, iron: 300, wood: 200 }, t: 420, eff: { forgeQ: 1, craft: 0.2 } },
-    { id: 'maps', b: 'academy', acad: 3, icon: 'i_map', cost: { gold: 500, wood: 300, bone: 20 }, t: 480, eff: { loc_mine: 1 } },
+    { id: 'maps', b: 'academy', acad: 3, icon: 'i_map', cost: { gold: 500, wood: 300, bone: 20 }, t: 480, eff: { expTravel: 0.3 } },
     // 4
     { id: 'council', b: 'academy', acad: 4, icon: 'i_people', cost: { gold: 1000, wood: 600, stone: 600, crystal: 10 }, t: 600, eff: { resSlots: 1 } },
     { id: 'storage', b: 'warehouse', acad: 4, icon: 'i_bag', cost: { gold: 1000, wood: 800, stone: 800 }, t: 600, eff: { store: 0.25 } },
@@ -264,7 +269,7 @@
     // 6
     { id: 'guard', b: 'barracks', acad: 6, req: 'bows', icon: 'i_helmet', cost: { gold: 2500, iron: 1200 }, t: 1200, eff: { guards: 3, guardSpd: 0.25 } },
     { id: 'treasury', b: 'castle', acad: 6, icon: 'i_chest', cost: { gold: 2500, stone: 1500, iron: 500 }, t: 1200, eff: { goldCap: 0.3 } },
-    { id: 'dragon', b: 'academy', acad: 6, req: 'maps', icon: 'i_dragon', cost: { gold: 4000, mithril: 40, crystal: 60 }, t: 1500, eff: { loc_lair: 1 } },
+    { id: 'dragon', b: 'academy', acad: 6, req: 'maps', icon: 'i_dragon', cost: { gold: 4000, mithril: 40, crystal: 60 }, t: 1500, eff: { bossDmg: 0.25 } },
     { id: 'spikes', b: 'gate', acad: 6, icon: 'i_atk', cost: { gold: 2200, wood: 1500, iron: 600 }, t: 1100, eff: { thorns: 0.5 } },
     // 7
     { id: 'guildhall', b: 'tavern', acad: 7, icon: 'i_people', cost: { gold: 5000, wood: 5000, stone: 5000 }, t: 1800, eff: { advCap: 2 } },
@@ -278,12 +283,18 @@
   D.resIn = (r, k) => [].concat(r.b).includes(k);
 
   // ---------- подземелья (карта мира) ----------
-  const L = (f, m) => ({ gold: Math.round(12 * Math.pow(1.2, f - 1) * m.g), bone: Math.round((1 + f * 0.6) * m.b) });
+  // Золото этажа: до 15-го этажа растёт как раньше (×1,2), дальше — мягче (степенью), чтобы на глубине не было миллионов
+  const goldF = (f) => (f <= 15 ? 12 * Math.pow(1.2, f - 1) : 12 * Math.pow(1.2, 14) * Math.pow(f / 15, 2.2));
+  const L = (f, m) => ({ gold: Math.round(goldF(f) * m.g), bone: Math.round((1 + f * 0.6) * m.b) });
+  // Катакомбы — одна бесконечная локация. Сила врагов: до f0 этажа прежний рост, дальше мягче (gh, ga за этаж).
+  // Особые стражи на 25, 50, 75 и 100-м этаже сильнее обычных боссов (bigHp, bigAtk); 100-й будит дракона.
+  D.CAT = { f0: 15, f1: 50, gh: 1.06, ga: 1.048, gh2: 1.036, ga2: 1.027, bigHp: 1.6, bigAtk: 1.3, wardHp: 1.25, wardAtk: 1.1, xpG: 1.12 };
+  D.CAT_BOSS = { 25: 'colossus', 50: 'demon', 75: 'wraith', 100: 'warden' };
   D.LOCS = {
     catacombs: {
       icon: 'b_dungeon', pos: [30, 38], floors: 0, diff: 1,
       pool: (f) => (f <= 3 ? ['slime', 'goblin', 'spider'] : f <= 7 ? ['goblin', 'skeleton', 'wolf', 'spider'] : ['skeleton', 'orc', 'wolf', 'spider']),
-      boss: (f) => (f % 10 === 5 ? 'troll' : 'lich'),
+      boss: (f) => D.CAT_BOSS[f] || (f % 10 === 5 ? (f > 50 ? 'golem' : 'troll') : f > 60 ? 'guardian' : 'lich'),
       loot(f, boss) {
         const m = boss ? 2.5 : 1;
         const o = L(f, { g: m, b: m });
@@ -318,7 +329,8 @@
       },
     },
   };
-  D.LOC_ORDER = ['catacombs', 'mine', 'lair'];
+  // Затопленная шахта и Логово больше не открываются: остались только для походов из старых сохранений
+  D.LOC_ORDER = ['catacombs'];
 
   // ---------- династия ----------
   // Земли, которые осваивает каждый следующий наследник; карта подкрашивается под край
@@ -365,6 +377,8 @@
   D.GOALS_V2 = ['g0', 'g1', 'g2', 'n1', 'g3', 'n2', 'g4', 'n3', 'g5', 'n4', 'n5', 'g6', 'g7', 'n6', 'n7', 'g8', 'g9', 'g10', 'n8', 'g11', 'g12', 'g13', 'n9', 'g14', 'n10', 'n11', 'g15', 'n12', 'n13', 'n14', 'n15', 'g16', 'g17', 'n16', 'n17', 'g18', 'n18', 'g19', 'n19', 'n20', 'n21', 'n22', 'g20', 'n23', 'g21', 'g22', 'n24', 'n25', 'n26', 'n27', 'n28', 'n29', 'n30', 'n31', 'n32', 'n33', 'n34', 'n35', 'n36', 'g23', 'n37', 'n38', 'n39', 'n40', 'n41', 'n42', 'n43', 'g24', 'n44', 'n45', 'n46', 'g25', 'n47', 'n48', 'n49', 'g26', 'n50', 'n51', 'n52', 'n53', 'n54', 'n55', 'n56', 'n57', 'g27', 'n58', 'n59', 'g28', 'n60', 'g29'];
   // Порядок списка версии 3 (119 целей): по нему переносится прогресс
   D.GOALS_V3 = ['g0', 'g1', 'g2', 'm1', 'n1', 'g3', 'n2', 'g4', 'm2', 'g5', 'n4', 'm3', 'n5', 'g6', 'g7', 'n6', 'n7', 'g8', 'g9', 'g10', 'm4', 'g11', 'g12', 'g13', 'g14', 'n10', 'm5', 'n11', 'g15', 'm6', 'm7', 'g16', 'g17', 'n16', 'n17', 'm8', 'g18', 'n18', 'g19', 'n20', 'n21', 'm9', 'g20', 'n23', 'm10', 'g21', 'g22', 'n24', 'n25', 'm11', 'n26', 'n27', 'n28', 'n29', 'm12', 'n30', 'n31', 'n32', 'n33', 'n34', 'n35', 'n36', 'm13', 'm14', 'g23', 'n37', 'n38', 'n39', 'n40', 'm15', 'n41', 'n42', 'm16', 'n43', 'g24', 'n44', 'n45', 'n46', 'm17', 'g25', 'n47', 'm18', 'n48', 'n49', 'g26', 'm19', 'n50', 'n51', 'n52', 'm20', 'n53', 'n54', 'n55', 'm21', 'n56', 'n57', 'm22', 'g27', 'm23', 'n58', 'm24', 'n59', 'm25', 'm26', 'g28', 'm27', 'n60', 'm28', 'm29', 'm30', 'g29', 'm31', 'm32', 'm33', 'm34', 'm35', 'm36', 'm37', 'm38'];
+  // Порядок списка версии 4 (114 целей)
+  D.GOALS_V4 = ['g0', 'g1', 'g2', 'm1', 'n1', 'g3', 'n2', 'g4', 'm2', 'g5', 'n4', 'm3', 'n5', 'g6', 'g7', 'n6', 'n7', 'g8', 'g9', 'g10', 'm4', 'g11', 'g12', 'g13', 'g14', 'n10', 'm5', 'n11', 'g15', 'm6', 'm7', 'g16', 'g17', 'n16', 'n17', 'm8', 'g18', 'n18', 'g19', 'n20', 'n21', 'm9', 'g20', 'n23', 'm10', 'g21', 'g22', 'n24', 'n25', 'm11', 'n26', 'n27', 'n28', 'n29', 'm12', 'n30', 'n31', 'n32', 'n33', 'n34', 'n35', 'n36', 'm13', 'm14', 'g23', 'n37', 'n38', 'n39', 'n40', 'm15', 'n41', 'n42', 'm16', 'n43', 'g24', 'n44', 'n45', 'n46', 'm17', 'g25', 'n47', 'm18', 'n48', 'n49', 'g26', 'm19', 'n50', 'n51', 'n52', 'm20', 'n53', 'n54', 'n55', 'm21', 'n56', 'n57', 'm22', 'g27', 'm23', 'n58', 'm24', 'm25', 'm26', 'm27', 'n60', 'm28', 'm29', 'm30', 'm32', 'm33', 'm35', 'm37', 'g28', 'g29'];
   D.GOALS = [
     { id: 'g0', t: 'goal0', h: { b: 'castle', act: 'gather' }, test: (S) => S.stats.clicks >= 10, reward: { gold: 10 } },
     { id: 'g1', t: 'goal1', h: { b: 'lumber', act: 'up' }, test: (S) => S.b.lumber.lvl >= 1, reward: { wood: 15 } },
@@ -441,7 +455,7 @@
     { id: 'm16', t: 'gm_m16', h: { b: 'gate', act: 'fight' }, v: (S) => S.stats.waves || 0, n: 5, d: true, reward: { gold: 600, bone: 20 } },
     { id: 'n43', t: 'gn43', h: { tab: 'guild' }, test: (S) => S.advs.some((a) => a.lvl >= 10), reward: { crystal: 15 } },
     { id: 'g24', t: 'goal24', h: { b: 'academy', act: 'research', arg: 'maps' }, test: (S) => R(S, 'maps'), reward: { gold: 500 } },
-    { id: 'n44', t: 'gn44', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'mine' }, test: (S) => (S.dng.best.mine || 0) >= 5, reward: { mithril: 10 } },
+    { id: 'c20', t: 'gm_c20', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.dng.best.catacombs || 0, n: 20, reward: { mithril: 10, crystal: 10 } },
     { id: 'n45', t: 'gn45', h: { b: 'academy', act: 'research', arg: 'runes' }, test: (S) => R(S, 'runes'), reward: { crystal: 20 } },
     { id: 'n46', t: 'gn46', h: { tab: 'armory', act: 'enchant' }, test: (S) => (S.stats.enchanted || 0) >= 1, reward: { crystal: 20 } },
     { id: 'm17', t: 'gm_m17', h: { b: 'academy', act: 'research' }, v: (S) => D.RESEARCH.filter((r) => S.research.done[r.id]).length, n: 3, d: true, reward: { gold: 800 } },
@@ -458,6 +472,7 @@
     { id: 'm20', t: 'gm_m20', h: { b: 'gate', act: 'fight' }, v: (S) => S.stats.kills || 0, n: 200, d: true, reward: { gold: 1500, bone: 40 } },
     { id: 'n53', t: 'gn53', h: { b: 'gate', act: 'fight' }, test: (S) => S.gate.best >= 15, reward: { gold: 1500, bone: 40 } },
     { id: 'n54', t: 'gn54', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, test: (S) => (S.dng.best.catacombs || 0) >= 15, reward: { mithril: 20 } },
+    { id: 'c25', t: 'gm_c25', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.dng.best.catacombs || 0, n: 25, reward: { crystal: 30, mithril: 15 } },
     { id: 'n55', t: 'gn55', h: { b: 'tavern', act: 'hire' }, test: (S) => S.advs.some((a) => a.rar >= 2), reward: { gold: 1200 } },
     { id: 'm21', t: 'gm_m21', h: { tab: 'armory', act: 'enchant' }, v: (S) => S.stats.enchanted || 0, n: 3, d: true, reward: { crystal: 40 } },
     { id: 'n56', t: 'gn56', h: { b: 'castle', act: 'up' }, test: (S) => S.b.castle.lvl >= 6, reward: { gold: 2000 } },
@@ -465,7 +480,7 @@
     { id: 'm22', t: 'gm_m22', h: { b: 'lumber', act: 'up' }, v: (S) => Math.min(S.b.lumber.lvl, S.b.quarry.lvl, S.b.mine.lvl), n: 6, reward: { gold: 2000 } },
     { id: 'g27', t: 'goal27', h: { b: 'academy', act: 'research', arg: 'dragon' }, test: (S) => R(S, 'dragon'), reward: { gold: 2000 } },
     { id: 'm23', t: 'gm_m23', h: { b: 'arena', act: ['arenaPick', 'arenaFight'] }, v: (S) => S.arena.wins || 0, n: 10, d: true, reward: { crystal: 30, mithril: 10 } },
-    { id: 'n58', t: 'gn58', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'mine' }, test: (S) => (S.dng.best.mine || 0) >= 15, reward: { mithril: 40 } },
+    { id: 'c50', t: 'gm_c50', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.dng.best.catacombs || 0, n: 50, reward: { mithril: 40, crystal: 40 } },
     { id: 'm24', t: 'gm_m24', h: { b: 'tavern', act: 'hire' }, v: (S) => S.advs.length, n: 6, reward: { gold: 2500 } },
     { id: 'm25', t: 'gm_m25', h: { b: 'castle', act: 'up' }, v: (S) => S.b.castle.lvl, n: 7, reward: { gold: 4000 } },
     { id: 'm26', t: 'gm_m26', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.stats.floors || 0, n: 30, d: true, reward: { mithril: 30, crystal: 30 } },
@@ -476,10 +491,10 @@
     { id: 'm30', t: 'gm_m30', h: { b: 'academy', act: 'research' }, v: (S) => D.RESEARCH.filter((r) => S.research.done[r.id]).length, n: 20, reward: { crystal: 60 } },
     { id: 'm32', t: 'gm_m32', h: { b: 'gate', act: 'fight' }, v: (S) => S.gate.best, n: 25, reward: { gold: 8000, bone: 150 } },
     { id: 'm33', t: 'gm_m33', h: { b: 'arena', act: ['arenaPick', 'arenaFight'] }, v: (S) => S.arena.best || 0, n: 10, reward: { crystal: 80 } },
-    { id: 'm35', t: 'gm_m35', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.dng.best.catacombs || 0, n: 30, reward: { mithril: 60 } },
+    { id: 'c75', t: 'gm_c75', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, v: (S) => S.dng.best.catacombs || 0, n: 75, reward: { mithril: 80, crystal: 80 } },
     { id: 'm37', t: 'gm_m37', h: { tab: 'king' }, v: () => G.K.legacyGain(), n: 25, reward: { crystal: 100 } },
-    { id: 'g28', t: 'goal28', h: { b: 'dungeon', tab: 'exp', act: ['loc', 'send'], arg: 'lair' }, test: (S) => S.camp.awake, reward: { gold: 3000 } },
-    { id: 'g29', t: 'goal29', h: { b: 'gate', act: 'fightFinal' }, test: (S) => S.camp.won, reward: { gold: 10000 } },
+    { id: 'g28', t: 'goal28', h: { b: 'dungeon', tab: 'exp', act: ['pickParty', 'send'] }, test: (S) => S.camp.awake, reward: { gold: 20000, crystal: 100 } },
+    { id: 'g29', t: 'goal29', h: { b: 'gate', act: 'fightFinal' }, test: (S) => S.camp.won, reward: { gold: 30000, mithril: 100 } },
   ];
 
 })();
