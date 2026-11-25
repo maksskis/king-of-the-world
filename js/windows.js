@@ -12,10 +12,9 @@
     const cur = G.F.equipped(owner, slot);
     const gains = new Map(P.fits(owner, slot).map((it) => [it, P.gain(it, owner)]));
     const list = [...gains.keys()].sort((x, y) => P.gainScore(gains.get(y)) - P.gainScore(gains.get(x)) || G.F.score(y) - G.F.score(x));
-    return `<div class="picker"><div class="row"><b>${t('chooseItem')}: ${slot === 'weapon' ? t('weapon') : t('armor')}</b><span class="grow"></span>
+    return `<div class="picker"><div class="row"><b>${list.length ? h().tipTitle(`${t('chooseItem')}: ${slot === 'weapon' ? t('weapon') : t('armor')}`, 'diffHint', t(cur ? 'diffHint' : 'diffHintEmpty')) : `${t('chooseItem')}: ${slot === 'weapon' ? t('weapon') : t('armor')}`}</b><span class="grow"></span>
       ${cur ? `<button class="btn small" data-action="uneq" data-arg="${cur.id}">${ic('i_x')} ${t('unequip')}</button>` : ''}
       <button class="btn small" data-action="pickClose">${t('close')}</button></div>
-      ${list.length ? `<div class="hint top">${t(cur ? 'diffHint' : 'diffHintEmpty')}</div>` : ''}
       <div class="igrid">${list.map((it) => itemTile(it, 'eq', it.id + '|' + owner, P.diffHtml(gains.get(it)))).join('') || `<div class="muted small">${t('noItems')}</div>`}</div></div>`;
   };
   // Как изменятся итоговые статы владельца, если надеть вещь вместо той, что в этой ячейке сейчас
@@ -99,7 +98,7 @@
       <div class="small muted">${t('rarityChances')}</div>${chancesRow(D.IRAR, G.F.rarChances(), G.F.rarOpen, 'ir')}
       <div class="row">${costHtml(cost)}</div>
       ${btn(ic('i_hammer') + ' ' + (full ? t('queueFull') : t('craft')), 'craft', '', { cost, chips: false, cls: 'primary big', lock: full })}</div>
-      <div class="box"><h3>${ic('i_clock')} ${t('forgeQueue')} <span class="muted">${q.length}/${qMax}</span></h3><div class="qgrid">${slots.join('')}</div><div class="hint">${t('forgeQueueHint')}</div></div>`;
+      <div class="box"><h3>${h().tipTitle(ic('i_clock') + ' ' + t('forgeQueue'), 'forgeQueueHint')} <span class="muted">${q.length}/${qMax}</span></h3><div class="qgrid">${slots.join('')}</div></div>`;
   };
 
   // ---------- таверна: найм прямо в панели ----------
@@ -116,11 +115,10 @@
         <div class="small muted">${t('cld_' + c.cls)}</div>
         ${btn(t('hire'), 'hire', i, { cost: { gold: G.T.hireCost(c) }, cls: 'primary small', lock: full })}</div>`;
     }).join('');
-    return `<div class="box"><h3>${ic('i_people')} ${t('candidates')} <span class="muted">${t('guildSize')}: ${S.advs.length}/${G.T.maxAdvs()}</span></h3>
+    return `<div class="box"><h3>${h().tipTitle(ic('i_people') + ' ' + t('candidates'), 'rerollHint', t('rerollHint') + (G.S.tavern.rr ? ' ' + t('rerollCount', { n: G.S.tavern.rr }) : ''))} <span class="muted">${t('guildSize')}: ${S.advs.length}/${G.T.maxAdvs()}</span></h3>
       ${full ? `<div class="warn small">${t('guildFull')}</div>` : ''}
       <div class="hgrid">${cards || `<div class="muted">${t('noCands')}</div>`}</div>
       <div class="row"><span class="muted small">${ic('i_clock')} ${t('newIn')} <span data-b="tavT"></span></span><span class="grow"></span>${btn(ic('i_people') + ' ' + t('reroll'), 'reroll', '', { cost: G.T.refreshCost(), cls: 'small' })}</div>
-      <div class="hint">${t('rerollHint')}${G.S.tavern.rr ? ' ' + t('rerollCount', { n: G.S.tavern.rr }) : ''}</div>
       <div class="row"><button class="btn small" data-action="tab" data-arg="guild">${ic('i_people')} ${t('toGuild')}</button></div></div>
       <div class="box"><h3>${ic('i_star')} ${t('rarityChances')}</h3>${chancesRow(D.ARAR, G.T.rarChances(), G.T.rarOpen, 'ar')}</div>`;
   };
@@ -156,8 +154,8 @@
       return `<div class="rcard2 st-${st}" data-tip="s:${r.id}">${ic(r.icon, 'ic2')}<div class="grow"><b>${t('rs_' + r.id)}</b><div class="small">${t('rsd_' + r.id)}</div>${st === 'done' ? '' : `<div class="row">${costHtml(r.cost)}<span class="muted small">${ic('i_clock')} ${G.U.fmtTime(G.R.time(r))}</span></div>`}<div class="row">${ra}</div></div></div>`;
     }).join('')}</div>`).join('');
     return `<div class="box"><h3>${ic('i_book')} ${t('researchNow')} <span class="muted">${act.length}/${G.R.slots()}</span></h3>${top}</div>
-      <div class="box"><h3>${ic('i_scroll')} ${t('acadQueue')} <span class="muted">${q.length}/12</span></h3><div class="hint top">${t('acadQueueHint')}</div>${queue}</div>
-      <div class="box"><h3>${ic('i_book')} ${t('researchTitle')}</h3><div class="hint top">${t('researchHint')}</div>${groups}</div>`;
+      <div class="box"><h3>${h().tipTitle(ic('i_scroll') + ' ' + t('acadQueue'), 'acadQueueHint')} <span class="muted">${q.length}/12</span></h3>${queue}</div>
+      <div class="box"><h3>${h().tipTitle(ic('i_book') + ' ' + t('researchTitle'), 'researchHint')}</h3>${groups}</div>`;
   };
 
   // Пометка у записи указа, которую указ пока пропускает
@@ -189,9 +187,9 @@
           <div class="stats big">${ic('i_hp')}<span data-b="hp:${a.id}"></span> ${ic('i_atk')}${s.atk} ${ic('i_def')}${s.def}</div>
           ${bar('hp:' + a.id, 'hp')}
           <div class="bar xp"><i style="width:${xpw}%"></i></div><div class="small muted">${t('xp')}: ${Math.floor(a.xp)} / ${G.T.xpNeed(a.lvl)}</div>
-          <div class="ast">${h().stIcon(a)}</div><div class="hint">${t('assignHint')}</div></div></div>
+          <div class="ast">${h().tipTitle(h().stIcon(a), 'assignHint')}</div></div></div>
       <h3>${ic('i_chest')} ${t('equipment')}</h3><div class="eqrow">${P.eqSlots(a.id, ['weapon', 'armor'])}</div>${pickerFor(a.id, ['weapon', 'armor'])}
-      <h3>${ic('i_star')} ${t('skills')} <span class="muted">${t('skillPts')}: <b class="${sp ? 'good' : ''}">${sp}</b></span></h3><div class="hint top">${t('skillRanksHint')}</div><div class="skills">${skills}</div>
+      <h3>${h().tipTitle(ic('i_star') + ' ' + t('skills'), 'skillRanksHint')} <span class="muted">${t('skillPts')}: <b class="${sp ? 'good' : ''}">${sp}</b></span></h3><div class="skills">${skills}</div>
       ${canDismiss ? `<div class="right"><button class="btn danger small" data-action="dismiss" data-arg="${a.id}">${t('dismiss')}</button></div>` : ''}</div>`;
   };
 
@@ -252,10 +250,10 @@
           ${tm.length ? `<div class="small ${chance >= 60 ? 'good' : chance >= 30 ? 'warn' : 'bad'}">${t('winChance')}: ${chance}%</div>` : ''}
         </div></div>
       <button class="btn primary big" data-action="jFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why ? whyTxt : t('jrFight')}</button>
-      <h3>${ic('i_people')} ${t('arenaTeam')} <span class="muted">${tm.length}/${J.teamMax()}</span></h3>
+      <h3>${h().tipTitle(ic('i_people') + ' ' + t('arenaTeam'), 'jrHint')} <span class="muted">${tm.length}/${J.teamMax()}</span></h3>
       ${idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'jPick', a.id, S.team.includes(a.id) && a.st === 'idle')).join('')}</div>` : `<div class="muted small">${t('noIdle')}</div>`}
-      <div class="hint">${t('jrHint')}</div></div>`;
-    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_ship', 'ic2')} ${t('journey')}</h2><div class="muted small">${t('journeyHint', { b: S.best })}</div>
+      </div>`;
+    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${h().tipTitle(ic('i_ship', 'ic2') + ' ' + t('journey'), 'journeyHint', t('journeyHint', { b: S.best }))}</h2>
       <div class="jwrap"><div class="jmap">${map}</div>${det}</div>`;
   };
 
@@ -272,6 +270,6 @@
   };
   W.goals = function () {
     const { ic, t } = h();
-    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_star', 'ic2')} ${t('goalsTitle')}</h2><div class="muted small">${t('goalsHint')}</div>${P.goalsList()}`;
+    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${h().tipTitle(ic('i_star', 'ic2') + ' ' + t('goalsTitle'), 'goalsHint')}</h2>${P.goalsList()}`;
   };
 })();

@@ -853,6 +853,12 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
 }
 #gtip b { color: var(--gold); }
 #gtip .ic { vertical-align: -2px; }
+/* Заголовок с пояснением: пунктир и «?», текст всплывает при наведении */
+.hastip { cursor: help; text-decoration: underline dotted rgba(236, 230, 245, 0.35); text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.qh { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: 6px; font-family: 'Rubik', system-ui, sans-serif; font-size: 10px; font-weight: 700; font-style: normal; line-height: 1; color: var(--muted); border: 1px solid var(--line2); border-radius: 50%; vertical-align: 2px; text-decoration: none; cursor: help; }
+.hastip:hover .qh, [data-tip^="h:"]:hover > .qh { color: var(--gold); border-color: var(--gold); }
+h2 .qh { vertical-align: 5px; }
+#gtip .htip { max-width: 320px; }
 [data-tip] { cursor: help; }
 button[data-tip], .btn[data-tip] { cursor: pointer; }
 
