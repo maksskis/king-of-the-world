@@ -920,20 +920,63 @@
       b.ellipse(d.x + 3, d.y + d.size * 0.36, d.size * 0.46, d.size * 0.14, ell(d.x, d.y) < 1 ? '#3f7a34' : '#2a4f22');
     }
 
+    // пруд у леса (до деревьев — кроны нависают над берегом): неровный берег, мелководье светлее, глубина темнее,
+    // блики, кувшинки, камыши и камни на берегу
+    const PX = 31, PY = 266, PRX = 27, PRY = 14;
+    const pond = (x, y) => {
+      const dx = (x + 0.5 - PX) / PRX, dy = (y + 0.5 - PY) / PRY, a = Math.atan2(dy, dx);
+      return Math.hypot(dx, dy) / (1 + 0.1 * Math.sin(a * 3 + 0.7) + 0.06 * Math.sin(a * 5 + 2.1) + 0.04 * Math.sin(a * 9));
+    };
+    {
+      const rp = G.U.seeded(31);
+      for (let y = PY - PRY - 6; y <= PY + PRY + 6; y++) {
+        for (let x = Math.max(0, PX - PRX - 8); x <= PX + PRX + 8; x++) {
+          const d = pond(x, y), n = rp(), ch = (x + y) % 2;
+          if (d < 0.5 || (d < 0.56 && ch)) b.px(x, y, n < 0.06 ? '#2a5f99' : '#22507f');
+          else if (d < 0.8 || (d < 0.85 && ch)) b.px(x, y, n < 0.05 ? '#3a7cb8' : '#2d68a3');
+          else if (d < 0.94) b.px(x, y, n < 0.1 ? '#5c9bc9' : '#447fb6');
+          else if (d < 1) b.px(x, y, '#6aa6c9');
+          else if (d < 1.06) b.px(x, y, n < 0.3 ? '#57583a' : '#646343');
+          else if (d < 1.13 && n < 0.75 - (d - 1.06) * 8) b.px(x, y, n < 0.2 ? '#7a7148' : '#6e6a44');
+        }
+      }
+      // блики на воде и отражение неба
+      for (const [x, y, w] of [[PX - 13, PY - 6, 6], [PX - 4, PY - 2, 4], [PX + 6, PY + 3, 7], [PX - 9, PY + 5, 3], [PX + 12, PY - 4, 3]]) {
+        for (let i = 0; i < w; i++) if (pond(x + i, y) < 0.9) b.px(x + i, y, i === 0 || i === w - 1 ? '#5c9bc9' : '#a9d3ec');
+      }
+      // кувшинки
+      for (const [x, y, f] of [[PX + 9, PY - 6, 1], [PX + 14, PY - 3, 0], [PX - 16, PY + 4, 0]]) {
+        b.rect(x - 1, y, 4, 2, '#3f8a34'); b.px(x, y - 1, '#4f9a3c'); b.px(x + 1, y - 1, '#4f9a3c'); b.px(x + 2, y + 1, '#2f6b2a');
+        if (f) { b.px(x + 1, y, '#ff9ec2'); b.px(x + 1, y - 1, '#ffd0e0'); }
+      }
+      // камыши: стебли на кромке, сверху коричневые початки
+      for (const [x, y, h] of [[PX + 21, PY + 3, 6], [PX + 23, PY + 1, 7], [PX + 25, PY + 4, 5], [PX + 19, PY + 6, 5], [PX - 22, PY + 6, 5], [PX - 20, PY + 9, 6], [PX + 3, PY + 14, 5], [PX + 6, PY + 13, 6]]) {
+        for (let i = 0; i < h; i++) b.px(x, y - i, i < 2 ? '#2f6b2a' : '#3f8a34');
+        b.px(x, y - h, '#6b4a2a'); b.px(x, y - h - 1, '#7d5a33');
+        b.px(x + 1, y - 2, '#4f9a3c');
+      }
+      // камни на берегу
+      for (const [x, y] of [[PX - 25, PY - 4], [PX + 17, PY - 12], [PX - 6, PY + 15]]) {
+        b.rect(x, y, 3, 2, '#7d8089'); b.px(x, y, '#a3a7b0'); b.px(x + 1, y, '#a3a7b0'); b.rect(x, y + 2, 3, 1, '#4a4c52');
+      }
+    }
+
     // деревья: лес по углам снаружи, сады внутри
     const rt = G.U.seeded(77);
     const trees = [];
     for (let i = 0; i < 260; i++) {
       const x = rt() * W, y = rt() * H;
       const d = ell(x, y);
-      if (d > MOAT + 0.05 && !(x > 262 && y < 78) && !(x > 300 && y > 250) && !(Math.abs(x - M.cx) < 18 && y > 250)) trees.push([x, y, 5 + rt() * 3]);
+      if (d > MOAT + 0.05 && !(x > 262 && y < 78) && !(x > 300 && y > 250) && !(Math.abs(x - M.cx) < 18 && y > 250)) {
+        const s = 5 + rt() * 3; // случайные числа берём как раньше, чтобы лес не переставился
+        if (pond(x, y) > 1.25) trees.push([x, y, s]);
+      }
     }
     for (const [x, y] of [[140, 182], [246, 182], [120, 100], [266, 100], [192, 92], [60, 152], [324, 152], [100, 222], [286, 222]]) trees.push([x, y, 4.5]);
     trees.sort((p, q) => p[1] - q[1]);
     for (const [x, y, s] of trees) treeTop(b, x, y, s, ell(x, y) < 1 ? '#3f7a34' : '#24461d');
 
-    // пруд и горы снаружи
-    b.ellipse(26, 268, 22, 12, P.waterD); b.ellipse(26, 267, 20, 10, P.water); b.ellipse(20, 264, 6, 2, P.waterL);
+    // горы снаружи
     // горный массив в правом верхнем углу, только снаружи стены и рва
     const rm = G.U.seeded(5);
     const peaks = [[338, -6, 30, 52], [372, 6, 22, 44], [300, 6, 20, 36], [356, 30, 18, 34], [378, 46, 14, 28]];

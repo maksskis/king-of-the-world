@@ -503,7 +503,10 @@
     }
     const s = G.S.gate, n = s.sel, pv = G.W.preview(n);
     const defs = G.T.gateCount();
-    const mons = Object.entries(pv.counts).map(([k, c]) => `<span class="wm" title="${esc(t('mn_' + k))}">${ic(monSpr(k), 'ic-mon')}<b>${c}</b></span>`).join('');
+    const ents = Object.entries(pv.counts), MAXM = 3;
+    const all = ents.map(([k, c]) => `${t('mn_' + k)} ×${c}`).join(', ');
+    const mons = ents.slice(0, MAXM).map(([k, c]) => `<span class="wm" title="${esc(t('mn_' + k))}">${ic(monSpr(k), 'ic-mon')}<b>${c}</b></span>`).join('')
+      + (ents.length > MAXM ? `<span class="wm wmore" title="${esc(all)}">+${ents.length - MAXM}</span>` : '');
     const note = why === 'noDefenders' ? t('waveNoDefenders') : why === 'gateBusy' ? t('waveGateBusy') : '';
     el.innerHTML = `<div class="ww">
       <div class="wsec">
@@ -859,13 +862,13 @@
     arena() {
       const A = G.A, S = G.S.arena, tm = A.team(), why = A.whyNot();
       const en = A.opp(S.rank, Math.max(1, tm.length)), ch = A.chance();
-      let h = box(ic('i_atk') + ' ' + t('arenaRank', { r: S.rank }) + ` <span class="muted">${t('arenaBest', { n: S.best || 0 })}</span>`, `
+      let h = box(tipTitle(ic('i_atk') + ' ' + t('arenaRank', { r: S.rank }), 'arenaHint') + ` <span class="muted">${t('arenaBest', { n: S.best || 0 })}</span>`, `
         <div class="arena-opp">${ic(monSpr(en.key), 'ic4')}<div class="grow"><b>${esc(t('mn_' + en.key))}</b> <span class="muted small">${t('arenaChamp')}</span>
           <div class="small">${ic('i_hp')} ${U.fmt(en.hp)} ${ic('i_atk')} ${U.fmt1(en.atk)}</div>
           <div class="small">${t('arenaReward')}: ${lootHtml(A.reward(S.rank))}</div>
           ${tm.length ? `<div class="small ${ch >= 0.7 ? 'good' : ch >= 0.4 ? 'warn' : 'bad'}">${t('winChance')}: <b>${Math.round(ch * 100)}%</b></div>` : ''}</div></div>
         <div class="small muted">${ic('i_clock')} ${t('arenaNext')}: <b data-b="arenaT"></b></div>
-        <button class="btn primary big" data-action="arenaFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why === 'cd' ? t('arenaWait') : why === 'team' ? t('arenaNoTeam') : why === 'busy' ? t('busyShort') : why === 'fight' ? t('arenaLive') : why === 'battle' ? t('arenaGateBusy') : t('arenaFight')}</button>`, '', 'arenaHint');
+        <button class="btn primary big" data-action="arenaFight" ${why ? 'disabled' : ''}>${ic('i_atk')} ${why === 'cd' ? t('arenaWait') : why === 'team' ? t('arenaNoTeam') : why === 'busy' ? t('busyShort') : why === 'fight' ? t('arenaLive') : why === 'battle' ? t('arenaGateBusy') : t('arenaFight')}</button>`);
       const idle = G.S.advs.filter((a) => a.st === 'idle' || (S.team || []).includes(a.id));
       h += box(ic('i_people') + ' ' + t('arenaTeam') + ` <span class="muted">${S.live ? S.live.ids.length : tm.length}/${A.teamMax()}</span>`,
         idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'arenaPick', a.id, (S.team || []).includes(a.id))).join('')}</div>` : `<div class="muted small">${G.S.advs.length ? t('noIdle') : t('guildEmpty')}</div>`);
@@ -1252,8 +1255,8 @@
       // Арена и Путешествие: «Пропустить» до конца боя; после — «Ускорить» (Арена) и «Следующий бой/этап»
       const jr = mode === 'journey';
       $('#battle-head').innerHTML = `<div class="bh-top"><b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span></div>
-        <div class="bh-btns duel">${speedBtns()}<span class="bslot"><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button>${jr ? '' : `<button class="btn small invis" id="bh-aboost" data-action="arenaBoost">${ic('i_clock')} ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</button>`}</span>
-        <span class="grow"></span><button class="btn small primary invis" id="${jr ? 'bh-jnext' : 'bh-anext'}" data-action="${jr ? 'journeyNext' : 'arenaNext'}" disabled>${jr ? t('jrNext') + ' ▶' : t('arenaNextBtn')}</button>${jr ? `<button class="btn small invis" id="bh-map" data-action="journey" disabled title="${esc(t('jrToMap'))}">${ic('i_map')}<span class="bl"> ${t('jrToMap')}</span></button>` : ''}<button class="btn small" id="bh-city" data-action="bclose" disabled title="${esc(t('toCity'))}">${ic('i_tower')}<span class="bl"> ${t('toCity')}</span></button></div>`;
+        <div class="bh-btns duel">${speedBtns()}<span class="bslot"><button class="btn small" id="bh-skip" data-action="askip" title="${esc(t('arenaSkip'))}"><span class="bln">${t('arenaSkip')} </span>▶▶</button>${jr ? '' : `<button class="btn small invis" id="bh-aboost" data-action="arenaBoost" title="${esc(t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) }))}">${ic('i_clock')}<span class="bln"> ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</span></button>`}</span>
+        <span class="grow"></span><button class="btn small primary invis" id="${jr ? 'bh-jnext' : 'bh-anext'}" data-action="${jr ? 'journeyNext' : 'arenaNext'}" disabled title="${esc(jr ? t('jrNext') : t('arenaNextBtn'))}">${jr ? `<span class="bln">${t('jrNext')} </span>▶` : `<span class="bln">${t('arenaNextBtn')}</span>`}</button>${jr ? `<button class="btn small invis" id="bh-map" data-action="journey" disabled title="${esc(t('jrToMap'))}">${ic('i_map')}<span class="bl"> ${t('jrToMap')}</span></button>` : ''}<button class="btn small" id="bh-city" data-action="bclose" disabled title="${esc(t('toCity'))}">${ic('i_tower')}<span class="bl"> ${t('toCity')}</span></button></div>`;
       const stn = t('ch_' + ((G.W.battle() || {}).stance || 'attack'));
       $('#bf-text').innerHTML = `<div class="hint">${mode === 'journey' ? t('jrLiveHint', { s: stn, d: G.W.kingDmg() }) : t('arenaLiveHint', { s: stn })}</div>`;
     } else if (on) {
@@ -1314,8 +1317,9 @@
     if (an) {
       const why = G.A.whyNot();
       an.disabled = !!why;
-      const lab = why === 'cd' ? t('arenaNextBtn') + ' · ' + U.fmtTime(G.S.arena.cd) : why === 'team' ? t('arenaNoTeam') : why ? t('arenaNextBtn') : t('arenaNextBtn') + ' ▶';
-      if (an.textContent !== lab) an.textContent = lab;
+      const nb = `<span class="bln">${t('arenaNextBtn')} </span>`;
+      const lab = why === 'cd' ? nb + '▶ ' + U.fmtTime(G.S.arena.cd) : why === 'team' ? `${ic('i_lock')}<span class="bln"> ${t('arenaNoTeam')}</span>` : why ? nb + '▶' : nb + '▶';
+      if (an._l !== lab) { an.innerHTML = lab; an._l = lab; }
       const ab = $('#bh-aboost');
       if (ab) { const off = !(G.S.arena.cd > 0); ab.classList.toggle('invis', off); ab.disabled = off; }
     }

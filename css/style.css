@@ -106,7 +106,7 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 #stage {
   position: relative;
-  width: min(94%, calc((100vh - 250px) * 1.2));
+  width: min(94%, calc((100vh - 300px) * 1.2));
   max-width: 100%;
   container-type: inline-size;
   aspect-ratio: 384 / 320;
@@ -178,7 +178,9 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .slot-badge .ic { width: 14px; height: 14px; vertical-align: 0; }
 
 /* Виджет волны: левый нижний угол карты, до катакомб */
-#wave-w { position: absolute; left: 1%; right: 20%; bottom: 1%; }
+/* Панель волны — отдельной полосой под картой (не закрывает здания); ширина как у карты */
+#wave-w { width: min(94%, calc((100vh - 300px) * 1.2)); max-width: 100%; margin: 0 auto; container-type: inline-size; }
+#wave-w:empty { display: none; }
 .ww {
   display: flex;
   flex-wrap: wrap;
@@ -220,9 +222,11 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
   .ww .btn.small { padding: 3px 7px; font-size: 12px; }
 }
 .wm { display: inline-flex; align-items: flex-end; font-size: 11px; }
+.wm.wmore { align-self: center; padding: 0 4px; font-weight: 700; color: var(--muted); background: #3a2c4a; border-radius: 4px; cursor: help; }
 .wm b { margin-left: -4px; text-shadow: 1px 1px 0 #000; }
 
-#spellbar { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 3; }
+#spellbar { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: row; gap: 4px; z-index: 3; }
+@container (max-width: 520px) { #map ~ #spellbar .spell, #stage > #spellbar .spell { width: 34px; height: 34px; padding: 3px; } }
 /* В бою заклинания лежат строкой в чёрной полосе под полем боя, слева; текст — справа от них */
 #bf-spells:empty { display: none; }
 #bf-spells #spellbar { position: static; display: flex; flex-direction: row; gap: 4px; }
@@ -276,7 +280,8 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 @media (max-width: 560px) {
   #battle-head .bh-btns { gap: 4px; flex-wrap: nowrap; }
   #battle-head .bh-btns .btn.small { padding: 4px 7px; font-size: 12px; }
-  #battle-head .bh-btns .bl { display: none; }
+  #battle-head .bh-btns .bl, #battle-head .bh-btns .bln { display: none; }
+  #battle-head #bh-anext { min-width: 0; }
   .spdseg .btn.spd { min-width: 28px; }
 }
 #bh-anext { min-width: 150px; }
@@ -620,7 +625,8 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 .tal3 { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .tbr { font-weight: 600; color: var(--gold); margin-bottom: 4px; }
 .tal { margin: 4px 0; }
-.tal .pips, b.hastip + .pips { margin-left: 8px; }
+/* полоска рангов — всегда отдельной строкой под названием (таланты, советники, навыки рода) */
+.tal .pips, .advc .pips, .perk .pips { display: flex; width: max-content; margin: 4px 0 0; }
 .advs { display: grid; grid-template-columns: 1fr; gap: 8px; }
 /* Совет: кнопка «Назначить/Повысить» — отдельной строкой под названием */
 .advact { margin-top: 6px; }
@@ -780,7 +786,7 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
 @media (max-width: 960px) {
   #app { height: auto; min-height: 100%; }
   #main { grid-template-columns: 1fr; }
-  #stage { width: 100%; }
+  #stage, #wave-w { width: 100%; }
   #side { border-left: 0; border-top: 2px solid var(--line); }
   #log { max-height: 160px; }
   #topbar, #world, #panel { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -790,6 +796,11 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   .craftwin { flex-direction: column; }
   .cats { flex-direction: row; flex-wrap: wrap; }
   .ww { flex-wrap: wrap; white-space: normal; justify-content: center; }
+}
+/* телефон: название — своей строкой, ресурсы — сеткой во всю ширину, а не столбиком у края */
+@media (max-width: 560px) {
+  #brand { flex: 1 1 100%; }
+  #resbar { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
 }
 /* Условия похода: отключённые строки и предупреждение режима «до последнего» */
 .cond.off { opacity: 0.45; }
@@ -971,13 +982,15 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 
 /* Путешествие: кнопка-причал у пруда на карте */
 #journey-btn {
-  position: absolute; left: 0.6%; top: 74%; z-index: 3;
+  position: absolute; left: 0.6%; top: 62%; z-index: 3;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
   padding: 4px 6px 3px; font: inherit; font-size: 11px; font-weight: 600; color: #fff;
   background: rgba(20, 40, 80, 0.78); border: 2px solid #7fb4f0; border-radius: 10px; cursor: pointer;
   box-shadow: 0 0 10px rgba(127, 180, 240, 0.6); animation: journeyGlow 2.4s ease-in-out infinite;
 }
 #journey-btn:hover, #journey-btn:focus-visible { border-color: var(--gold); outline: none; }
+/* узкая карта: кнопка Путешествия — только кораблик, у самого пруда, не закрывает подписи */
+@container (max-width: 520px) { #journey-btn { top: 66%; padding: 3px 4px; } #journey-btn span { display: none; } }
 #journey-btn .ic2 { width: 26px; height: 26px; }
 @keyframes journeyGlow { 50% { box-shadow: 0 0 16px rgba(127, 180, 240, 0.95); } }
 
