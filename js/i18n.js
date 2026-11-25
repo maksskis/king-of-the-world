@@ -224,7 +224,7 @@
 
     tabCity: 'Город', tabGuild: 'Герои', tabArmory: 'Арсенал', tabExp: 'Катакомбы', tabKing: 'Король',
     cityStyle: 'Облик города', cityStyleHint: 'Как выглядят Замок, постройки и стены. Меняется сразу, на игру не влияет.', style_A: 'Чёрный базальт', style_B: 'Тёмный кирпич и медь', style_C: 'Пепельный собор', style_D: 'Ночная крепость', style_E: 'Кровавая готика', style_classic: 'Классика: серый кирпич',
-    goalLabel: 'Цель', goalsDone: 'Все цели выполнены!', allGoals: 'Все цели', goalGo: 'Показать', goalGoTip: 'Открыть нужное здание и подсветить, что нажать', goalNoteHint: '— нажмите подсвеченное',
+    goalLabel: 'Цель', goalsDone: 'Все цели выполнены!', allGoals: 'Все цели', goalsTab: 'Цели', goalGo: 'Показать', goalGoTip: 'Открыть нужное здание и подсветить, что нажать', goalNoteHint: '— нажмите подсвеченное',
     levelOf: 'Уровень {l} из {m}', notBuilt: 'Не построено', maxLevel: 'Максимальный уровень.',
     consUp: 'Идёт улучшение до {l} уровня', consBuild: 'Идёт строительство', cancel: 'Отменить', cancelRefund: 'Отменить и вернуть ресурсы',
     consHint: 'Кликай по зданию на карте — каждый клик ускоряет стройку на 1 секунду.',
@@ -653,7 +653,7 @@
 
     tabCity: 'City', tabGuild: 'Heroes', tabArmory: 'Armory', tabExp: 'Catacombs', tabKing: 'King',
     cityStyle: 'Town look', cityStyleHint: 'How the Castle, buildings and walls look. Changes instantly, no effect on gameplay.', style_A: 'Black basalt', style_B: 'Dark brick & copper', style_C: 'Ash cathedral', style_D: 'Night fortress', style_E: 'Blood gothic', style_classic: 'Classic: grey brick',
-    goalLabel: 'Goal', goalsDone: 'All goals complete!', allGoals: 'All goals', goalGo: 'Show me', goalGoTip: 'Open the building and highlight what to press', goalNoteHint: '— press the highlighted button',
+    goalLabel: 'Goal', goalsDone: 'All goals complete!', allGoals: 'All goals', goalsTab: 'Goals', goalGo: 'Show me', goalGoTip: 'Open the building and highlight what to press', goalNoteHint: '— press the highlighted button',
     levelOf: 'Level {l} of {m}', notBuilt: 'Not built', maxLevel: 'Maximum level.',
     consUp: 'Upgrading to level {l}', consBuild: 'Under construction', cancel: 'Cancel', cancelRefund: 'Cancel and refund resources',
     consHint: 'Click the building on the map — each click speeds construction up by 1 second.',

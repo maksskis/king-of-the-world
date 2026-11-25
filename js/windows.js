@@ -232,15 +232,19 @@
       <div class="jwrap"><div class="jmap">${map}</div>${det}</div>`;
   };
 
-  W.goals = function () {
+  // Список всех целей: сданные, три текущих (с кнопками) и закрытые — во вкладке «Все цели» под картой и в окне
+  P.goalsList = function () {
     const { ic, t, lootHtml } = h();
     const Q = G.E.gq(), vis = G.E.goalsVisible().map((g) => g.id);
-    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_star', 'ic2')} ${t('goalsTitle')}</h2><div class="muted small">${t('goalsHint')}</div>
-      <div class="glist">${D.GOALS.map((g, i) => {
+    return `<div class="glist">${D.GOALS.map((g, i) => {
         const done = !!Q.done[g.id], cur = vis.includes(g.id), A = Q.acc[g.id], ready = A && A.r;
         const btn = !cur ? '' : !A ? `<button class="btn small primary" data-action="gAccept" data-arg="${g.id}">${t('goalAccept')}</button>`
           : ready ? `<button class="btn small claim" data-action="gClaim" data-arg="${g.id}">${t('goalClaim')}</button>` : `<button class="btn small" data-action="goGoal" data-arg="${g.id}">${t('goalGo')} ›</button>`;
         return `<div class="gitem ${done ? 'done' : cur ? 'cur' : 'later'}" ${g.h && g.h.act === 'research' && g.h.arg ? `data-tip="s:${g.h.arg}"` : ''}>${ic(done ? 'i_check' : cur ? 'i_star' : 'i_lock')}<span class="grow">${i + 1}. ${t(g.t)}${cur && A && g.v ? ` <b class="gprog" data-b="gp:${g.id}" ${g.d ? `title="${t('goalProgTip')}"` : ''}></b>` : ''}</span><span class="small">${lootHtml(g.reward)}</span>${btn}</div>`;
       }).join('')}</div>`;
+  };
+  W.goals = function () {
+    const { ic, t } = h();
+    return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${ic('i_star', 'ic2')} ${t('goalsTitle')}</h2><div class="muted small">${t('goalsHint')}</div>${P.goalsList()}`;
   };
 })();

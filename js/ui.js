@@ -537,13 +537,14 @@
     },
     autoToggle() { G.S.king.auto = !G.S.king.auto; G.SFX.play('click'); UI.dirty(); },
     settings() { UI.openSettings(); },
-    goals() {
-      UI.open('goals');
-      const cur = $('#modal-box .gitem.cur');
-      if (cur) cur.scrollIntoView({ block: 'center' });
-    },
+    goals() { if (UI.win === 'goals') UI.closeModal(); ACT.gtab('all'); },
     goGoal(id) { UI.goGoal(id); },
-    gtab(a) { UI.gtab = a === 'log' ? 'log' : 'goals'; if (a === 'log') UI.logDirty = true; UI.dirty(); },
+    gtab(a) {
+      UI.gtab = a === 'log' || a === 'all' ? a : 'goals';
+      if (a === 'log') UI.logDirty = true;
+      if (a === 'all') UI._allJump = true; // при открытии — к текущим целям
+      UI.dirty();
+    },
     gAccept(id) { if (G.E.acceptGoal(id)) UI.focusGoal = id; },
     gClaim(id) { G.E.claimGoal(id); },
     tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
@@ -710,12 +711,20 @@
   UI.gtab = 'goals';
   function renderGoal() {
     const vis = G.E.goalsVisible(), ready = vis.filter((g) => G.E.goalReady(g)).length;
-    $('#goal').innerHTML = `<button class="gtab ${UI.gtab === 'goals' ? 'on' : ''}" data-action="gtab" data-arg="goals">${ic('i_star')} ${t('goalLabel')} <b>${G.E.goalsDoneCount()}/${D.GOALS.length}</b>${ready ? `<em>${ready}</em>` : ''}</button>`
-      + `<button class="gtab ${UI.gtab === 'log' ? 'on' : ''}" data-action="gtab" data-arg="log">${ic('i_scroll')} ${t('logTab')}</button>`
-      + `<span class="grow"></span><button class="gall" data-action="goals" title="${t('allGoals')}" aria-label="${t('allGoals')}">${ic('i_book')}</button>`;
+    const tab = (k, html) => `<button class="gtab ${UI.gtab === k ? 'on' : ''}" data-action="gtab" data-arg="${k}">${html}</button>`;
+    $('#goal').innerHTML = tab('goals', `${ic('i_star')} ${t('goalsTab')} <b>${G.E.goalsDoneCount()}/${D.GOALS.length}</b>${ready ? `<em>${ready}</em>` : ''}`)
+      + tab('all', `${ic('i_book')} ${t('allGoals')}`) + tab('log', `${ic('i_scroll')} ${t('logTab')}`);
     const box = $('#gcards');
-    box.classList.toggle('hidden', UI.gtab !== 'goals');
+    box.classList.toggle('hidden', UI.gtab === 'log');
+    box.classList.toggle('alllist', UI.gtab === 'all');
     $('#log').classList.toggle('hidden', UI.gtab !== 'log');
+    if (UI.gtab === 'all') {
+      const st = box.scrollTop;
+      box.innerHTML = G.PANE.goalsList();
+      box.scrollTop = st;
+      if (UI._allJump) { UI._allJump = false; const cur = box.querySelector('.gitem.cur'); if (cur) box.scrollTop = cur.offsetTop - box.offsetTop - 8; }
+      return;
+    }
     if (UI.gtab !== 'goals') return;
     box.innerHTML = vis.length ? vis.map(goalCard).join('') : `<div class="gcard done"><div class="gc-l"><div class="gc-t">${ic('i_crown')} ${t('goalsDone')}</div></div></div>`;
   }

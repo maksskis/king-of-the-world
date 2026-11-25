@@ -1008,3 +1008,9 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .btn.claim { animation: none; } }
 @media (max-width: 760px) { #gcards { grid-template-rows: none; } .gcard { gap: 6px; padding: 6px 8px; } }
 @media (max-width: 520px) { .gcard { grid-template-columns: max-content minmax(0, 1fr) max-content max-content; } .gc-p .bar { display: none; } .gc-b .btn { min-width: 0; } }
+
+/* Вкладка «Все цели» под картой: тот же список, что был в окне, с прокруткой */
+#gcards.alllist { display: block; overflow: auto; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+#gcards.alllist .glist { max-height: none; }
+#goal .gtab { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+@media (max-width: 520px) { #goal .gtab { padding: 6px 8px; font-size: 12.5px; } }
