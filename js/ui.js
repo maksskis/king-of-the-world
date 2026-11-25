@@ -719,19 +719,22 @@
     if (UI.gtab !== 'goals') return;
     box.innerHTML = vis.length ? vis.map(goalCard).join('') : `<div class="gcard done"><div class="gc-l"><div class="gc-t">${ic('i_crown')} ${t('goalsDone')}</div></div></div>`;
   }
-  // Карточка задания: слева текст, награда и прогресс, справа кнопка «Принять» → «Показать» → «Сдать»
+  // Карточка задания в один ряд: награда | название | прогресс | кнопка («Принять» → «Показать» → «Сдать»)
   function goalCard(g) {
     const A = G.E.goalAcc(g), ready = G.E.goalReady(g);
     const gr = g.h && g.h.act === 'research' && g.h.arg;
     let prog;
-    if (!A) prog = `<div class="muted small">${t('goalAcceptHint')}</div>`;
-    else if (g.v) prog = `<div class="gc-p">${bar('gp:' + g.id, ready ? 'gpbar done' : 'gpbar')}<b class="gprog" data-b="gp:${g.id}"></b></div>`;
-    else prog = `<div class="small ${ready ? 'good' : 'muted'}">${ready ? ic('i_check') + ' ' + t('goalMet') : t('goalInWork')}</div>`;
-    const btn = !A ? `<button class="btn primary" data-action="gAccept" data-arg="${g.id}">${t('goalAccept')}</button>`
+    if (!A) prog = `<span class="muted small">${t('goalNotTaken')}</span>`;
+    else if (g.v) prog = `${bar('gp:' + g.id, ready ? 'gpbar done' : 'gpbar')}<b class="gprog" data-b="gp:${g.id}"></b>`;
+    else prog = `<span class="small ${ready ? 'good' : 'muted'}">${ready ? ic('i_check') + ' ' + t('goalMetShort') : t('goalInWork')}</span>`;
+    const btn = !A ? `<button class="btn primary" data-action="gAccept" data-arg="${g.id}" title="${t('goalAcceptHint')}">${t('goalAccept')}</button>`
       : ready ? `<button class="btn claim" data-action="gClaim" data-arg="${g.id}">${ic('i_chest')} ${t('goalClaim')}</button>`
         : `<button class="btn" data-action="goGoal" data-arg="${g.id}">${t('goalGo')} ›</button>`;
-    return `<div class="gcard ${ready ? 'ready' : A ? 'acc' : 'new'}"><div class="gc-l" data-action="goGoal" data-arg="${g.id}" ${gr ? `data-tip="s:${gr}"` : `title="${t('goalGoTip')}"`}>
-      <div class="gc-t">${t(g.t)}</div><div class="gc-r small">${lootHtml(g.reward)}</div>${prog}</div><div class="gc-b">${btn}</div></div>`;
+    return `<div class="gcard ${ready ? 'ready' : A ? 'acc' : 'new'}">
+      <span class="gc-r">${lootHtml(g.reward)}</span>
+      <span class="gc-t" data-action="goGoal" data-arg="${g.id}" ${gr ? `data-tip="s:${gr}"` : `title="${esc(t(g.t))}"`}>${t(g.t)}</span>
+      <span class="gc-p">${prog}</span>
+      <span class="gc-b">${btn}</span></div>`;
   }
 
   // ---------- окно здания ----------
