@@ -25,8 +25,10 @@
   A.reward = function (rank) {
     const m = (1 + 0.15 * (A.lvl() - 1)) * (1 + G.bonus('arenaLoot')) * G.K.epochReward();
     const o = { gold: 10 * rank, bone: 3 + 2 * rank };
-    if (rank >= 2) o.crystal = Math.round(1 + rank * 0.7);
-    if (rank >= 4) o.mithril = Math.floor(rank / 2);
+    // кристаллы и мифрил — только когда их уже добывают в Катакомбах (25-й и 50-й этаж)
+    const cat = G.S.dng.best.catacombs || 0;
+    if (rank >= 2 && cat >= D.CRYSTAL_FLOOR) o.crystal = Math.round(1 + rank * 0.7);
+    if (rank >= 4 && cat >= D.MITHRIL_FLOOR) o.mithril = Math.floor(rank / 2);
     for (const k in o) o[k] = Math.max(1, Math.round(o[k] * m));
     return o;
   };

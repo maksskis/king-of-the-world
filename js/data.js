@@ -2,8 +2,11 @@
 (function () {
   const D = (G.D = {});
 
-  D.RES = ['gold', 'wood', 'stone', 'iron', 'bone', 'crystal', 'mithril'];
-  D.MAT = ['wood', 'stone', 'iron', 'bone', 'crystal', 'mithril'];
+  D.RES = ['gold', 'wood', 'stone', 'iron', 'bone', 'crystal', 'mithril', 'adamant'];
+  D.MAT = ['wood', 'stone', 'iron', 'bone', 'crystal', 'mithril', 'adamant'];
+  // Где берутся редкие ресурсы: кости — ворота, Катакомбы, Арена; мана-кристаллы — Катакомбы с 25-го этажа;
+  // мифрил — Катакомбы с 50-го; адамантий — только Путешествие (открывается на 75-м этаже)
+  D.CRYSTAL_FLOOR = 25; D.MITHRIL_FLOOR = 50; D.JOURNEY_FLOOR = 75;
 
   // ---------- уровни и стройка ----------
   D.MAXLVL = 8;
@@ -136,8 +139,10 @@
   D.TIERS = [
     { adj: { m: 'железный', f: 'железная', en: 'Iron' }, req: 1, atk: 5, def: 3, hp: 15, time: 15, wcost: { iron: 12, wood: 8 }, acost: { iron: 16, wood: 6 } },
     { adj: { m: 'костяной', f: 'костяная', en: 'Bone' }, req: 3, atk: 12, def: 7, hp: 40, time: 40, wcost: { iron: 40, wood: 20, bone: 15 }, acost: { iron: 50, bone: 20 } },
-    { adj: { m: 'мифриловый', f: 'мифриловая', en: 'Mithril' }, req: 5, atk: 28, def: 15, hp: 90, time: 90, wcost: { iron: 80, mithril: 10, crystal: 8 }, acost: { iron: 100, mithril: 12, crystal: 6 } },
-    { adj: { m: 'драконий', f: 'драконья', en: 'Dragon' }, req: 7, atk: 55, def: 28, hp: 170, time: 180, wcost: { mithril: 30, crystal: 25, bone: 60 }, acost: { mithril: 35, crystal: 20, bone: 80 } },
+    { adj: { m: 'мифриловый', f: 'мифриловая', en: 'Mithril' }, req: 5, atk: 26, def: 14, hp: 85, time: 90, wcost: { iron: 80, mithril: 8 }, acost: { iron: 100, mithril: 10 } },
+    { adj: { m: 'драконий', f: 'драконья', en: 'Dragon' }, req: 7, atk: 48, def: 25, hp: 155, time: 180, wcost: { mithril: 25, crystal: 20, bone: 60 }, acost: { mithril: 30, crystal: 15, bone: 80 } },
+    // адамант — из адамантия Путешествия, сильнейшая ступень
+    { adj: { m: 'адамантовый', f: 'адамантовая', en: 'Adamantine' }, req: 8, atk: 90, def: 46, hp: 290, time: 300, wcost: { adamant: 12, mithril: 20 }, acost: { adamant: 15, mithril: 20 } },
   ];
   // Редкость предметов; forge — с какого уровня кузницы может выпасть
   D.IRAR = [
@@ -257,12 +262,12 @@
     { id: 'workshop', b: 'forge', acad: 3, req: 'mining', icon: 'i_anvil', cost: { gold: 500, iron: 300, wood: 200 }, t: 420, eff: { forgeQ: 1, craft: 0.2 } },
     { id: 'maps', b: 'academy', acad: 3, icon: 'i_map', cost: { gold: 500, wood: 300, bone: 20 }, t: 480, eff: { expTravel: 0.3 } },
     // 4
-    { id: 'council', b: 'academy', acad: 4, icon: 'i_people', cost: { gold: 1000, wood: 600, stone: 600, crystal: 10 }, t: 600, eff: { resSlots: 1 } },
+    { id: 'council', b: 'academy', acad: 4, icon: 'i_people', cost: { gold: 1000, wood: 600, stone: 600, bone: 25 }, t: 600, eff: { resSlots: 1 } },
     { id: 'storage', b: 'warehouse', acad: 4, icon: 'i_bag', cost: { gold: 1000, wood: 800, stone: 800 }, t: 600, eff: { store: 0.25 } },
     { id: 'training', b: 'tavern', acad: 4, icon: 'i_star', cost: { gold: 900, iron: 300, bone: 30 }, t: 600, eff: { hireC: 0.25, advXp: 0.25 } },
     { id: 'runes', b: 'forge', acad: 4, icon: 'i_gem', cost: { gold: 800, crystal: 20, stone: 400 }, t: 600, eff: { enchant: 1 } },
     // 5
-    { id: 'medicine', b: 'tavern', acad: 5, icon: 'i_heal', cost: { gold: 1200, bone: 50, crystal: 20 }, t: 800, eff: { recover: 1, save: 0.1 } },
+    { id: 'medicine', b: 'tavern', acad: 5, icon: 'i_heal', cost: { gold: 1200, bone: 80 }, t: 800, eff: { recover: 1, save: 0.1 } },
     { id: 'gladiators', b: 'arena', acad: 5, icon: 'i_atk', cost: { gold: 1300, wood: 800, stone: 800 }, t: 800, eff: { arenaLoot: 0.25 } },
     { id: 'workcamps', b: ['lumber', 'quarry', 'mine'], acad: 5, icon: 'i_people', cost: { gold: 1500, wood: 1000, stone: 1000, iron: 300 }, t: 900, eff: { crews: 1 } },
     { id: 'library', b: 'academy', acad: 5, icon: 'i_book', cost: { gold: 1400, wood: 800, stone: 600 }, t: 800, eff: { resSpeed: 0.25 } },
@@ -298,8 +303,8 @@
       loot(f, boss) {
         const m = boss ? 2.5 : 1;
         const o = L(f, { g: m, b: m });
-        if (f >= 2) o.crystal = Math.max(1, Math.round(f * 0.5 * m));
-        if (f >= 4) o.mithril = Math.round((Math.floor(f / 4) + (Math.random() < 0.5 ? 1 : 0)) * m);
+        if (f >= D.CRYSTAL_FLOOR) o.crystal = Math.max(1, Math.round((f - D.CRYSTAL_FLOOR + 2) * 0.5 * m));
+        if (f >= D.MITHRIL_FLOOR) o.mithril = Math.max(1, Math.round((Math.floor((f - D.MITHRIL_FLOOR) / 4) + 1 + (Math.random() < 0.5 ? 1 : 0)) * m));
         return o;
       },
     },

@@ -9,7 +9,7 @@
       lang: 'ru',
       sound: true,
       style: 'A', // облик города: A–E готика или classic
-      res: { gold: 0, wood: 10, stone: 0, iron: 0, bone: 0, crystal: 0, mithril: 0 },
+      res: { gold: 0, wood: 10, stone: 0, iron: 0, bone: 0, crystal: 0, mithril: 0, adamant: 0 },
       seen: { gold: true, wood: true },
       b,
       cons: [], // идущие стройки: {k, t, total}

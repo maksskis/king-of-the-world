@@ -158,9 +158,9 @@
   }
 
   function tierCols(t) {
-    return [[P.iron, P.ironD, P.ironL], [P.bone, P.boneD, P.boneL], [P.mith, P.mithD, P.mithL], [P.red, P.redD, P.gold]][t] || [P.iron, P.ironD, P.ironL];
+    return [[P.iron, P.ironD, P.ironL], [P.bone, P.boneD, P.boneL], [P.mith, P.mithD, P.mithL], [P.red, P.redD, P.gold], ['#8a7dff', '#4a3cb0', '#e0dcff']][t] || [P.iron, P.ironD, P.ironL];
   }
-  const GEM = [P.cry, P.red, P.mith, P.gold];
+  const GEM = [P.cry, P.red, P.mith, P.gold, '#c08aff'];
 
   const DEF = {};
 
@@ -179,6 +179,8 @@
   DEF.i_stairs = { w: 12, h: 12, draw(b) { b.rect(1, 2, 10, 9, P.dark); b.rect(1, 9, 10, 2, P.stoneL); b.rect(3, 7, 8, 2, P.stoneM); b.rect(5, 5, 6, 2, P.stone); b.rect(7, 3, 4, 2, P.stoneD); } };
   DEF.r_mithril = { w: 12, h: 12, draw(b) { b.poly([[1, 10.5], [3.5, 4], [8.5, 4], [11, 10.5]], P.mith); b.rect(3, 4, 6, 2, P.mithL); b.rect(1, 9, 10, 1, P.mithD); b.px(8, 7, P.white); } };
   DEF.r_bone = { w: 12, h: 12, draw(b) { b.rect(3, 5, 6, 2, P.bone); b.disc(2.6, 4.6, 1.7, P.bone); b.disc(2.6, 7.4, 1.7, P.bone); b.disc(9.4, 4.6, 1.7, P.bone); b.disc(9.4, 7.4, 1.7, P.bone); b.rect(3, 6, 6, 1, P.boneD); } };
+  // Адамантий: тёмный слиток с сине-фиолетовым отливом
+  DEF.r_adamant = { w: 12, h: 12, draw(b) { b.poly([[1, 8], [4, 3], [11, 3], [8, 8]], '#4a3cb0'); b.poly([[1, 8], [8, 8], [8, 11], [1, 11]], '#2c2270'); b.poly([[8, 8], [11, 3], [11, 6], [8, 11]], '#3a2e90'); b.line(4, 4, 9, 4, '#e0dcff'); b.px(3, 6, '#8a7dff'); b.px(6, 9, '#8a7dff'); } };
   DEF.r_crystal = { w: 12, h: 12, draw(b) { b.poly([[6, 1], [10.5, 5], [6, 11], [1.5, 5]], P.cry); b.poly([[6, 1], [6, 11], [1.5, 5]], P.cryD); b.px(7, 3, P.white); b.px(8, 4, P.white); } };
 
   // ---------- значки (12×12) ----------

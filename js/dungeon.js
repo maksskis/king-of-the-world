@@ -358,7 +358,8 @@
     const chance = (boss ? 0.5 : 0.12) * (1 + G.T.partySum(ms, 'drop'));
     if (Math.random() >= chance) return;
     const depth = e.floor * D.LOCS[e.loc].diff;
-    const ti = Math.min(3, Math.floor(depth / 5));
+    // ступень найденной вещи по глубине: железо до 10-го этажа, кость до 50-го, мифрил до 65-го, дальше драконья
+    const fl = e.floor * D.LOCS[e.loc].diff, ti = fl < 10 ? 0 : fl < D.MITHRIL_FLOOR ? 1 : fl < 65 ? 2 : 3;
     const k = 0.03 * e.floor + G.bonus('luck') + (boss ? 0.3 : 0);
     const rar = G.U.weighted(G.F.weightsFor(k, D.LEG.p));
     const it = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
@@ -398,6 +399,7 @@
     e.lastBoss = boss;
     G.SFX.play('win');
     // 100-й этаж Катакомб: пал Страж драконьего сна — Древний дракон пробуждается, его можно вызвать к воротам
+    if (e.loc === 'catacombs' && e.floor >= D.JOURNEY_FLOOR && !G.S.dng.jrSeen) { G.S.dng.jrSeen = true; G.log('logJourneyOpen', {}, 'epic'); } // открылось Путешествие
     if ((e.loc === 'catacombs' ? e.floor >= 100 : L.final && e.floor >= L.floors) && !G.S.camp.awake) {
       G.S.camp.awake = true;
       G.log('logDragonAwake', {}, 'epic');

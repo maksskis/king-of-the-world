@@ -1,6 +1,7 @@
-// Путешествие: карта земель за пределами королевства. Открывается после победы над Древним драконом и остаётся
-// открытым навсегда (хранится в династии). Каждая область — 5 этапов (1–5, 6–10, …), на каждом этапе свой босс.
-// После 25-го этапа области идут по второму кругу («II»), боссы сильнее. Бой показывается в окне боя, как на Арене.
+// Путешествие: карта земель за пределами королевства. Открывается, когда отряд дошёл до 75-го этажа Катакомб
+// (в каждой эпохе заново); пройденные этапы хранятся в династии. Каждая область — 5 этапов (1–5, 6–10, …), на каждом свой босс.
+// Сила боссов — как у боссов Катакомб после 75-го этажа (этап s ≈ этаж 75 + 3·(s−1)). Награда — только адамантий.
+// Бой показывается в окне боя, как на Арене.
 (function () {
   const J = (G.J = {});
   const D = G.D;
@@ -24,7 +25,7 @@
     if (!Array.isArray(s.team)) s.team = [];
     return s;
   };
-  J.open = () => !!J.S().open;
+  J.open = () => (G.S.dng.best.catacombs || 0) >= D.JOURNEY_FLOOR;
   J.unlock = function () {
     const S = J.S();
     if (S.open) return;
@@ -57,22 +58,21 @@
     G.UI.dirty();
   };
 
-  // Босс этапа: растёт с этапом и с размером отряда; урон делится на 2 удара (у драконов на 3)
+  // Этап s по силе — как босс Катакомб на этаже 75 + 3·(s−1); с размером отряда растёт так же, как в Катакомбах
+  J.floorOf = (s) => D.JOURNEY_FLOOR + 3 * (s - 1);
   J.opp = function (s, n) {
     n = Math.max(1, n || 1);
-    const key = J.bossKey(s), diff = G.K.epochMul();
-    const hp = Math.round(1500 * Math.pow(1.22, s - 1) * n * diff);
-    const atk = Math.round(110 * Math.pow(1.16, s - 1) * Math.pow(n, 0.85) * Math.pow(diff, 0.8) * 10) / 10;
-    return { key, count: 1, hp, max: hp, atk, boss: true, f: s, hits: key === 'dragon' ? 3 : 2 };
+    const key = J.bossKey(s), diff = G.K.epochMul(), gr = G.X.growth(J.floorOf(s)), sc = G.X.scale('catacombs', n);
+    // как одиночный босс Катакомб (здоровье ×1/3 и урон ×0,8 от «тройки» монстров), но на 20% крепче и на 10% злее
+    const hp = Math.round(60 * gr.hp * diff * D.BOSS.hp * 1.2 * sc.hp / 3);
+    const atk = Math.round(9 * gr.atk * Math.pow(diff, 0.8) * D.BOSS.atk * 1.1 * 0.8 * sc.atk * 10) / 10;
+    return { key, count: 1, hp, max: hp, atk, boss: true, f: J.floorOf(s), hits: sc.hits + (key === 'dragon' ? 2 : 1) };
   };
-  // Награда: полная за первую победу, четверть — за повтор. Последний этап области даёт вещь всегда, остальные — в 30% случаев.
+  // Награда — только адамантий: полная за первую победу, 30% — за повтор
   J.reward = function (s, first) {
-    const m = G.K.epochReward() * (first ? 1 : 0.25);
-    const o = { gold: 400 * Math.pow(1.2, s - 1), bone: 15 + 6 * s, crystal: 4 + 2 * s, mithril: 1 + Math.floor(s / 2) };
-    for (const k in o) o[k] = Math.max(1, Math.round(o[k] * m));
-    return o;
+    return { adamant: Math.max(1, Math.round((4 + 1.5 * s) * G.K.epochReward() * (first ? 1 : 0.3))) };
   };
-  J.itemChance = (s, first) => (!first ? 0 : s % J.PER === 0 ? 1 : 0.3);
+  J.itemChance = () => 0;
   J.xp = (s) => Math.round(25 * Math.pow(1.12, s));
   J.chance = function () {
     const tm = J.team();
@@ -113,12 +113,7 @@
     S.live = null;
     if (ovr) { L.win = ovr.win; L.hp = ovr.hp; }
     L.loot = L.win ? J.reward(L.s, L.first) : null;
-    L.item = null;
-    if (L.win && Math.random() < J.itemChance(L.s, L.first)) {
-      const ti = Math.min(D.TIERS.length - 1, 1 + Math.floor(L.s / 6));
-      const rar = G.U.weighted(G.F.weightsFor(0.4 + 0.08 * L.s + G.bonus('luck'), D.LEG.p));
-      L.item = G.F.make(G.U.pick(Object.keys(D.ITYPES)), ti, rar);
-    }
+    L.item = null; // в Путешествии вещей нет — только адамантий
     const xp = J.xp(L.s);
     let wounded = 0;
     L.ids.forEach((id, i) => {

@@ -363,7 +363,6 @@
       for (const d of downed) G.T.wound(d.a, 60);
       if (final) {
         G.S.camp.won = true;
-        G.J.unlock(); // за драконом открывается Путешествие
         G.K.xp(2000);
         G.log('logFinalWon', {}, 'epic');
       } else {

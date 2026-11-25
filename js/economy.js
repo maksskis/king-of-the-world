@@ -270,7 +270,7 @@
   };
 
   // ---------- цена излишков (для «Скупщика»; Рынка больше нет) ----------
-  E.PRICE = { wood: 0.4, stone: 0.4, iron: 0.6, bone: 2.5, crystal: 6, mithril: 12 };
+  E.PRICE = { wood: 0.4, stone: 0.4, iron: 0.6, bone: 2.5, crystal: 6, mithril: 12, adamant: 40 };
   E.sellPrice = (r) => E.PRICE[r] * (1 + G.bonus('trade'));
 
   // ---------- цели ----------
