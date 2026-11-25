@@ -983,3 +983,25 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 /* Вкладка «Катакомбы»: следующий особый страж справа в шапке */
 .lochead .grow { flex: 1; min-width: 0; }
 .nextboss { flex: none; display: grid; justify-items: center; gap: 2px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: rgba(13, 10, 18, 0.5); font-size: 12px; color: var(--gold); }
+
+/* Панель под картой: вкладки «Цель» и «Лог», три задания */
+#goal .gtab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13.5px; color: var(--muted); }
+#goal .gtab b { color: var(--gold); font-variant-numeric: tabular-nums; }
+#goal .gtab.on { color: var(--text); border-color: var(--gold); background: #2c2215; }
+#goal .gtab em { font-style: normal; font-size: 11px; font-weight: 700; color: #241a05; background: var(--gold); border-radius: 8px; padding: 0 6px; }
+#goal .gall { display: grid; place-items: center; padding: 4px 8px; }
+#gcards { flex: 1; min-height: 160px; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.gcard { display: flex; align-items: center; gap: 10px; min-height: 0; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.gcard.acc { border-color: #5c4320; }
+.gcard.ready { border-color: var(--gold); background: #2c2215; box-shadow: 0 0 12px rgba(247, 201, 72, 0.3); }
+.gc-l { flex: 1; min-width: 0; display: grid; gap: 3px; cursor: pointer; }
+.gc-t { font-weight: 600; font-size: 13.5px; }
+.gc-p { display: flex; align-items: center; gap: 8px; }
+.gc-p .bar { flex: 1; height: 7px; margin: 0; }
+.gc-p .bar.done i { background: var(--gold); }
+.gc-b { flex: none; }
+.gc-b .btn { min-width: 108px; justify-content: center; }
+.btn.claim { background: linear-gradient(#f7c948, #d79a22); color: #241a05; border-color: #fff2a8; font-weight: 700; animation: claimPulse 1.4s ease-in-out infinite; }
+@keyframes claimPulse { 50% { box-shadow: 0 0 0 3px rgba(247, 201, 72, 0.35); } }
+@media (prefers-reduced-motion: reduce) { .btn.claim { animation: none; } }
+@media (max-width: 760px) { #gcards { min-height: 0; grid-template-rows: none; } }

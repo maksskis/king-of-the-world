@@ -542,7 +542,10 @@
       const cur = $('#modal-box .gitem.cur');
       if (cur) cur.scrollIntoView({ block: 'center' });
     },
-    goGoal() { UI.goGoal(); },
+    goGoal(id) { UI.goGoal(id); },
+    gtab(a) { UI.gtab = a === 'log' ? 'log' : 'goals'; if (a === 'log') UI.logDirty = true; UI.dirty(); },
+    gAccept(id) { if (G.E.acceptGoal(id)) UI.focusGoal = id; },
+    gClaim(id) { G.E.claimGoal(id); },
     tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
     sel(k) { UI.openPop(k); },
     goto(k) { UI.openPop(k); },
@@ -703,14 +706,32 @@
     $('#tabs').innerHTML = tabs.map(([k, lab, i, b]) => `<button class="tab ${UI.tab === k ? 'on' : ''}" data-action="tab" data-arg="${k}">${ic(i)}<span>${t(lab)}</span>${b ? `<em>${b}</em>` : ''}</button>`).join('');
   }
 
+  // Под картой — панель с двумя вкладками: «★ Цель X/N» (три задания) и «Лог» (журнал событий)
+  UI.gtab = 'goals';
   function renderGoal() {
-    const i = G.S.goal;
-    const el = $('#goal');
-    const all = `<button class="goal-all" data-action="goals">${ic('i_scroll')} ${t('allGoals')}</button>`;
-    if (i >= D.GOALS.length) { el.innerHTML = `<button class="goal-go" data-action="goals">${ic('i_star')} <span class="gtxt">${t('goalsDone')}</span></button>${all}`; return; }
-    const g = D.GOALS[i];
+    const vis = G.E.goalsVisible(), ready = vis.filter((g) => G.E.goalReady(g)).length;
+    $('#goal').innerHTML = `<button class="gtab ${UI.gtab === 'goals' ? 'on' : ''}" data-action="gtab" data-arg="goals">${ic('i_star')} ${t('goalLabel')} <b>${G.E.goalsDoneCount()}/${D.GOALS.length}</b>${ready ? `<em>${ready}</em>` : ''}</button>`
+      + `<button class="gtab ${UI.gtab === 'log' ? 'on' : ''}" data-action="gtab" data-arg="log">${ic('i_scroll')} ${t('logTab')}</button>`
+      + `<span class="grow"></span><button class="gall" data-action="goals" title="${t('allGoals')}" aria-label="${t('allGoals')}">${ic('i_book')}</button>`;
+    const box = $('#gcards');
+    box.classList.toggle('hidden', UI.gtab !== 'goals');
+    $('#log').classList.toggle('hidden', UI.gtab !== 'log');
+    if (UI.gtab !== 'goals') return;
+    box.innerHTML = vis.length ? vis.map(goalCard).join('') : `<div class="gcard done"><div class="gc-l"><div class="gc-t">${ic('i_crown')} ${t('goalsDone')}</div></div></div>`;
+  }
+  // Карточка задания: слева текст, награда и прогресс, справа кнопка «Принять» → «Показать» → «Сдать»
+  function goalCard(g) {
+    const A = G.E.goalAcc(g), ready = G.E.goalReady(g);
     const gr = g.h && g.h.act === 'research' && g.h.arg;
-    el.innerHTML = `<button class="goal-go" data-action="goGoal" ${gr ? `data-tip="s:${gr}"` : `title="${t('goalGoTip')}"`}>${ic('i_star')}<span class="gtxt"><b>${t('goalLabel')} ${i + 1}/${D.GOALS.length}:</b> ${t(g.t)}${g.v ? ` <b class="gprog" data-b="goalP"></b>` : ''} <span class="muted">${lootHtml(g.reward)}</span></span><span class="go">${t('goalGo')} ›</span></button>${all}`;
+    let prog;
+    if (!A) prog = `<div class="muted small">${t('goalAcceptHint')}</div>`;
+    else if (g.v) prog = `<div class="gc-p">${bar('gp:' + g.id, ready ? 'gpbar done' : 'gpbar')}<b class="gprog" data-b="gp:${g.id}"></b></div>`;
+    else prog = `<div class="small ${ready ? 'good' : 'muted'}">${ready ? ic('i_check') + ' ' + t('goalMet') : t('goalInWork')}</div>`;
+    const btn = !A ? `<button class="btn primary" data-action="gAccept" data-arg="${g.id}">${t('goalAccept')}</button>`
+      : ready ? `<button class="btn claim" data-action="gClaim" data-arg="${g.id}">${ic('i_chest')} ${t('goalClaim')}</button>`
+        : `<button class="btn" data-action="goGoal" data-arg="${g.id}">${t('goalGo')} ›</button>`;
+    return `<div class="gcard ${ready ? 'ready' : A ? 'acc' : 'new'}"><div class="gc-l" data-action="goGoal" data-arg="${g.id}" ${gr ? `data-tip="s:${gr}"` : `title="${t('goalGoTip')}"`}>
+      <div class="gc-t">${t(g.t)}</div><div class="gc-r small">${lootHtml(g.reward)}</div>${prog}</div><div class="gc-b">${btn}</div></div>`;
   }
 
   // ---------- окно здания ----------
@@ -1285,7 +1306,7 @@
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
     tavT: () => U.fmtTime(Math.max(0, G.S.tavern.t)),
-    goalP: () => { const p = G.E.goalProg(D.GOALS[G.S.goal]); return p ? '(' + U.fmt(p.cur) + '/' + U.fmt(p.n) + ')' : ''; },
+    gp: (id) => { const p = G.E.goalProg(G.E.goalById(id)); return p ? U.fmt(p.cur) + ' / ' + U.fmt(p.n) : ''; },
     arenaT: () => (G.S.arena.cd > 0 ? U.fmtTime(G.S.arena.cd) + (G.E.busy('arena') ? ' · ' + t('paused') : '') : t('arenaReady')),
     folkR: () => { const v = G.E.folkTax() * (1 + G.bonus('tax')); return v ? '+' + U.fmt1(v) : ''; },
     cd: (id) => { const v = G.S.king.cd[id] || 0; const b = id === 'rush' ? G.S.king.buff.rush : id === 'rallyS' ? G.S.king.buff.rally : 0; return b > 0 ? U.fmtTime(b) : v > 0 ? U.fmtTime(v) : ''; },
@@ -1303,20 +1324,22 @@
     rsch: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? 1 - c.t / c.total : 0; },
     folkW: () => (G.E.homes() ? G.E.folk() / G.E.homes() : 0),
     kxp: () => G.S.king.xp / G.K.need(),
+    gp: (id) => { const p = G.E.goalProg(G.E.goalById(id)); return p ? p.cur / p.n : 0; },
   };
 
   // Подсказка цели вверху окна здания или вкладки, к которой цель ведёт
   function goalNote(k, tab) {
-    const g = D.GOALS[G.S.goal];
+    const g = G.E.goalFocus(UI.focusGoal);
     const h = (g && g.h) || {};
     if (!g || (tab ? h.tab !== tab : !h.b || h.tab || h.b !== k)) return '';
-    return `<div class="goal-note">${ic('i_star')} <span><b>${t('goalLabel')}:</b> ${t(g.t)}${g.v ? ` <b class="gprog" data-b="goalP"></b>` : ''} <span class="muted small">${t('goalNoteHint')}</span></span></div>`;
+    return `<div class="goal-note">${ic('i_star')} <span><b>${t('goalLabel')}:</b> ${t(g.t)}${g.v ? ` <b class="gprog" data-b="gp:${g.id}"></b>` : ''} <span class="muted small">${t('goalNoteHint')}</span></span></div>`;
   }
 
   // Клик по цели: открыть нужное здание или вкладку и мигнуть тем, что нажать
-  UI.goGoal = function () {
-    const g = D.GOALS[G.S.goal];
+  UI.goGoal = function (id) {
+    const g = (id && G.E.goalById(id)) || G.E.goalFocus(UI.focusGoal);
     if (!g) { ACT.goals(); return; }
+    UI.focusGoal = g.id;
     const h = g.h || {};
     if (UI.win && UI.win !== 'decision') UI.closeModal();
     if (h.tab) { UI.tab = h.tab; UI.pick = null; }
@@ -1340,7 +1363,7 @@
 
   // Подсветка следующей цели: здание на карте, нужная вкладка, кнопка в меню построек и кнопка действия
   function applyGoal() {
-    const g = D.GOALS[G.S.goal];
+    const g = G.E.goalFocus(UI.focusGoal);
     const h = (g && g.h) || {};
     const want = new Set();
     const add = (sel) => { for (const el of $$(sel)) want.add(el); };

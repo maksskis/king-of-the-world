@@ -283,6 +283,15 @@
     return -1;
   };
   E.migrateGoals = function () {
+    migrateOld();
+    const S = G.S;
+    if (!S.gq) {
+      const Q = E.gq();
+      for (let i = 0; i < Math.min(S.goal || 0, D.GOALS.length); i++) Q.done[D.GOALS[i].id] = 1;
+    }
+    S.goalV = 6;
+  };
+  function migrateOld() {
     const S = G.S;
     // v3 и v4 — переносим по порядку той версии (v4 → v5: цели Шахты и Логова заменены целями Катакомб)
     if (S.goalV === 3 || S.goalV === 4) {
@@ -292,7 +301,7 @@
       S.goalV = 5;
       return;
     }
-    if (S.goalV >= 5) return;
+    if (S.goalV >= 5 || S.gq) return;
     const after = D.GOALS.findIndex((g) => g.id === 'g29') + 1; // всё пройдено
     if (!(S.goalV >= 2)) {
       const old = S.goal || 0;
@@ -304,31 +313,73 @@
     }
     S.goalBase = null;
     S.goalV = 5;
+  }
+  // ---------- задания (цели) ----------
+  // Видны 3 первых несданных задания. Задание нужно принять — с этого момента идёт прогресс (для заданий «сделай ещё N»
+  // счёт начинается с принятия). Выполненное задание остаётся выполненным, пока его не сдадут; при сдаче — награда.
+  // G.S.gq = { done: {id: 1} — сданные, acc: {id: {b: значение при принятии, r: 1 — выполнено}} }
+  E.GQ_SHOWN = 3;
+  E.gq = function () {
+    const S = G.S;
+    if (!S.gq) S.gq = { done: {}, acc: {} };
+    return S.gq;
   };
-  // Дошёл ли игрок до цели id (она текущая или уже выполнена)
-  E.goalAt = (id) => G.S.goal >= D.GOALS.findIndex((g) => g.id === id);
-  // Цель с числом: v — значение, n — сколько нужно; d — считать только то, что сделано с момента, когда цель стала текущей
+  E.goalById = (id) => D.GOALS.find((g) => g.id === id) || null;
+  E.goalsVisible = function () {
+    const Q = E.gq(), out = [];
+    for (const g of D.GOALS) { if (!Q.done[g.id]) { out.push(g); if (out.length >= E.GQ_SHOWN) break; } }
+    return out;
+  };
+  E.goalsDoneCount = function () { const Q = E.gq(); return D.GOALS.filter((g) => Q.done[g.id]).length; };
+  E.goalAcc = (g) => (g ? E.gq().acc[g.id] || null : null);
+  // Прогресс задания с числом; у «сделай ещё N» до принятия — 0
   E.goalProg = function (g) {
     if (!g || !g.v) return null;
-    const S = G.S, v = g.v(S) || 0;
-    if (g.d && S.goalBase == null) S.goalBase = v;
-    const cur = g.d ? v - S.goalBase : v;
+    const A = E.goalAcc(g), v = g.v(G.S) || 0;
+    const cur = g.d ? (A ? v - A.b : 0) : v;
     return { cur: Math.max(0, Math.min(g.n, Math.floor(cur))), n: g.n };
   };
-  E.goalDone = function (g) {
+  E.goalMet = function (g) {
     const p = E.goalProg(g);
     return p ? p.cur >= p.n : g.test(G.S);
   };
-  E.checkGoal = function () {
-    const S = G.S;
-    const g = D.GOALS[S.goal];
-    if (!g || !E.goalDone(g)) return;
+  E.goalReady = (g) => { const A = E.goalAcc(g); return !!(A && A.r); };
+  E.acceptGoal = function (id) {
+    const g = E.goalById(id), Q = E.gq();
+    if (!g || Q.done[id] || Q.acc[id] || !E.goalsVisible().includes(g)) return false;
+    Q.acc[id] = { b: g.v ? g.v(G.S) || 0 : 0, r: 0 };
+    G.SFX.play('click');
+    E.checkGoal();
+    G.UI.dirty();
+    return true;
+  };
+  E.claimGoal = function (id) {
+    const g = E.goalById(id), Q = E.gq(), A = Q.acc[id];
+    if (!g || !A || !A.r) return false;
     E.addAll(g.reward);
+    Q.done[id] = 1;
+    delete Q.acc[id];
     G.log('logGoal', { gi: g.t, loot: g.reward }, 'good');
-    S.goal++;
-    S.goalBase = null;
-    E.goalProg(D.GOALS[S.goal]); // счёт новой цели начинается сейчас
     G.SFX.play('level');
     G.UI.dirty();
+    return true;
+  };
+  // Каждый такт: принятые задания, которые выполнены, отмечаются готовыми к сдаче
+  E.checkGoal = function () {
+    for (const g of E.goalsVisible()) {
+      const A = E.goalAcc(g);
+      if (!A || A.r || !E.goalMet(g)) continue;
+      A.r = 1;
+      G.log('logGoalReady', { gi: g.t }, 'good');
+      G.SFX.play('coin');
+      G.UI.dirty();
+    }
+  };
+  // Задание, которое подсвечивается на карте и в окнах: выбранное игроком или первое принятое невыполненное
+  E.goalFocus = function (pref) {
+    const vis = E.goalsVisible();
+    const g = pref && vis.find((x) => x.id === pref);
+    if (g && !E.goalReady(g)) return g;
+    return vis.find((x) => E.goalAcc(x) && !E.goalReady(x)) || null;
   };
 })();
