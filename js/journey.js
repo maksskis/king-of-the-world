@@ -133,7 +133,7 @@
     if (L.win) {
       G.E.addAll(L.loot);
       if (L.item) { G.S.items.push(L.item); G.log('logJourneyItem', { item: G.F.nameObj(L.item) }, L.item.rar >= 3 ? 'epic' : 'good'); }
-      if (L.s > S.best) S.best = L.s;
+      if (L.s > S.best) { S.best = L.s; G.S.jrNew = (G.S.jrNew || 0) + 1; } // новый этап — в счёт очков наследия
       S.sel = Math.min(S.best + 1, L.s + 1);
       G.log('logJourneyWin', { s: L.s, m: { k: J.bossName(L.s) }, loot: L.loot }, 'good');
     } else G.log('logJourneyLose', { s: L.s, m: { k: J.bossName(L.s) } }, 'bad');

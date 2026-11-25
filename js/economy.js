@@ -113,6 +113,7 @@
     const L = G.S.b[k].lvl;
     G.log(L === 1 ? 'logBuilt' : 'logUpgraded', { b: { k: 'bn_' + k }, l: L }, 'good');
     G.K.xp(D.KXP.build * L * L); // опыт Короля за постройку
+    if (L >= D.MAXLVL) G.K.checkMaxBuildings(); // +1 очко наследия за здание 8-го уровня
     if (k === 'tavern' && L === 1) G.T.refresh(true);
     G.SFX.play('build');
     G.UI.dirty();

@@ -49,6 +49,7 @@
     }
     G.E.migrateGoals();
     G.K.sanitizeTalents();
+    G.K.checkMaxBuildings(); // здания, уже стоящие на 8-м уровне, тоже дают очко (раз за правление)
     G.LANG = G.S.lang || 'ru';
     G.invalidateBonus();
     G.UI.init();

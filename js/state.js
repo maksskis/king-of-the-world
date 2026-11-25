@@ -29,6 +29,8 @@
       arena: { rank: 1, best: 0, cd: 0, team: [], wins: 0, last: null },
       dng: { best: {}, maxFloor: 3, start: 1, loc: 'catacombs', hp: 0.4, down: true, boss: false, avoid: 0.3 },
       camp: { awake: false, won: false },
+      lg8: {}, // здания, уже давшие очко наследия за 8-й уровень в этом правлении
+      jrNew: 0, // этапы Путешествия, впервые пройденные в этом правлении
       dyn: dyn || { epoch: 0, pts: 0, perks: {} },
       stats: { clicks: 0, kills: 0, crafted: 0, decreed: 0, resQueued: 0, sold: 0, spells: 0, enchanted: 0 },
       goal: 0, // goalV ставит перенос прогресса целей при загрузке

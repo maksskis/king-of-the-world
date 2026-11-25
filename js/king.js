@@ -113,16 +113,28 @@
   // ---------- династия ----------
   K.epochMul = () => 1 + 0.25 * G.S.dyn.epoch;
   K.epochReward = () => 1 + 0.2 * G.S.dyn.epoch;
-  K.legacyGain = function () {
-    const S = G.S;
-    const depth = Object.values(S.dng.best).reduce((a, b) => a + b, 0);
-    return Math.floor((S.gate.best + depth + G.E.lvl('castle') * 3 + S.king.lvl * 2) / 5) + (S.camp.won ? 10 : 0);
-  };
-  // Из чего складываются очки наследия (для подсказки): лучшая волна, этажи подземелий, Замок ×3, Король ×2, ÷5, +10 за дракона
+  // Из чего складываются очки за передачу трона: лучшая волна, этажи подземелий, Замок ×3, Король ×2,
+  // лучший ранг Арены ×2, новые этапы Путешествия ×5 — всё ÷5, и +10 за дракона
   K.legacyParts = function () {
-    const S = G.S;
+    const S = G.S, Lg = D.LEGACY;
     const depth = Object.values(S.dng.best).reduce((a, b) => a + b, 0);
-    return { wave: S.gate.best, depth, castle: G.E.lvl('castle'), king: S.king.lvl, dragon: !!S.camp.won, total: K.legacyGain() };
+    const arena = (S.arena && S.arena.best) || 0, jr = S.jrNew || 0;
+    const sum = S.gate.best + depth + G.E.lvl('castle') * 3 + S.king.lvl * 2 + arena * Lg.arena + jr * Lg.jr;
+    return { wave: S.gate.best, depth, castle: G.E.lvl('castle'), king: S.king.lvl, arena, jr, dragon: !!S.camp.won, total: Math.floor(sum / 5) + (S.camp.won ? 10 : 0) };
+  };
+  K.legacyGain = () => K.legacyParts().total;
+  // Здания 8-го уровня: +1 очко наследия сразу, один раз за правление на каждое здание
+  K.maxBuildings = () => D.ORDER.filter((k) => !D.B[k].noLevel);
+  K.checkMaxBuildings = function () {
+    const S = G.S;
+    if (!S.lg8) S.lg8 = {};
+    for (const k of K.maxBuildings()) {
+      if (S.lg8[k] || G.E.lvl(k) < D.MAXLVL) continue;
+      S.lg8[k] = 1;
+      S.dyn.pts += D.LEGACY.maxB;
+      G.log('logLegacyMaxB', { b: { k: 'bn_' + k }, n: D.LEGACY.maxB }, 'epic');
+      G.UI.dirty();
+    }
   };
   K.perkRank = (id) => G.S.dyn.perks[id] || 0;
   K.perkCost = (id) => 1 + K.perkRank(id);

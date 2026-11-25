@@ -309,7 +309,8 @@
     if (key === 'dyn') {
       const L = G.K.legacyParts();
       return `<b>${ic('i_crown')} ${t('dynasty')}</b><div>${t('dynTipWhat')}</div><div>${t('dynTipHow')}</div>`
-        + `<div class="good">${t('dynTipNow', { w: L.wave, f: L.depth, c: L.castle, c3: L.castle * 3, k: L.king, k2: L.king * 2, n: L.total })}${L.dragon ? '' : ' ' + t('dynTipDragon')}</div>`
+        + `<div class="good">${t('dynTipNow', { w: L.wave, f: L.depth, c: L.castle, c3: L.castle * 3, k: L.king, k2: L.king * 2, a: L.arena, a2: L.arena * D.LEGACY.arena, j: L.jr, j5: L.jr * D.LEGACY.jr, n: L.total })}${L.dragon ? '' : ' ' + t('dynTipDragon')}</div>`
+        + `<div>${t('dynTipMaxB', { n: Object.keys(G.S.lg8 || {}).length, m: G.K.maxBuildings().length })}</div>`
         + `<div class="muted">${t('dynTipPts', { p: G.S.dyn.pts })}</div>${G.S.camp.won ? '' : `<div class="warn">${ic('i_lock')} ${t('dynastyLocked')}</div>`}`;
     }
     if (type === 's') {
