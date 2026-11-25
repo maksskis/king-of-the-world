@@ -1107,7 +1107,8 @@
     const br = ['hand', 'eco', 'build', 'war'];
     h += box(ic('i_star') + ' ' + t('talents') + ` <span class="muted">${tp}</span>`, `<div class="tal3">${br.map((b) => `<div class="tcol"><div class="tbr">${t('br_' + b)}</div>${D.TALENTS.filter((x) => x.br === b).map((x) => {
       const r = k.tal[x.id] || 0, mx = G.K.talMax(x);
-      return `<div class="tal" data-tip="tl:${x.id}">${ic(x.icon, 'ic2')}<div class="grow"><b>${t('tl_' + x.id)}</b><div class="small muted">${t('tld_' + x.id)}</div>${pips(r, mx)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < mx ? '' : 'disabled'}>+</button></div>`;
+      // описание таланта — только в подсказке при наведении (имя с пунктиром и «?»)
+      return `<div class="tal" data-tip="tl:${x.id}">${ic(x.icon, 'ic2')}<div class="grow"><b class="hastip">${t('tl_' + x.id)}<i class="qh">?</i></b>${pips(r, mx)}</div><button class="btn small" data-action="talent" data-arg="${x.id}" ${tp > 0 && r < mx ? '' : 'disabled'}>+</button></div>`;
     }).join('')}</div>`).join('')}</div>`);
     h += box(ic('i_people') + ' ' + t('council'), `<div class="advs">${D.ADVISORS.map((a) => {
       const l = G.K.advLvl(a.id), open = G.K.advOpen(a);
