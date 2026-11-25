@@ -68,11 +68,11 @@
     const a = G.T.get(id);
     return a ? ic('c_' + a.cls, 'ic-own') : '';
   }
-  function itemTile(it, action, arg) {
+  function itemTile(it, action, arg, extra) {
     const R = D.IRAR[it.rar];
     return `<button class="itile ${it.eq ? 'eq' : ''} ${UI.selItem === it.id && !action ? 'on' : ''}" data-action="${action || 'item'}" data-arg="${arg || it.id}" style="--rc:${R.color}" title="${esc(G.F.name(it))}">
       ${ic('it_' + it.type + ':' + it.ti, 'ic3')}${it.ench ? `<em class="ench">+${it.ench}</em>` : ''}${it.eq ? `<span class="eqb">${ownerIcon(it.eq)}</span>` : ''}
-      <span class="ist">${itemMain(it)}</span>${!action && !it.eq ? `<span class="isell" data-action="sellItem" data-arg="${it.id}" title="${esc(t('sell'))}">${t('sell')} ${ic('r_gold')}${U.fmt(G.F.sellValue(it))}</span>` : ''}</button>`;
+      <span class="ist">${itemMain(it)}</span>${extra || ''}${!action && !it.eq ? `<span class="isell" data-action="sellItem" data-arg="${it.id}" title="${esc(t('sell'))}">${t('sell')} ${ic('r_gold')}${U.fmt(G.F.sellValue(it))}</span>` : ''}</button>`;
   }
   function chancesRow(list, ch, open, lockKey) {
     return `<div class="chances">${list.map((r, i) => (open(i)
@@ -959,7 +959,7 @@
     const junk = G.F.junk();
     // Кто что носит: король и каждый авантюрист, ячейки нажимаются для замены
     const wearers = [['king', 'c_king', t('king'), `${t('kingDmg')}: ${G.W.kingDmg()}`, ['weapon'], '#f7c948']]
-      .concat(G.S.advs.map((a) => ['' + a.id, 'c_' + a.cls, nm(a.name), `${t('cl_' + a.cls)} · ${t('lv')} ${a.lvl} · ${t('st_' + a.st)}`, ['weapon', 'armor'], D.ARAR[a.rar].color]));
+      .concat(G.S.advs.map((a) => { const s = G.T.stats(a); return ['' + a.id, 'c_' + a.cls, nm(a.name), `${t('cl_' + a.cls)} · ${t('lv')} ${a.lvl} · ${t('st_' + a.st)}<br><span class="wst">${ic('i_atk')}${s.atk} ${ic('i_def')}${s.def} ${ic('i_hp')}${s.hp}</span>`, ['weapon', 'armor'], D.ARAR[a.rar].color]; }));
     let h = box(ic('i_people') + ' ' + t('wearersTitle'), `<div class="hint top">${t('wearersHint')}</div>` + wearers.map(([o, icon, name, sub, slots, col]) =>
       `<div class="wearer"><div class="wwho">${ic(icon, 'ic2')}<div><b style="color:${col}">${esc(name)}</b><div class="small muted">${sub}</div></div></div><div class="eqrow">${G.PANE.eqSlots(o, slots)}</div></div>${G.PANE.pickerFor(o, slots)}`).join(''));
     const cats = ['all', ...Object.keys(D.ITYPES)];

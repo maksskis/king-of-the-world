@@ -10,11 +10,38 @@
   P.picker = function (owner, slot) {
     const { ic, t, itemTile } = h();
     const cur = G.F.equipped(owner, slot);
-    const list = P.fits(owner, slot).sort((x, y) => G.F.score(y) - G.F.score(x));
+    const gains = new Map(P.fits(owner, slot).map((it) => [it, P.gain(it, owner)]));
+    const list = [...gains.keys()].sort((x, y) => P.gainScore(gains.get(y)) - P.gainScore(gains.get(x)) || G.F.score(y) - G.F.score(x));
     return `<div class="picker"><div class="row"><b>${t('chooseItem')}: ${slot === 'weapon' ? t('weapon') : t('armor')}</b><span class="grow"></span>
       ${cur ? `<button class="btn small" data-action="uneq" data-arg="${cur.id}">${ic('i_x')} ${t('unequip')}</button>` : ''}
       <button class="btn small" data-action="pickClose">${t('close')}</button></div>
-      <div class="igrid">${list.map((it) => itemTile(it, 'eq', it.id + '|' + owner)).join('') || `<div class="muted small">${t('noItems')}</div>`}</div></div>`;
+      ${list.length ? `<div class="hint top">${t(cur ? 'diffHint' : 'diffHintEmpty')}</div>` : ''}
+      <div class="igrid">${list.map((it) => itemTile(it, 'eq', it.id + '|' + owner, P.diffHtml(gains.get(it)))).join('') || `<div class="muted small">${t('noItems')}</div>`}</div></div>`;
+  };
+  // Как изменятся итоговые статы владельца, если надеть вещь вместо той, что в этой ячейке сейчас
+  // (с учётом заточки, звёзд престижа, навыков героя и талантов Короля)
+  P.ownerStats = function (owner) {
+    if (owner === 'king') return { atk: G.W.kingDmg() };
+    const a = G.T.get(owner);
+    return a ? G.T.stats(a) : {};
+  };
+  P.gain = function (it, owner) {
+    const cur = G.F.equipped(owner, G.F.slotOf(it)), was = it.eq;
+    const before = P.ownerStats(owner);
+    if (cur) cur.eq = null;
+    it.eq = owner;
+    const after = P.ownerStats(owner);
+    it.eq = was;
+    if (cur) cur.eq = owner;
+    const d = {};
+    for (const k in before) d[k] = (after[k] || 0) - before[k];
+    return d;
+  };
+  P.gainScore = (d) => (d.atk || 0) * 3 + (d.def || 0) * 2 + (d.hp || 0) * 0.5;
+  P.diffHtml = function (d) {
+    const { ic, t } = h();
+    const parts = ['atk', 'def', 'hp'].filter((k) => d[k]).map((k) => `<span class="${d[k] > 0 ? 'up' : 'dn'}">${d[k] > 0 ? '▲' : '▼'}${Math.abs(d[k])}${ic('i_' + k)}</span>`);
+    return `<span class="idiff">${parts.join('') || `<span class="same">${t('sameStats')}</span>`}</span>`;
   };
   // Вещи, которые можно надеть этому владельцу в эту ячейку
   P.fits = (owner, slot) => G.S.items.filter((it) => G.F.slotOf(it) === slot && it.eq !== owner && G.F.canUse(it, owner) && !G.F.lockedOwner(it.eq));
@@ -27,7 +54,7 @@
       const open = G.UI.pick === owner + '|' + slot;
       return `<button class="eq big ${it ? 'has' : ''} ${open ? 'on' : ''}" data-action="pick" data-arg="${owner}|${slot}" ${G.F.lockedOwner(owner) ? 'disabled' : ''} ${it ? `style="--rc:${D.IRAR[it.rar].color}"` : ''}>
         ${it ? ic('it_' + it.type + ':' + it.ti, 'ic3') : `<span class="ph">${ic(slot === 'weapon' ? 'i_atk' : 'i_def', 'ic2')}</span>`}
-        <span class="grow"><span class="small muted">${lab}</span><br>${it ? `<span style="color:${D.IRAR[it.rar].color}">${esc(G.F.name(it))}</span>` : `<span class="muted">${t('empty')}</span>${(n = P.fits(owner, slot).filter((x) => !x.eq).length) ? ` <span class="avail">${t('availN', { n })}</span>` : ''}`}</span></button>`;
+        <span class="grow"><span class="small muted">${lab}</span><br>${it ? `<span style="color:${D.IRAR[it.rar].color}">${esc(G.F.name(it))}</span><br><span class="eqst">${h().itemMain(it)}${it.ench ? ` <em class="ench">+${it.ench}</em>` : ''}</span>` : `<span class="muted">${t('empty')}</span>${(n = P.fits(owner, slot).filter((x) => !x.eq).length) ? ` <span class="avail">${t('availN', { n })}</span>` : ''}`}</span></button>`;
     }).join('');
   };
   function pickerFor(owner, slots) {
@@ -178,7 +205,7 @@
     if (ty.slot === 'weapon') owners.push(['king', 'c_king', t('king')]);
     for (const a of G.S.advs) if (G.F.canUse(it, a.id)) owners.push([a.id, 'c_' + a.cls, h().nm(a.name)]);
     const locked = G.F.lockedOwner(it.eq);
-    const ownerBtns = owners.map(([o, icon, name]) => `<button class="obtn ${it.eq === o ? 'on' : ''}" data-action="eq" data-arg="${it.id}|${o}" ${it.eq === o || locked || G.F.lockedOwner(o) ? 'disabled' : ''} title="${esc(name)}">${ic(icon, 'ic2')}<span>${esc(name)}</span></button>`).join('');
+    const ownerBtns = owners.map(([o, icon, name]) => `<button class="obtn ${it.eq === o ? 'on' : ''}" data-action="eq" data-arg="${it.id}|${o}" ${it.eq === o || locked || G.F.lockedOwner(o) ? 'disabled' : ''} title="${esc(name)}">${ic(icon, 'ic2')}<span>${esc(name)}</span>${it.eq === o ? `<span class="small muted">${t('equippedBy')}</span>` : P.diffHtml(P.gain(it, o))}</button>`).join('');
     const aff = it.aff.length ? `<div class="aff">${it.aff.map((a) => `+${a.v} ${t('st_' + a.k)}`).join(' · ')}</div>` : '';
     let ench;
     if (!G.F.canEnchant()) ench = `<div class="muted small">${ic('i_lock')} ${t('enchLocked')}</div>`;

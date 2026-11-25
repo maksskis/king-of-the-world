@@ -880,6 +880,15 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 .wearer .eqrow { margin: 0; flex: 2; }
 .wearer .eq.big { min-width: 170px; }
 .eq .avail { color: var(--good, #7ddc6a); font-size: 12px; }
+/* Сравнение вещей: статы надетой и разница с ней */
+.eqst { display: inline-flex; flex-wrap: wrap; gap: 4px; font-size: 12px; font-weight: 600; }
+.eqst .ic, .wst .ic, .idiff .ic { width: 12px; height: 12px; vertical-align: -1px; }
+.eqst .ench { font-style: normal; color: var(--epic); }
+.wst { font-size: 12px; color: var(--text); }
+.idiff { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px 4px; font-size: 10.5px; font-weight: 700; line-height: 1.2; }
+.idiff .up { color: var(--good); }
+.idiff .dn { color: var(--bad); }
+.idiff .same { color: var(--muted); font-weight: 500; }
 
 /* Контур следующей цели */
 .goal-hl:not(.slot) { outline: 2px dashed var(--gold); outline-offset: 2px; animation: goalOutline 1.1s ease-in-out infinite; }
