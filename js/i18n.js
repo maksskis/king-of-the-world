@@ -33,6 +33,7 @@
     bh_gate: 'Следующий уровень: прочность ворот +60%. Мест на стене столько же, сколько в Гильдии. С 3 уровня стены каменные, с 6-го — ров.',
 
     cl_warrior: 'Воин', cl_archer: 'Лучник', cl_mage: 'Маг', cl_priest: 'Жрец', cl_rogue: 'Разбойник', cl_shaman: 'Шаман',
+    tgt_warrior: 'У ворот бьёт ближайшего врага.', tgt_archer: 'У ворот стреляет в самого дальнего врага на поле.', tgt_mage: 'У ворот бьёт в гущу — туда, где рядом 3 и больше врагов, и задевает всех; если групп нет — ближайшего.', tgt_priest: 'У ворот лечит раненых, а когда раненых нет — бьёт ближайшего врага.', tgt_shaman: 'У ворот бьёт в гущу — задевает и сковывает всех врагов рядом с целью; если групп нет — ближайшего.', tgt_rogue: 'У ворот метает кинжалы в ближайшего врага.',
     cld_warrior: 'Держит удар и прикрывает остальных.', cld_archer: 'Стабильный урон издалека, помогает сбежать.',
     cld_mage: 'Огромный урон по группам, но хрупок.', cld_priest: 'Лечит союзников в бою.',
     cld_rogue: 'Метает кинжалы. Врождённо: 15% шанс крита и 10% уклонения.',
@@ -464,6 +465,7 @@
     bh_gate: 'Next level: gate durability +60%. The wall holds as many defenders as the Guild. Stone walls from level 3, a moat from level 6.',
 
     cl_warrior: 'Warrior', cl_archer: 'Archer', cl_mage: 'Mage', cl_priest: 'Priest', cl_rogue: 'Rogue', cl_shaman: 'Shaman',
+    tgt_warrior: 'At the gate strikes the nearest enemy.', tgt_archer: 'At the gate shoots the farthest enemy on the field.', tgt_mage: 'At the gate strikes into the thick of it, where 3 or more enemies stand together, hitting them all; with no group, the nearest one.', tgt_priest: 'At the gate heals the wounded; with no one hurt, strikes the nearest enemy.', tgt_shaman: 'At the gate strikes into the thick of it, hitting and binding every enemy next to the target; with no group, the nearest one.', tgt_rogue: 'At the gate throws daggers at the nearest enemy.',
     cld_warrior: 'Takes hits and shields the others.', cld_archer: 'Steady ranged damage, helps the party escape.',
     cld_mage: 'Huge damage against groups, but fragile.', cld_priest: 'Heals allies in battle.',
     cld_rogue: 'Throws daggers. Innate: 15% crit chance and 10% dodge.',

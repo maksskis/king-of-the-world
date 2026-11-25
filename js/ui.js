@@ -283,7 +283,7 @@
       return `<b>${ic(sp.icon)} ${t('sp_' + id)}</b>${sp.battle ? ` <span class="muted">${t('inBattle')}</span>` : ''}<div>${t('spd_' + id, { d: G.K.meteorDmg() })}</div>`
         + `<div class="muted">${t('cooldown')}: ${U.fmtTime(G.K.spellCd(sp))}${G.S.king.lvl < sp.lvl ? ` · ${ic('i_lock')} ${t('lv')} ${sp.lvl}` : ''}</div>`;
     }
-    if (type === 'cl') return `<b>${ic('c_' + id)} ${t('cl_' + id)}</b><div>${t('cld_' + id)}</div>`;
+    if (type === 'cl') return `<b>${ic('c_' + id)} ${t('cl_' + id)}</b><div>${t('cld_' + id)}</div><div class="good">${ic('i_atk')} ${t('tgt_' + id)}</div>`;
     if (key === 'auto') return `<b>${ic('i_pick')} ${t('autoTitle')}: ${G.S.king.auto ? t('on') : t('off')}</b><div>${t('autoTip', { n: UI.autoRate() })}</div>`;
     if (key === 'folk') {
       const n = G.E.folk(), cap = G.E.homes();

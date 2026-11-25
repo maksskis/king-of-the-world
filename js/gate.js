@@ -145,6 +145,26 @@
     for (const m of B.mons) if (!m.dead && m.x < LW - 4 && (!best || m.x < best.x)) best = m;
     return best;
   }
+  // Приоритет целей по классу: воин, жрец и разбойник бьют ближнего к воротам; лучник — самого дальнего на поле;
+  // маг и шаман — в гущу: монстра, рядом с которым ещё 2+ врага (удар задевает всю группу), а если групп нет — ближнего
+  const NEAR = { x: 30, y: 14 }; // «рядом»: соседняя линия и до 30 пикселей по ходу
+  const near = (a, b) => Math.abs(a.x - b.x) <= NEAR.x && Math.abs(a.y - b.y) <= NEAR.y;
+  const onField = () => B.mons.filter((m) => !m.dead && m.x < LW - 4);
+  function farthest() {
+    let best = null;
+    for (const m of onField()) if (!best || m.x > best.x) best = m;
+    return best;
+  }
+  function crowd() {
+    const ms = onField();
+    let best = null, bn = 0;
+    for (const m of ms) {
+      const n = ms.reduce((c, o) => c + (o !== m && near(o, m) ? 1 : 0), 0);
+      if (n > bn || (n === bn && best && m.x < best.x)) { best = m; bn = n; }
+    }
+    return bn >= 2 ? best : front();
+  }
+  W.targetFor = (cls) => (cls === 'archer' ? farthest() : cls === 'mage' || cls === 'shaman' ? crowd() : front());
   const dmgMul = () => (1 + G.bonus('defAtk')) * G.K.rally();
 
   function spawn() {
@@ -277,7 +297,7 @@
       if (d.hit > 0) d.hit -= dt;
       if (d.swing > 0) d.swing -= dt;
       if (d.cd > 0) continue;
-      const tg = front();
+      const tg = W.targetFor(d.cls);
       const bm = tg && tg.boss && d.bossAtk ? 1 + d.bossAtk : 1;
       if (d.cls === 'priest') {
         const hurt = alive.filter((o) => o.a.hp < o.max * 0.9).sort((p, q) => p.a.hp / p.max - q.a.hp / q.max)[0];
@@ -299,7 +319,7 @@
         if (Math.random() < G.T.skillSum(d.a, 'volley')) B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * mul, kind: 'arrow', spd: 240 });
         d.cd = 1.0;
       } else if (d.cls === 'mage') {
-        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 1.3 * mul * bm, kind: 'orb', spd: 170, splash: 26, sm: 0.5 + G.T.skillSum(d.a, 'splash') });
+        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 1.3 * mul * bm, kind: 'orb', spd: 170, splash: true, sm: 0.5 + G.T.skillSum(d.a, 'splash') });
         d.cd = 1.5;
       } else if (d.cls === 'rogue') {
         // быстрые броски кинжалов, крит бьёт сильнее обычного
@@ -307,8 +327,8 @@
         B.proj.push({ x: d.x + 4, y: d.y - 9, tg, dmg: d.atk * mul * bm * (cr ? d.critMul : 1), kind: 'knife', spd: 300, crit: cr });
         d.cd = 0.7;
       } else if (d.cls === 'shaman') {
-        // дух-оковы: врагов рядом с целью сковывает на несколько секунд
-        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 0.8 * mul * bm, kind: 'spirit', spd: 160, bind: d.bind });
+        // дух-оковы: бьёт в гущу, задевает и сковывает всех врагов рядом с целью
+        B.proj.push({ x: d.x + 4, y: d.y - 12, tg, dmg: d.atk * 0.8 * mul * bm, kind: 'spirit', spd: 160, bind: d.bind, splash: true, sm: 0.5 });
         d.cd = 2.8;
       }
     }
@@ -326,14 +346,14 @@
         hitMon(main, p.dmg, col);
         if (p.bind) {
           for (const m of B.mons) {
-            if (m.dead || Math.abs(m.x - main.x) > 28 || Math.abs(m.y - main.y) > 20) continue;
+            if (m.dead || !near(m, main)) continue;
             m.stun = Math.max(m.stun || 0, p.bind * (m.boss ? 0.5 : 1));
           }
           if (!main.dead) float(main.x, main.y - main.h - 10, G.t('stunned'), '#7fe7ff');
         }
         if (p.splash) {
           for (const m of B.mons) {
-            if (m !== main && !m.dead && Math.abs(m.x - main.x) < p.splash && Math.abs(m.y - main.y) < 16) hitMon(m, p.dmg * p.sm, col);
+            if (m !== main && !m.dead && near(m, main)) hitMon(m, p.dmg * p.sm, col);
           }
         }
       } else { p.x += (dx / dist) * step; p.y += (dy / dist) * step; }
