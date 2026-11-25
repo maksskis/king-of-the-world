@@ -637,7 +637,11 @@
     condDown() { G.S.dng.down = !G.S.dng.down; UI.dirty(); },
     condBoss() { G.S.dng.boss = !G.S.dng.boss; UI.dirty(); },
     condAvoid(v) { G.S.dng.avoid = +v; UI.dirty(); },
-    send() { const e = G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc)); UI.party.clear(); if (e) UI.expView = e.id; },
+    send() {
+      const e = G.X.start([...UI.party], G.S.dng.loc, G.S.dng.maxFloor, G.X.startFloor(G.S.dng.loc));
+      UI.party.clear();
+      if (e) { UI.expView = e.id; UI.lastTab = null; } // поход начался — вкладка прокручивается к нему, в самый верх
+    },
     recall(id) { G.X.recall(id); },
     arenaPick(id) { G.A.pick(id); },
     arenaFight() { G.A.fight(); },
@@ -978,14 +982,17 @@
       <div class="muted small">${t('deepest')}: <b>${best}</b> · ${t('difficulty')}: <b>×${U.fmt1(G.K.epochMul())}</b>${nb ? ` · ${t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) })}` : ''}</div>
       ${G.S.camp.awake && !G.S.camp.won ? `<div class="good small">${ic('i_dragon')} ${t('catDragonAwake')}</div>` : G.S.camp.won ? `<div class="muted small">${ic('i_crown')} ${t('catDragonWon')}</div>` : ''}</div>
       ${nb ? `<span class="nextboss" title="${esc(t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) }))}">${ic(monSpr(D.CAT_BOSS[nb]), 'ic3')}<b>${nb}</b></span>` : ''}</div>`;
-    if (ex.length < max) h += expSetup(loc);
-    else h += box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
+    const setup = ex.length < max ? expSetup(loc) : box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
     if (ex.length) {
-      h += `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic('b_dungeon:1', 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}</div>`;
-      if (e) h += expActive(e);
-    } else if (G.S.lastExp) {
-      const R = G.S.lastExp;
-      h += box(ic('i_scroll') + ' ' + t('lastReport'), `<div class="${R.ok ? 'good' : 'bad'}">${R.ok ? t('lastOk', { f: R.floor, l: t('loc_' + R.loc) }) : t('lastFail', { f: R.floor, l: t('loc_' + R.loc) })}</div><div>${lootHtml(R.loot) || '—'}${R.items ? ' · ' + t('itemsN', { n: R.items }) : ''}</div><div class="xlog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
+      // идёт поход — отряды и сцена боя в самом верху, шапка и отправка нового отряда — ниже
+      const sq = `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic('b_dungeon:1', 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}</div>`;
+      h = sq + (e ? expActive(e) : '') + h + setup;
+    } else {
+      h += setup;
+      if (G.S.lastExp) {
+        const R = G.S.lastExp;
+        h += box(ic('i_scroll') + ' ' + t('lastReport'), `<div class="${R.ok ? 'good' : 'bad'}">${R.ok ? t('lastOk', { f: R.floor, l: t('loc_' + R.loc) }) : t('lastFail', { f: R.floor, l: t('loc_' + R.loc) })}</div><div>${lootHtml(R.loot) || '—'}${R.items ? ' · ' + t('itemsN', { n: R.items }) : ''}</div><div class="xlog">${R.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
+      }
     }
     return h;
   }
