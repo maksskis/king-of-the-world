@@ -138,7 +138,7 @@
     document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') hideGtip(); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
-      if (['1', '2', '3'].includes(e.key) && G.W.battle() && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) G.W.setSpeed(G.W.SPEEDS[+e.key - 1]);
+      if (['1', '2', '3', '4'].includes(e.key) && G.W.battle() && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) G.W.setSpeed(G.W.SPEEDS[+e.key - 1]);
     });
     $('#brand-icon').src = G.SPR.url('i_crown');
     applyLand();
@@ -1231,8 +1231,8 @@
   };
 
   // ---------- бой у ворот ----------
-  // Кнопки скорости боя (под названием, слева); активная подсвечена
-  const speedBtns = () => G.W.SPEEDS.map((v, i) => `<button class="btn small spd ${G.W.speed() === v ? 'on' : ''}" data-action="bspeed" data-arg="${v}" title="${esc(t('speedTip', { v, k: i + 1 }))}">×${v}</button>`).join('');
+  // Кнопки скорости боя 1 | 2 | 3 | 4 (под названием, слева); что за скорость — в подсказке при наведении
+  const speedBtns = () => `<span class="spdseg">${G.W.SPEEDS.map((v, i) => `<button class="btn small spd ${G.W.speed() === v ? 'on' : ''}" data-action="bspeed" data-arg="${v}"${hint('spd' + v, t(v === 1 ? 'speedTip1' : 'speedTip', { v, k: i + 1 }))}>${i + 1}</button>`).join('')}</span>`;
   UI.speedBtns = () => { for (const b of document.querySelectorAll('.spd')) b.classList.toggle('on', +b.dataset.arg === G.W.speed()); };
   UI.showBattle = function (on, mode) {
     $('#map').classList.toggle('hidden', on);

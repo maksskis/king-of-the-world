@@ -277,7 +277,7 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
   #battle-head .bh-btns { gap: 4px; flex-wrap: nowrap; }
   #battle-head .bh-btns .btn.small { padding: 4px 7px; font-size: 12px; }
   #battle-head .bh-btns .bl { display: none; }
-  .btn.spd { min-width: 0; }
+  .spdseg .btn.spd { min-width: 28px; }
 }
 #bh-anext { min-width: 150px; }
 .invis { visibility: hidden; pointer-events: none; }
@@ -288,8 +288,12 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .res-win, .res-lose { font-size: 15px; font-weight: 700; }
 #battle-foot .hint { margin: 0; font-size: 13px; font-style: normal; color: var(--muted); }
 /* Кнопки скорости боя */
-.btn.spd { min-width: 44px; }
-.btn.spd.on { color: #241a05; background: var(--gold); border-color: var(--gold); }
+.spdseg { display: inline-flex; }
+.spdseg .btn.spd { min-width: 34px; margin: 0; border-radius: 0; }
+.spdseg .btn.spd + .btn.spd { margin-left: -2px; }
+.spdseg .btn.spd:first-child { border-radius: 6px 0 0 6px; }
+.spdseg .btn.spd:last-child { border-radius: 0 6px 6px 0; }
+.btn.spd.on { color: #241a05; background: var(--gold); border-color: var(--gold); position: relative; z-index: 1; }
 .res-win { color: var(--good); }
 .res-lose { color: var(--bad); }
 
