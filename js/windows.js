@@ -253,7 +253,7 @@
       ${idle.length ? `<div class="tiles">${idle.map((a) => advTile(a, 'jPick', a.id, S.team.includes(a.id) && a.st === 'idle')).join('')}</div>` : `<div class="muted small">${t('noIdle')}</div>`}
       </div>`;
     return `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button><h2>${h().tipTitle(ic('i_ship', 'ic2') + ' ' + t('journey'), 'journeyHint', t('journeyHint', { b: S.best }))}</h2>
-      <div class="jwrap"><div class="jmap">${map}</div>${det}</div>`;
+      <div class="jwrap"><div class="jmap" data-keep="jmap">${map}</div>${det}</div>`;
   };
 
   // Список всех целей: сданные, три текущих (с кнопками) и закрытые — во вкладке «Все цели» под картой и в окне

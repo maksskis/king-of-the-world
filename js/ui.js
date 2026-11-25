@@ -714,8 +714,10 @@
     renderKingBadge();
     if (UI.win && G.WIN[UI.win]) {
       const mb = $('#modal-box'), s = mb.scrollTop;
+      const inner = [...mb.querySelectorAll('[data-keep]')].map((el) => [el.dataset.keep, el.scrollTop]);
       mb.innerHTML = G.WIN[UI.win](UI.winArg);
       mb.scrollTop = s;
+      for (const [k, v] of inner) { const el = mb.querySelector(`[data-keep="${k}"]`); if (el) el.scrollTop = v; }
     }
     UI.slotsDirty = true;
     UI.refresh();
@@ -1068,9 +1070,11 @@
     const c = e.cond || X_COND();
     body += `<div class="kv small">${e.start > 1 ? t('startFloor') + ': <b>' + e.start + '</b> · ' : ''}${t('maxFloor')}: <b>${e.maxFloor}</b> · ${c.push ? `<b class="bad">${t('condPushShort')}</b>` : `${t('condHp')}: <b>${Math.round(c.hp * 100)}%</b>`}${c.down ? ' · ' + t('condDownShort') : ''}${c.boss ? ' · ' + t('condBossShort') : ''}${c.avoid ? ' · ' + t('condAvoidShort', { p: c.avoid * 100 }) : ''}</div>`;
     body += `<div class="kv">${ic('i_chest')} ${t('backpack')}: ${lootHtml(e.loot) || '—'}${e.items && e.items.length ? ` · ${e.items.map((it) => ic('it_' + it.type + ':' + it.ti)).join('')} ${t('itemsN', { n: e.items.length })}` : ''}</div>`;
-    body += '<div class="row">';
-    if (e.phase === 'travel' || e.phase === 'ret') body += `<button class="btn small primary" data-action="hurry" data-arg="${e.id}">${ic('i_boot')} ${t('hurryBtn', { n: U.fmt1(G.X.hurrySec()) })}</button>`;
-    if (e.phase !== 'ret') body += `<button class="btn small" data-action="recall" data-arg="${e.id}" ${e.recall ? 'disabled' : ''}>${e.recall ? t('recalling') : t('recall')}</button>`;
+    // кнопки на постоянных местах: «Поторопить» слева (в бою — неактивна), «Вернуть отряд» — справа, далеко от неё
+    const walking = e.phase === 'travel' || e.phase === 'ret';
+    body += '<div class="row xbtns">';
+    body += `<button class="btn small primary" data-action="hurry" data-arg="${e.id}" ${walking ? '' : 'disabled'}>${ic('i_boot')} ${t('hurryBtn', { n: U.fmt1(G.X.hurrySec()) })}</button><span class="grow"></span>`;
+    body += `<button class="btn small" data-action="recall" data-arg="${e.id}" ${e.recall || e.phase === 'ret' ? 'disabled' : ''}>${e.recall || e.phase === 'ret' ? t('recalling') : t('recall')}</button>`;
     body += '</div>';
     h += box('', body);
     h += box(ic('i_scroll') + ' ' + t('chronicle'), `<div class="xlog">${e.log.map((l) => `<div class="${l.c}">${fmtEntry(l)}</div>`).join('')}</div>`);
@@ -1232,15 +1236,20 @@
     $('#stage').classList.toggle('arena-mode', on && duel);
     $('#stage').classList.toggle('duel-click', on && mode === 'journey');
     $('#battle').classList.toggle('hidden', !on);
+    // Шапка: сверху название и полоса здоровья, под ней — кнопки. У каждой кнопки своё постоянное место:
+    // кнопки действий слева (не исчезают, а становятся невидимыми), выход («К карте», «В город») — справа,
+    // чтобы частые клики по «Пропустить»/«Ускорить» не попадали в выход, когда кнопка пропадает
     if (on && duel) {
-      // Арена: ранг, чемпион и его здоровье, «Пропустить» до конца боя, «В город» — после
-      $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
-        <span class="grow"></span><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button>`;
+      // Арена и Путешествие: «Пропустить» до конца боя; после — «Ускорить» (Арена) и «Следующий бой/этап»
+      const jr = mode === 'journey';
+      $('#battle-head').innerHTML = `<div class="bh-top"><b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span></div>
+        <div class="bh-btns"><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button>${jr ? '' : `<button class="btn small invis" id="bh-aboost" data-action="arenaBoost">${ic('i_clock')} ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</button>`}<button class="btn small primary invis" id="${jr ? 'bh-jnext' : 'bh-anext'}" data-action="${jr ? 'journeyNext' : 'arenaNext'}" disabled>${jr ? t('jrNext') + ' ▶' : t('arenaNextBtn')}</button>
+        <span class="grow"></span>${jr ? `<button class="btn small invis" id="bh-map" data-action="journey" disabled>${ic('i_map')} ${t('jrToMap')}</button>` : ''}<button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button></div>`;
       const stn = t('ch_' + ((G.W.battle() || {}).stance || 'attack'));
       $('#battle-foot').innerHTML = `<div class="hint">${mode === 'journey' ? t('jrLiveHint', { s: stn, d: G.W.kingDmg() }) : t('arenaLiveHint', { s: stn })}</div>`;
     } else if (on) {
-      $('#battle-head').innerHTML = `<b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span>
-        <span class="grow"></span><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button>`;
+      $('#battle-head').innerHTML = `<div class="bh-top"><b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span></div>
+        <div class="bh-btns"><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button><span class="grow"></span><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button></div>`;
       $('#battle-foot').innerHTML = `<div class="hint">${t('battleHint', { d: G.W.kingDmg() })}</div>`;
     }
     UI.slotsDirty = true;
@@ -1268,18 +1277,20 @@
   // Путешествие — «К карте» и «Следующий этап»
   UI.duelResult = function (B, r) {
     const sk = $('#bh-skip');
-    if (sk) sk.remove();
+    if (sk) { sk.classList.add('invis'); sk.disabled = true; }
     $('#bh-city').disabled = false;
-    const head = $('#battle-head');
     if (B.mode === 'journey') {
       const h = r.win
         ? `<div class="res-win">${t('jrWonTitle', { s: r.s })}</div><div>${lootHtml(r.loot)}${r.item ? ' · ' + t('jrItem', { item: fmtEntry({ k: 'xItemShort', p: { item: G.F.nameObj(r.item) } }) }) : ''} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('jrRest', { n: r.wounded }) : ''}</div>`
         : `<div class="res-lose">${t('jrLostTitle', { s: r.s })}</div><div>${r.wounded ? t('jrRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('jrLostHint')}</span></div>`;
       $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
-      head.insertAdjacentHTML('beforeend', `<button class="btn small" data-action="journey">${ic('i_map')} ${t('jrToMap')}</button>${r.win ? `<button class="btn small primary" id="bh-jnext" data-action="journeyNext">${t('jrNext')} ▶</button>` : ''}`);
+      const mp = $('#bh-map'), jn = $('#bh-jnext');
+      if (mp) { mp.classList.remove('invis'); mp.disabled = false; }
+      if (jn && r.win) { jn.classList.remove('invis'); jn.disabled = false; }
       return;
     }
-    head.insertAdjacentHTML('beforeend', `<button class="btn small" id="bh-aboost" data-action="arenaBoost">${ic('i_clock')} ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</button><button class="btn small primary" id="bh-anext" data-action="arenaNext" disabled></button>`);
+    const an = $('#bh-anext');
+    if (an) an.classList.remove('invis');
     UI.arenaResult(r);
   };
   UI.arenaResult = function (r) {
@@ -1297,7 +1308,7 @@
       const lab = why === 'cd' ? t('arenaNextBtn') + ' · ' + U.fmtTime(G.S.arena.cd) : why === 'team' ? t('arenaNoTeam') : why ? t('arenaNextBtn') : t('arenaNextBtn') + ' ▶';
       if (an.textContent !== lab) an.textContent = lab;
       const ab = $('#bh-aboost');
-      if (ab) ab.classList.toggle('hidden', !(G.S.arena.cd > 0));
+      if (ab) { const off = !(G.S.arena.cd > 0); ab.classList.toggle('invis', off); ab.disabled = off; }
     }
   }
   UI.battleResult = function (r) {
