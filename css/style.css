@@ -592,6 +592,11 @@ h4 { margin: 10px 0 6px; font-size: 14px; color: #e8d4b0; display: flex; align-i
 .tal { margin: 4px 0; }
 .tal .pips, b.hastip + .pips { margin-left: 8px; }
 .advs { display: grid; grid-template-columns: 1fr; gap: 8px; }
+/* Совет: кнопка «Назначить/Повысить» — отдельной строкой под названием */
+.advact { margin-top: 6px; }
+.advc .grow > .small { margin-top: 4px; }
+/* Навыки героя: полоска рангов — всегда отдельной строкой под названием */
+.skrank { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
 .advc { padding: 6px; background: var(--panel2); border-radius: 6px; }
 .advc.locked { opacity: 0.6; }
 .perk { margin: 6px 0; }

@@ -1134,7 +1134,7 @@
     h += box(ic('i_people') + ' ' + t('council'), `<div class="advs">${D.ADVISORS.map((a) => {
       const l = G.K.advLvl(a.id), open = G.K.advOpen(a);
       return `<div class="advc ${open ? '' : 'locked'}" data-tip="ad:${a.id}">${ic('adv_' + a.id, 'ic3')}<div class="grow"><b class="hastip">${t('ad_' + a.id)}<i class="qh">?</i></b> ${pips(l, D.ADV_MAX)}
-        ${!open ? `<div class="small">${ic('i_lock')} ${t('needCastleLvl', { l: a.castle })}</div>` : l >= D.ADV_MAX ? `<div class="small good">${t('maxLevel')}</div>` : btn(l ? t('promote') : t('hireAdv'), 'advisor', a.id, { cost: G.K.advCost(a.id), cls: 'small' })}</div></div>`;
+        ${!open ? `<div class="small">${ic('i_lock')} ${t('needCastleLvl', { l: a.castle })}</div>` : l >= D.ADV_MAX ? `<div class="small good">${t('maxLevel')}</div>` : `<div class="advact">${btn(l ? t('promote') : t('hireAdv'), 'advisor', a.id, { cost: G.K.advCost(a.id), cls: 'small' })}</div>`}</div></div>`;
     }).join('')}</div>`);
     const dyn = G.S.dyn;
     const LP = G.K.legacyParts();
