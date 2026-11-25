@@ -118,6 +118,15 @@
     W.start(false);
   };
 
+  // Скорость боя: ×0,5 / ×2 / ×4 (кнопки под названием и клавиши 1, 2, 3); повторное нажатие — обычная скорость.
+  // Ускорение — несколько шагов боя за кадр, так что расчёт тот же, что и на обычной скорости
+  W.SPEEDS = [0.5, 2, 4];
+  W.speed = () => (W.SPEEDS.includes(G.S.bspeed) ? G.S.bspeed : 1);
+  W.setSpeed = function (v) {
+    G.S.bspeed = W.speed() === v ? 1 : v;
+    G.UI.speedBtns();
+  };
+
   W.close = function () {
     if (W.running()) return;
     B = null;
@@ -130,9 +139,14 @@
     if (!B) return;
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    if (B.state === 'run') (B.duel ? updateArena : update)(dt);
+    const sp = W.speed();
+    if (B.state === 'run') {
+      const fn = B.duel ? updateArena : update;
+      if (sp < 1) fn(dt * sp);
+      else for (let i = 0; i < sp && B && B.state === 'run'; i++) fn(dt);
+    }
     if (!B) return;
-    updateFx(dt);
+    updateFx(dt * Math.min(1, sp));
     draw();
     if (B.duel) G.UI.duelHud(B); else G.UI.battleHud(B);
     raf = requestAnimationFrame(frame);

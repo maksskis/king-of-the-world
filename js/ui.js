@@ -138,6 +138,7 @@
     document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') hideGtip(); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
+      if (['1', '2', '3'].includes(e.key) && G.W.battle() && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) G.W.setSpeed(G.W.SPEEDS[+e.key - 1]);
     });
     $('#brand-icon').src = G.SPR.url('i_crown');
     applyLand();
@@ -640,6 +641,7 @@
     jPick(id) { G.J.pick(id); },
     jFight() { G.J.fight(); },
     bnext() { G.W.next(); },
+    bspeed(v) { G.W.setSpeed(+v); },
     cast(id) { G.K.cast(id); },
     talent(id) { G.K.learn(id); },
     advisor(id) { G.K.hireAdv(id); },
@@ -1229,6 +1231,9 @@
   };
 
   // ---------- бой у ворот ----------
+  // Кнопки скорости боя (под названием, слева); активная подсвечена
+  const speedBtns = () => G.W.SPEEDS.map((v, i) => `<button class="btn small spd ${G.W.speed() === v ? 'on' : ''}" data-action="bspeed" data-arg="${v}" title="${esc(t('speedTip', { v, k: i + 1 }))}">×${v}</button>`).join('');
+  UI.speedBtns = () => { for (const b of document.querySelectorAll('.spd')) b.classList.toggle('on', +b.dataset.arg === G.W.speed()); };
   UI.showBattle = function (on, mode) {
     $('#map').classList.toggle('hidden', on);
     $('#stage').classList.toggle('in-battle', on);
@@ -1236,6 +1241,10 @@
     $('#stage').classList.toggle('arena-mode', on && duel);
     $('#stage').classList.toggle('duel-click', on && mode === 'journey');
     $('#battle').classList.toggle('hidden', !on);
+    // в бою у ворот заклинания лежат строкой в чёрной полосе под полем, вне боя — на карте
+    const sb = $('#spellbar');
+    if (on && !duel) $('#bf-spells').appendChild(sb);
+    else if (sb.parentElement.id === 'bf-spells') $('#stage').insertBefore(sb, $('#fx'));
     // Шапка: сверху название и полоса здоровья, под ней — кнопки. У каждой кнопки своё постоянное место:
     // кнопки действий слева (не исчезают, а становятся невидимыми), выход («К карте», «В город») — справа,
     // чтобы частые клики по «Пропустить»/«Ускорить» не попадали в выход, когда кнопка пропадает
@@ -1243,14 +1252,14 @@
       // Арена и Путешествие: «Пропустить» до конца боя; после — «Ускорить» (Арена) и «Следующий бой/этап»
       const jr = mode === 'journey';
       $('#battle-head').innerHTML = `<div class="bh-top"><b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_hp')}</span><div class="bar gatebar champbar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span></div>
-        <div class="bh-btns"><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button>${jr ? '' : `<button class="btn small invis" id="bh-aboost" data-action="arenaBoost">${ic('i_clock')} ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</button>`}<button class="btn small primary invis" id="${jr ? 'bh-jnext' : 'bh-anext'}" data-action="${jr ? 'journeyNext' : 'arenaNext'}" disabled>${jr ? t('jrNext') + ' ▶' : t('arenaNextBtn')}</button>
-        <span class="grow"></span>${jr ? `<button class="btn small invis" id="bh-map" data-action="journey" disabled>${ic('i_map')} ${t('jrToMap')}</button>` : ''}<button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button></div>`;
+        <div class="bh-btns duel">${speedBtns()}<span class="bslot"><button class="btn small" id="bh-skip" data-action="askip">${t('arenaSkip')} ▶▶</button>${jr ? '' : `<button class="btn small invis" id="bh-aboost" data-action="arenaBoost">${ic('i_clock')} ${t('arenaBoostShort', { n: U.fmt1(G.A.boostSec()) })}</button>`}</span>
+        <span class="grow"></span><button class="btn small primary invis" id="${jr ? 'bh-jnext' : 'bh-anext'}" data-action="${jr ? 'journeyNext' : 'arenaNext'}" disabled>${jr ? t('jrNext') + ' ▶' : t('arenaNextBtn')}</button>${jr ? `<button class="btn small invis" id="bh-map" data-action="journey" disabled title="${esc(t('jrToMap'))}">${ic('i_map')}<span class="bl"> ${t('jrToMap')}</span></button>` : ''}<button class="btn small" id="bh-city" data-action="bclose" disabled title="${esc(t('toCity'))}">${ic('i_tower')}<span class="bl"> ${t('toCity')}</span></button></div>`;
       const stn = t('ch_' + ((G.W.battle() || {}).stance || 'attack'));
-      $('#battle-foot').innerHTML = `<div class="hint">${mode === 'journey' ? t('jrLiveHint', { s: stn, d: G.W.kingDmg() }) : t('arenaLiveHint', { s: stn })}</div>`;
+      $('#bf-text').innerHTML = `<div class="hint">${mode === 'journey' ? t('jrLiveHint', { s: stn, d: G.W.kingDmg() }) : t('arenaLiveHint', { s: stn })}</div>`;
     } else if (on) {
       $('#battle-head').innerHTML = `<div class="bh-top"><b id="bh-wave"></b><span id="bh-left"></span><span class="gatelab">${ic('i_def')}</span><div class="bar gatebar"><i id="bh-gate"></i></div><span id="bh-gtxt"></span></div>
-        <div class="bh-btns"><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button><span class="grow"></span><button class="btn small" id="bh-city" data-action="bclose" disabled>${ic('i_tower')} ${t('toCity')}</button></div>`;
-      $('#battle-foot').innerHTML = `<div class="hint">${t('battleHint', { d: G.W.kingDmg() })}</div>`;
+        <div class="bh-btns">${speedBtns()}<span class="grow"></span><button class="btn small primary" id="bh-next" data-action="bnext" disabled>${t('nextWave')} ▶</button><button class="btn small" id="bh-city" data-action="bclose" disabled title="${esc(t('toCity'))}">${ic('i_tower')}<span class="bl"> ${t('toCity')}</span></button></div>`;
+      $('#bf-text').innerHTML = `<div class="hint">${t('battleHint', { d: G.W.kingDmg() })}</div>`;
     }
     UI.slotsDirty = true;
     UI.dirty();
@@ -1281,9 +1290,9 @@
     $('#bh-city').disabled = false;
     if (B.mode === 'journey') {
       const h = r.win
-        ? `<div class="res-win">${t('jrWonTitle', { s: r.s })}</div><div>${lootHtml(r.loot)}${r.item ? ' · ' + t('jrItem', { item: fmtEntry({ k: 'xItemShort', p: { item: G.F.nameObj(r.item) } }) }) : ''} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('jrRest', { n: r.wounded }) : ''}</div>`
-        : `<div class="res-lose">${t('jrLostTitle', { s: r.s })}</div><div>${r.wounded ? t('jrRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('jrLostHint')}</span></div>`;
-      $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
+        ? `<b class="res-win">${t('jrWonTitle', { s: r.s })}</b><div>${lootHtml(r.loot)}${r.item ? ' · ' + t('jrItem', { item: fmtEntry({ k: 'xItemShort', p: { item: G.F.nameObj(r.item) } }) }) : ''} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('jrRest', { n: r.wounded }) : ''}</div>`
+        : `<b class="res-lose">${t('jrLostTitle', { s: r.s })}</b><div>${r.wounded ? t('jrRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('jrLostHint')}</span></div>`;
+      $('#bf-text').innerHTML = `<div class="bres">${h}</div>`;
       const mp = $('#bh-map'), jn = $('#bh-jnext');
       if (mp) { mp.classList.remove('invis'); mp.disabled = false; }
       if (jn && r.win) { jn.classList.remove('invis'); jn.disabled = false; }
@@ -1295,9 +1304,9 @@
   };
   UI.arenaResult = function (r) {
     const h = r.win
-      ? `<div class="res-win">${t('arenaWonTitle', { r: r.rank })}</div><div>${lootHtml(r.loot)} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('arenaRest', { n: r.wounded }) : ''} · <span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`
-      : `<div class="res-lose">${t('arenaLostTitle', { r: r.rank })}</div><div>${r.wounded ? t('arenaRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`;
-    $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
+      ? `<b class="res-win">${t('arenaWonTitle', { r: r.rank })}</b><div>${lootHtml(r.loot)} · ${t('arenaXp', { n: r.xp })}${r.wounded ? ' · ' + t('arenaRest', { n: r.wounded }) : ''} · <span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`
+      : `<b class="res-lose">${t('arenaLostTitle', { r: r.rank })}</b><div>${r.wounded ? t('arenaRest', { n: r.wounded }) + ' · ' : ''}<span class="muted">${t('arenaNextIn', { t: U.fmtTime(G.S.arena.cd) })}</span></div>`;
+    $('#bf-text').innerHTML = `<div class="bres">${h}</div>`;
   };
   // кнопки окна Арены после боя: следующий бой ждёт конца подготовки и свободных бойцов
   function refreshDuelButtons() {
@@ -1313,9 +1322,9 @@
   }
   UI.battleResult = function (r) {
     let h;
-    if (r.win) h = `<div class="res-win">${r.final ? t('finalVictory') : t('victory')}</div><div>${lootHtml({ gold: r.gold, bone: r.bone })} · ${t('xpEach', { n: r.xp })}${r.wounded ? ' · ' + t('woundedN', { n: r.wounded }) : ''}</div>`;
-    else h = `<div class="res-lose">${t('defeat')}</div><div>${t('plundered')}: ${lootHtml(r.lost) || '—'}${r.broken ? ' · ' + t('brokenB', { b: t('bn_' + r.broken) }) : ''}${r.dead.length ? ' · ' + t('deadN', { names: r.dead.map((n) => esc(nm(n))).join(', ') }) : ''}</div>`;
-    $('#battle-foot').innerHTML = `<div class="bres">${h}</div>`;
+    if (r.win) h = `<b class="res-win">${r.final ? t('finalVictory') : t('victory')}</b><div>${lootHtml({ gold: r.gold, bone: r.bone })} · ${t('xpEach', { n: r.xp })}${r.wounded ? ' · ' + t('woundedN', { n: r.wounded }) : ''}</div>`;
+    else h = `<b class="res-lose">${t('defeat')}</b><div>${t('plundered')}: ${lootHtml(r.lost) || '—'}${r.broken ? ' · ' + t('brokenB', { b: t('bn_' + r.broken) }) : ''}${r.dead.length ? ' · ' + t('deadN', { names: r.dead.map((n) => esc(nm(n))).join(', ') }) : ''}</div>`;
+    $('#bf-text').innerHTML = `<div class="bres">${h}</div>`;
     $('#bh-city').disabled = false;
     $('#bh-next').disabled = !G.W.canNext();
     $('#bh-next').title = G.W.canNext() ? '' : t(r.win ? 'nextNeedDef' : 'nextAfterLoss');

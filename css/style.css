@@ -223,9 +223,13 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .wm b { margin-left: -4px; text-shadow: 1px 1px 0 #000; }
 
 #spellbar { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 3; }
-#stage.in-battle #spellbar { top: auto; bottom: 8px; left: 8px; display: grid; grid-template-columns: repeat(2, 44px); gap: 4px; }
-#stage.in-battle #battle-foot { padding-left: 112px; }
-.bres { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* В бою заклинания лежат строкой в чёрной полосе под полем боя, слева; текст — справа от них */
+#bf-spells:empty { display: none; }
+#bf-spells #spellbar { position: static; display: flex; flex-direction: row; gap: 4px; }
+#bf-spells .spell { width: 34px; height: 34px; padding: 3px; }
+#bf-text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; }
+/* Надписи в чёрной полосе — простым шрифтом, итог боя одной строкой */
+.bres { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 10px; font-size: 13px; }
 .spell {
   position: relative;
   width: 44px;
@@ -261,13 +265,31 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 #battle-head { display: flex; flex-direction: column; gap: 6px; padding: 6px 10px; background: #1a1422; border-bottom: 1px solid var(--line); }
 #battle-head .bh-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 4px; }
 #battle-head .bh-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* В бою рамка подстраивается по высоте под шапку, поле и полосу (пропорции карты тут не нужны) */
+/* «Пропустить» (в бою) и «Ускорить» (после) — на одном месте; в окне Арены и Путешествия выход — значками */
+.bslot { display: grid; }
+.bslot > * { grid-area: 1 / 1; }
+.bh-btns.duel .bl { display: none; }
+#stage.in-battle { aspect-ratio: auto; }
+#stage.in-battle #battle { position: relative; inset: auto; }
+#battle-foot { min-height: 40px; }
+@media (max-width: 560px) {
+  #battle-head .bh-btns { gap: 4px; flex-wrap: nowrap; }
+  #battle-head .bh-btns .btn.small { padding: 4px 7px; font-size: 12px; }
+  #battle-head .bh-btns .bl { display: none; }
+  .btn.spd { min-width: 0; }
+}
 #bh-anext { min-width: 150px; }
 .invis { visibility: hidden; pointer-events: none; }
 #battle-head .gatebar { flex: 1; max-width: 220px; height: 8px; margin: 0; }
 #battle-head .gatebar i { background: #c0843a; transition: none; }
 #battlecv { display: block; width: 100%; height: auto; cursor: crosshair; image-rendering: pixelated; touch-action: manipulation; }
-#battle-foot { flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; padding: 6px 10px; text-align: center; }
-.res-win, .res-lose { font-family: var(--display); font-size: 24px; }
+#battle-foot { flex: 1; display: flex; align-items: center; gap: 10px; padding: 3px 10px; text-align: center; }
+.res-win, .res-lose { font-size: 15px; font-weight: 700; }
+#battle-foot .hint { margin: 0; font-size: 13px; font-style: normal; color: var(--muted); }
+/* Кнопки скорости боя */
+.btn.spd { min-width: 44px; }
+.btn.spd.on { color: #241a05; background: var(--gold); border-color: var(--gold); }
 .res-win { color: var(--good); }
 .res-lose { color: var(--bad); }
 
@@ -939,11 +961,9 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 
 /* Бой на Арене в окне боя: заклинаний нет, полоса — здоровье чемпиона */
 #stage.arena-mode #spellbar { display: none; }
-#stage.arena-mode #battle-foot { padding-left: 10px; }
 #stage.arena-mode #battlecv { cursor: default; }
 #battle-head .champbar { min-width: 80px; }
 #battle-head .champbar i { background: #d64545; }
-#stage.arena-mode .res-win, #stage.arena-mode .res-lose { font-size: 20px; }
 
 /* Путешествие: кнопка-причал у пруда на карте */
 #journey-btn {
