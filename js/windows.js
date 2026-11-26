@@ -219,6 +219,86 @@
       <div class="row">${ench}<span class="grow"></span>${it.eq ? `<button class="btn small" data-action="uneq" data-arg="${it.id}" ${locked ? 'disabled' : ''}>${t('unequip')}</button>` : `<button class="btn small" data-action="sellItem" data-arg="${it.id}">${t('sell')} ${ic('r_gold')}${G.F.sellValue(it)}</button>`}</div></div>`;
   };
 
+  // ---------- Древо династии: после передачи трона (новая эпоха на паузе) и из вкладки «Король» ----------
+  const TREE_CH = 84, TREE_ROWS = 8, ROMAN = ['I', 'II', 'III'];
+  const BK_NEG = { hireC: 1, save: 1 }; // эти бонусы уменьшают (цену найма, шанс гибели)
+  // что даёт навык рода при текущем ранге — одной строкой
+  P.perkNow = function (p, r) {
+    const { t } = h();
+    if (p.id === 'found') return t('bk_found', { n: Math.min(r, D.FOUND_ORDER.length) });
+    if (p.id === 'start') return t('bk_start', { n: 500 * r });
+    return Object.keys(p.eff).map((k) => `${BK_NEG[k] ? '−' : '+'}${Math.round(p.eff[k] * r * 100)}% ${t('bk_' + k)}`).join(', ');
+  };
+  P.dynTree = function () {
+    const { ic } = h();
+    const K = G.K, sel = G.UI.dynSel, H = TREE_ROWS * TREE_CH, pts = G.S.dyn.pts;
+    const X = (c) => (c + 0.5) * 100, Y = (r) => r * TREE_CH + TREE_CH / 2;
+    const lines = [];
+    const seg = (pts2, cls) => lines.push(`<polyline class="${cls}" points="${pts2.map(([x, y]) => x + ',' + y).join(' ')}"/>`);
+    for (let i = 1; i < D.DYN_TIERS.length; i++) seg([[X(2), Y(D.DYN_TIERS[i - 1].r)], [X(2), Y(D.DYN_TIERS[i].r)]], K.tierOpen(i) ? 'on' : '');
+    for (const [id, n] of Object.entries(D.DYN_TREE)) {
+      const cls = K.perkRank(id) > 0 ? 'own' : K.perkOpen(id) ? 'on' : '';
+      if (n.p) { const q = D.DYN_TREE[n.p]; seg([[X(q.c), Y(q.r)], [X(n.c), Y(n.r)]], cls); continue; }
+      const hr = D.DYN_TIERS[n.t].r, mx = X(2) + (n.c < 2 ? -50 : 50);
+      seg(n.r === hr ? [[X(2), Y(hr)], [X(n.c), Y(n.r)]] : [[X(2), Y(hr)], [mx, Y(hr)], [mx, Y(n.r)], [X(n.c), Y(n.r)]], cls);
+    }
+    const pos = (c, r) => `left:${(c + 0.5) * 20}%;top:${Y(r)}px`;
+    let nodes = D.DYN_TIERS.map((tr, i) => `<button class="dnode hub ${K.tierOpen(i) ? '' : 'locked'} ${sel === 'tier' + i ? 'sel' : ''}" data-action="dynSel" data-arg="tier${i}" style="${pos(2, tr.r)}">${ic('i_scroll', 'ic2')}<b class="tnum">${ROMAN[i]}</b></button>`).join('');
+    for (const p of D.PERKS) {
+      const n = D.DYN_TREE[p.id];
+      if (!n) continue;
+      const r = K.perkRank(p.id), open = K.perkOpen(p.id), max = r >= D.PERK_MAX;
+      const st = !open ? 'locked' : max ? 'max' : r > 0 ? 'own' : '';
+      const can = open && !max && pts >= K.perkCost(p.id);
+      nodes += `<button class="dnode ${st} ${can ? 'can' : ''} ${sel === p.id ? 'sel' : ''}" data-action="dynSel" data-arg="${p.id}" data-tip="pk:${p.id}" style="${pos(n.c, n.r)}">${ic(p.icon, 'ic2')}${r ? `<em class="drank">${r}</em>` : ''}${open ? '' : `<i class="dlock">${ic('i_lock')}</i>`}</button>`;
+    }
+    return `<div class="dtree" data-keep="dtree"><div class="dtree-in" style="height:${H}px"><svg class="dlines" viewBox="0 0 500 ${H}" preserveAspectRatio="none" aria-hidden="true">${lines.join('')}</svg>${nodes}</div></div>`;
+  };
+  // карточка выбранного: ступень или навык рода
+  P.dynDetail = function (sel) {
+    const { ic, t, pips } = h();
+    const K = G.K;
+    if (sel && sel.startsWith('tier')) {
+      const i = +sel.slice(4), tr = D.DYN_TIERS[i], open = K.tierOpen(i);
+      return `<div class="ddet"><div class="ddh">${ic('i_scroll', 'ic3')}<div><h3>${t('tierN', { r: ROMAN[i] })}</h3><div class="${open ? 'good' : 'warn'} small">${open ? t('tierOpenTxt') : t('tierNeed', { n: tr.need, c: K.perkRanks() })}</div></div></div>
+        <div class="small muted">${t('tierHint')}</div></div>`;
+    }
+    const p = sel && D.PERKS.find((x) => x.id === sel);
+    if (!p) return `<div class="muted small">${t('dynPick')}</div>`;
+    const r = K.perkRank(p.id), n = D.DYN_TREE[p.id], open = K.perkOpen(p.id), max = r >= D.PERK_MAX, cost = K.perkCost(p.id), pts = G.S.dyn.pts;
+    let need = '';
+    if (!open) need = n && !K.tierOpen(n.t) ? t('nodeNeedTier', { r: ROMAN[n.t], n: D.DYN_TIERS[n.t].need }) : t('nodeNeedParent', { p: t('pk_' + n.p) });
+    const nextB = p.id === 'found' && r < D.FOUND_ORDER.length ? `<div class="small good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>` : '';
+    return `<div class="ddet"><div class="ddh">${ic(p.icon, 'ic3')}<div><h3>${t('pk_' + p.id)}</h3>${pips(Math.min(r, 10), D.PERK_MAX)}<div class="small muted">${t('rankOf', { r, m: D.PERK_MAX })}</div></div></div>
+      <div>${t('pkd_' + p.id)}</div>
+      ${r ? `<div class="small good">${t('dynNow')}: ${P.perkNow(p, r)}</div>` : ''}${!max ? `<div class="small">${t('dynNext')}: ${P.perkNow(p, r + 1)}</div>` : ''}${nextB}
+      ${need ? `<div class="warn small">${ic('i_lock')} ${need}</div>` : ''}
+      ${max ? `<div class="good small">${t('maxLevel')}</div>` : `<button class="btn primary" data-action="perk" data-arg="${p.id}" ${open && pts >= cost ? '' : 'disabled'}>${t('nodeUp')} · ${cost} ${ic('i_crown')}</button>`}</div>`;
+  };
+  W.dynasty = function (arg) {
+    const { ic, t, esc } = h();
+    const asc = arg === 'ascend' && G.S.ascend;
+    const dyn = G.S.dyn, land = G.tn(G.K.land(dyn.epoch));
+    const own = D.PERKS.filter((p) => G.K.perkRank(p.id) > 0);
+    const bon = own.map((p) => `<li>${ic(p.icon)}<span><b>${t('pk_' + p.id)}</b> <span class="muted">${G.K.perkRank(p.id)}/${D.PERK_MAX}</span><br>${P.perkNow(p, G.K.perkRank(p.id))}</span></li>`).join('');
+    return `<div class="dynwin">
+      <div class="dyn-star" aria-hidden="true"></div>
+      <div class="dynhead">
+        <div class="grow"><h2>${ic('i_crown', 'ic2')} ${t('dynTree')}</h2><div class="muted small">${asc ? t('ascSub', { n: dyn.epoch + 1, land: esc(land) }) : t('dynSubNow', { n: dyn.epoch + 1, land: esc(land) })}</div></div>
+        <div class="dynpts">${ic('i_crown')} ${t('legacyPts')}: <b>${dyn.pts}</b></div>
+        ${asc ? '' : `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button>`}
+      </div>
+      <div class="dynbody">
+        <div class="dyncenter">${P.dynTree()}</div>
+        <div class="dyncard ddetail">${P.dynDetail(G.UI.dynSel)}</div>
+        <div class="dyncard dbonus"><h3>${t('perkBonusTitle')}</h3>
+          <div class="muted small">${t('dynEpochInfo', { n: dyn.epoch + 1, e: G.U.fmt1(G.K.epochMul()), r: G.U.fmt1(G.K.epochReward()) })}</div>
+          ${bon ? `<ul class="dbon">${bon}</ul>` : `<div class="muted small">${t('perkNoBonus')}</div>`}</div>
+      </div>
+      <div class="dynfoot">${asc ? `<button class="btn primary big" data-action="ascBegin">${ic('i_crown')} ${t('ascBegin', { land: esc(land) })}</button>` : `<button class="btn" data-action="mclose">${t('close')}</button>`}</div>
+    </div>`;
+  };
+
   // ---------- окно целей ----------
   // ---------- Путешествие: области по 5 этапов, на каждом свой босс ----------
   W.journey = function () {

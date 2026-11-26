@@ -114,7 +114,7 @@
     document.addEventListener('pointercancel', up, true);
     $('#battlecv').addEventListener('pointerdown', (e) => G.W.click(e));
     $('#modal').addEventListener('click', (e) => {
-      if (e.target.id === 'modal' && UI.win !== 'decision' && UI.win !== 'story') UI.closeModal();
+      if (e.target.id === 'modal' && UI.win !== 'decision' && UI.win !== 'story' && UI.win !== 'dynasty') UI.closeModal();
     });
     // всплывающая подсказка для всего, у чего есть data-tip: ресурсы, записи указов, карточки зданий
     document.addEventListener('mouseover', (e) => {
@@ -147,10 +147,31 @@
     setInterval(autoTick, 50);
     document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') hideGtip(); });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
+      if (e.key === 'Escape' && UI.win && UI.win !== 'decision' && !(UI.win === 'dynasty' && G.S.ascend)) UI.closeModal();
       if (['1', '2', '3', '4'].includes(e.key) && G.W.battle() && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) G.W.setSpeed(G.W.SPEEDS[+e.key - 1]);
     });
     UI.setMView(UI.mview || 'pop');
+    (function stars() {
+      const c = document.createElement('canvas'); c.width = 96; c.height = 96;
+      const x = c.getContext('2d'); let s = 11;
+      const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 26; i++) { x.fillStyle = rnd() < 0.3 ? '#8d7fc4' : '#5f5590'; x.fillRect((rnd() * 94) | 0, (rnd() * 95) | 0, rnd() < 0.5 ? 2 : 3, 1); }
+      document.documentElement.style.setProperty('--dyn-stars', 'url(' + c.toDataURL() + ')');
+      // большая пиксельная звезда-искра за древом династии
+      const z = document.createElement('canvas'); z.width = 41; z.height = 41;
+      const g = z.getContext('2d'), C = 20;
+      for (let y = 0; y < 41; y++) for (let xx = 0; xx < 41; xx++) {
+        const dx = Math.abs(xx - C), dy = Math.abs(y - C), d = Math.hypot(dx, dy);
+        const arm = (dx <= 1 && dy <= 19 - dx * 3) || (dy <= 1 && dx <= 19 - dy * 3); // длинные лучи
+        const diag = Math.abs(dx - dy) <= 0.5 && d <= 8; // короткие косые лучи
+        let col = null;
+        if (d <= 2.5) col = '#fffbe8'; else if (d <= 4.5) col = '#ffeeb0';
+        else if (arm) col = d < 9 ? '#ffe39a' : d < 14 ? '#f7c948' : '#c99a2e';
+        else if (diag) col = '#f7d878';
+        if (col) { g.fillStyle = col; g.fillRect(xx, y, 1, 1); }
+      }
+      document.documentElement.style.setProperty('--dyn-bigstar', 'url(' + z.toDataURL() + ')');
+    })();
     $('#brand-icon').src = G.SPR.url('i_crown');
     applyLand();
     applyStatic();
@@ -677,6 +698,9 @@
     advisor(id) { G.K.hireAdv(id); },
     perk(id) { G.K.buyPerk(id); },
     abdicate() { UI.confirm(t('confirmAbdicate', { n: G.K.legacyGain() }), () => G.K.abdicate()); },
+    dynOpen() { UI.dynSel = null; UI.open('dynasty'); },
+    dynSel(a) { UI.dynSel = a; UI.dirty(); },
+    ascBegin() { G.K.beginReign(); },
     research(id) { G.R.start(id); },
     resQueue(id) { G.R.enqueue(id); },
     resCancel(id) { G.R.cancel(id); },
@@ -1176,13 +1200,14 @@
     const dyn = G.S.dyn;
     const LP = G.K.legacyParts();
     let dh = `<div class="small">${t('epoch')}: <b>${dyn.epoch + 1}</b> · ${esc(G.tn(G.K.land(dyn.epoch)))} · <span class="tipword" data-tip="dyn">${t('legacyPts')}</span>: <b>${dyn.pts}</b> · <span class="muted">${t('legacyGainNow', { n: LP.total })}</span></div>`;
-    if (G.S.camp.won) dh += `<div class="row"${hint('abdicateHint', t('abdicateHint', { land: G.tn(G.K.land(dyn.epoch + 1)) }))}>${btn(ic('i_crown') + ' ' + t('abdicate', { n: G.K.legacyGain() }), 'abdicate', '', { cls: 'danger' })}<i class="qh">?</i></div>`;
-    dh += `<div class="perks">${D.PERKS.map((p) => {
-      const r = G.K.perkRank(p.id);
-      const nextB = p.id === 'found' && r < D.FOUND_ORDER.length ? `<div class="small good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>` : '';
-      return `<div class="perk" data-tip="pk:${p.id}">${ic(p.icon, 'ic2')}<div class="grow"><b class="hastip">${t('pk_' + p.id)}<i class="qh">?</i></b> ${pips(Math.min(r, 10), D.PERK_MAX)}${nextB}</div><button class="btn small" data-action="perk" data-arg="${p.id}" ${dyn.pts >= G.K.perkCost(p.id) && r < D.PERK_MAX ? '' : 'disabled'}>${G.K.perkCost(p.id)} ${ic('i_crown')}</button></div>`;
-    }).join('')}</div>`;
+    // навыки рода — на отдельном экране «Древо династии»; здесь — сводка и кнопка, а передача трона — в самом низу
+    const canBuy = D.PERKS.some((p) => G.K.perkOpen(p.id) && G.K.perkRank(p.id) < D.PERK_MAX && dyn.pts >= G.K.perkCost(p.id));
+    dh += `<div class="small muted">${t('dynRanks', { n: G.K.perkRanks() })}</div>`;
+    dh += `<div class="row"><button class="btn primary" data-action="dynOpen">${ic('i_crown')} ${t('dynTree')}${canBuy ? ' <em class="dynnew">!</em>' : ''}</button></div>`;
     h += box(`<span class="hastip" data-tip="dyn">${ic('i_crown')} ${t('dynasty')}<i class="qh">?</i></span>`, dh, 'dynbox');
+    h += box('', G.S.camp.won
+      ? `<div class="row"${hint('abdicateHint', t('abdicateHint', { land: G.tn(G.K.land(dyn.epoch + 1)) }))}>${btn(ic('i_crown') + ' ' + t('abdicate', { n: G.K.legacyGain() }), 'abdicate', '', { cls: 'danger' })}<i class="qh">?</i></div>`
+      : `<div class="muted small">${ic('i_lock')} ${t('dynastyLocked')}</div>`, 'abdbox');
     return h;
   }
 

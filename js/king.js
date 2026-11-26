@@ -138,8 +138,17 @@
   };
   K.perkRank = (id) => G.S.dyn.perks[id] || 0;
   K.perkCost = (id) => 1 + K.perkRank(id);
+  // Древо династии: ступень открыта, когда во все навыки рода вложено нужное число рангов;
+  // навык открыт, когда открыта его ступень и изучен родитель (хотя бы 1 ранг)
+  K.perkRanks = () => D.PERKS.reduce((s, p) => s + K.perkRank(p.id), 0);
+  K.tierOpen = (t) => K.perkRanks() >= D.DYN_TIERS[t].need;
+  K.perkOpen = (id) => {
+    const n = D.DYN_TREE[id];
+    if (!n) return true;
+    return K.tierOpen(n.t) && (!n.p || K.perkRank(n.p) > 0);
+  };
   K.buyPerk = function (id) {
-    if (K.perkRank(id) >= D.PERK_MAX || G.S.dyn.pts < K.perkCost(id)) return;
+    if (K.perkRank(id) >= D.PERK_MAX || G.S.dyn.pts < K.perkCost(id) || !K.perkOpen(id)) return;
     G.S.dyn.pts -= K.perkCost(id);
     G.S.dyn.perks[id] = K.perkRank(id) + 1;
     G.invalidateBonus();
@@ -190,13 +199,26 @@
     G.S.advs = heirs.advs;
     G.S.items = heirs.items;
     for (const a of G.S.advs) a.hp = G.T.stats(a).hp;
-    G.S.story = 'epoch'; // после перезагрузки — рассказ о новых землях
+    G.S.story = 'epoch'; // после древа династии — рассказ о новых землях
+    G.S.ascend = true; // после перезагрузки открывается древо династии; новая эпоха на паузе, пока не начнёшь правление
     G.invalidateBonus();
-    const st = K.perkRank('start');
-    if (st) G.E.addAll({ gold: 500 * st, wood: 500 * st, stone: 500 * st });
-    K.applyFounders();
     G.log('logEpoch', { n: dyn.epoch + 1 }, 'epic');
     G.save();
     location.reload();
+  };
+  // «Начать правление» на экране древа: казна предков и Основатели — уже с навыками, взятыми на этом экране
+  K.beginReign = function () {
+    const S = G.S;
+    if (!S.ascend) return;
+    S.ascend = false;
+    G.invalidateBonus();
+    const st = K.perkRank('start');
+    // Казна предков — сверх вместимости склада (на старте она мала и срезала бы награду)
+    if (st) for (const r of ['gold', 'wood', 'stone']) { S.res[r] = (S.res[r] || 0) + 500 * st; S.seen[r] = true; }
+    K.applyFounders();
+    G.UI.closeModal();
+    if (S.story === 'epoch') { S.story = null; G.UI.epochStory(); }
+    G.save();
+    G.UI.dirty();
   };
 })();

@@ -2,6 +2,7 @@
   const OFFLINE_CAP = 8 * 3600;
 
   G.tick = function (dt) {
+    if (G.S.ascend) return; // экран древа династии: новая эпоха ещё не началась
     G.K.tick(dt);
     G.E.tick(dt);
     G.R.tick(dt);
@@ -67,7 +68,8 @@
     G.UI.dirty();
     G.UI.refresh();
     if (rep && rep.sec > 60) G.UI.offlineReport(rep);
-    if (G.S.story === 'epoch') { G.S.story = null; G.UI.tab = 'king'; G.UI.scrollTo = 'dynasty'; G.UI.dirty(); G.UI.refresh(); G.UI.epochStory(); }
+    if (G.S.ascend) G.UI.open('dynasty', 'ascend'); // после передачи трона — древо династии
+    else if (G.S.story === 'epoch') { G.S.story = null; G.UI.dirty(); G.UI.refresh(); G.UI.epochStory(); }
 
     let last = performance.now();
     setInterval(() => {
