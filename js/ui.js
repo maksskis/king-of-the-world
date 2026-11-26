@@ -1226,7 +1226,7 @@
       ${box(t('cityStyle'), `<div class="muted small">${t('cityStyleHint')}</div><div class="styles">${styleCards()}</div>`)}
       ${box(t('saveTitle'), `<div class="muted small">${t('saveHint')}</div><textarea id="save-text" rows="3" spellcheck="false"></textarea><div class="row"><button class="btn small" data-action="exportSave">${t('export')}</button><button class="btn small" data-action="importSave">${t('import')}</button><span id="save-msg" class="muted small"></span></div>`)}
       ${box(t('danger'), `<button class="btn danger" data-action="reset">${t('reset')}</button>`)}
-      <div class="muted small">${t('about')}</div>
+      <div class="muted small">${t('about', { v: G.VERSION })}</div>
       <div class="right"><button class="btn" data-action="mclose">${t('close')}</button></div>`, 'settings');
   };
   // Облик города: мини-замок каждого стиля, выбранный подсвечен

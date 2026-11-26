@@ -46,10 +46,14 @@
     return s;
   }
 
+  // Версия игры (SemVer). В main — следующая версия с суффиксом -dev; выпуски — ветки release/X.Y.Z и метки vX.Y.Z
+  G.VERSION = '1.1.0-dev';
+
   G.save = function () {
     if (!G.S || G.resetting) return;
     try {
       G.S.lastSave = Date.now();
+      G.S.ver = G.VERSION; // какой версией сделано сохранение — для будущих переносов
       G.S.lang = G.LANG;
       localStorage.setItem(KEY, JSON.stringify(G.S));
     } catch (e) { /* хранилище недоступно — играем без сохранения */ }
