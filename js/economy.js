@@ -35,16 +35,31 @@
     for (const r in cost) G.S.res[r] -= cost[r];
     return true;
   };
+  // Сколько редких ресурсов добыто (для целей «Собери 500 костей» и т. п.); награды целей и возвраты не считаются
+  const EARN = { bone: 1, crystal: 1, mithril: 1, adamant: 1 };
+  let quiet = false;
   E.add = function (r, n) {
     if (n <= 0) return 0;
     const before = G.S.res[r] || 0;
     const after = Math.min(E.cap(r), before + n);
     G.S.res[r] = Math.max(before, after);
     G.S.seen[r] = true;
-    return G.S.res[r] - before;
+    const got = G.S.res[r] - before;
+    if (got > 0 && EARN[r] && !quiet) G.S.stats['e_' + r] = (G.S.stats['e_' + r] || 0) + got;
+    return got;
   };
   E.addAll = function (obj) {
     for (const r in obj) if (obj[r] > 0) E.add(r, obj[r]);
+  };
+  // Возврат ресурсов (отмена стройки, ковки, исследования): не идёт в счёт «добыто»
+  E.refund = function (obj) {
+    quiet = true;
+    try { E.addAll(obj); } finally { quiet = false; }
+  };
+  // Награда цели — целиком, даже сверх вместимости склада (иначе на полном складе она сгорала бы);
+  // излишек тратится как обычно, добыча этого ресурса ждёт, пока запас не опустится ниже вместимости
+  E.grant = function (obj) {
+    for (const r in obj) if (obj[r] > 0) { G.S.res[r] = (G.S.res[r] || 0) + obj[r]; G.S.seen[r] = true; }
   };
   E.full = (r) => (G.S.res[r] || 0) >= E.cap(r);
 
@@ -91,7 +106,7 @@
     const c = E.consOf(k);
     if (!c) return;
     G.S.cons = G.S.cons.filter((x) => x !== c);
-    E.addAll(c.cost);
+    E.refund(c.cost);
     G.log('logBuildCancel', { b: { k: 'bn_' + k } }, 'info');
     G.UI.dirty();
     G.UI.slotsDirty = true;
@@ -147,6 +162,7 @@
     if (G.S.decree.build.length >= 12) return;
     G.S.decree.build.push(k);
     G.S.stats.decreed = (G.S.stats.decreed || 0) + 1;
+    G.S.stats['d_' + k] = (G.S.stats['d_' + k] || 0) + 1; // для цели «Добавь в указ улучшение Замка»
     G.UI.dirty();
   };
 
@@ -175,6 +191,7 @@
     }
     const n = E.add(d.click, amount);
     G.S.stats.clicks++;
+    G.S.stats['c_' + k] = (G.S.stats['c_' + k] || 0) + 1; // кликов по этому зданию — для целей
     G.S.stats['g_' + d.click] = (G.S.stats['g_' + d.click] || 0) + n; // собрано кликами — для целей
     G.K.handXp(D.KXP.click); // опыт Короля за добычу
     return n;
@@ -278,7 +295,7 @@
   E.sellPrice = (r) => E.PRICE[r] * (1 + G.bonus('trade'));
 
   // ---------- цели ----------
-  // Перенос прогресса: v1 — старые 30 целей (g0–g29), v2 — список из 90 целей, v3 — 119 целей, v4 — нынешний
+  // Перенос прогресса: v1 — старые 30 целей (g0–g29), v2 — 90 целей, v3 — 119, v4 — 114, v5–v6 — 115, v7 — нынешние 100
   // (дракон — две последние цели)
   // убранные цели, у которых есть прямая замена: Шахта 5 → Катакомбы 20, Шахта до конца → 50, 30-й этаж → 75
   const ALIAS = { n44: 'c20', n58: 'c50', m35: 'c75' };
@@ -287,14 +304,28 @@
     return -1;
   };
   E.migrateGoals = function () {
+    const S = G.S, v6 = S.goalV === 6 && !!S.gq;
     migrateOld();
-    const S = G.S;
     if (!S.gq) {
       const Q = E.gq();
       for (let i = 0; i < Math.min(S.goal || 0, D.GOALS.length); i++) Q.done[D.GOALS[i].id] = 1;
-    }
-    S.goalV = 6;
+    } else if (v6) fromV6();
+    S.goalV = 7;
   };
+  // v6 (115 целей) → v7 (100 целей, итерация 58): новые цели, оказавшиеся позади уже сданных, отмечаются сданными
+  // (без награды — игрок их перерос); убранные принятые цели снимаются; у принятых с поднятым порогом
+  // отметка «выполнено» снимается, если новый порог ещё не взят
+  function fromV6() {
+    const Q = E.gq(), old = new Set(D.GOALS_V6);
+    let last = -1;
+    D.GOALS.forEach((g, i) => { if (old.has(g.id) && Q.done[g.id]) last = i; });
+    D.GOALS.forEach((g, i) => { if (!old.has(g.id) && i < last) Q.done[g.id] = 1; });
+    for (const id in Q.acc) {
+      const g = E.goalById(id);
+      if (!g || Q.done[id]) delete Q.acc[id];
+      else if (Q.acc[id].r && !E.goalMet(g)) Q.acc[id].r = 0;
+    }
+  }
   function migrateOld() {
     const S = G.S;
     // v3 и v4 — переносим по порядку той версии (v4 → v5: цели Шахты и Логова заменены целями Катакомб)
@@ -360,7 +391,7 @@
   E.claimGoal = function (id) {
     const g = E.goalById(id), Q = E.gq(), A = Q.acc[id];
     if (!g || !A || !A.r) return false;
-    E.addAll(g.reward);
+    E.grant(g.reward);
     Q.done[id] = 1;
     delete Q.acc[id];
     G.log('logGoal', { gi: g.t, loot: g.reward }, 'good');

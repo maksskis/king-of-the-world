@@ -86,12 +86,17 @@
   }
   // Название исследования, при наведении на которое видно, что оно даёт
   const rsWord = (id) => `<span class="tipword" data-tip="s:${id}">${esc(t('rs_' + id))}</span>`;
+  // Текст цели в журнале: старые записи хранят ключи прежних списков целей (goal12, gn16, gm_m5, номер)
+  function goalText(v) {
+    const k = typeof v === 'string' && v.startsWith('q_') ? v : 'q_' + String(typeof v === 'string' ? v : 'goal' + v).replace(/^goal/, 'g').replace(/^gn/, 'n').replace(/^gm_/, '');
+    return G.STR.ru[k] !== undefined ? t(k) : t('goalOld');
+  }
   function fmtEntry(l) {
     const p = {};
     for (const k in l.p) {
       const v = l.p[k];
       if (k === 'loot') p[k] = lootHtml(v) || '—';
-      else if (k === 'gi') p[k] = typeof v === 'string' ? t(v) : t('goal' + v);
+      else if (k === 'gi') p[k] = goalText(v);
       else if (k === 'c') p[k] = t('ch_' + v);
       else if (v && typeof v === 'object' && typeof v.k === 'string' && v.k.startsWith('rs_')) p[k] = rsWord(v.k.slice(3));
       else if (v && typeof v === 'object') p[k] = esc(nm(v));
@@ -1064,10 +1069,11 @@
       <div class="muted small">${t('deepest')}: <b>${best}</b> · ${t('difficulty')}: <b>×${U.fmt1(G.K.epochMul())}</b>${nb ? ` · ${t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) })}` : ''}</div>
       ${G.S.camp.awake && !G.S.camp.won ? `<div class="good small">${ic('i_dragon')} ${t('catDragonAwake')}</div>` : G.S.camp.won ? `<div class="muted small">${ic('i_crown')} ${t('catDragonWon')}</div>` : ''}</div>
       ${nb ? `<span class="nextboss" title="${esc(t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) }))}">${ic(monSpr(D.CAT_BOSS[nb]), 'ic3')}<b>${nb}</b></span>` : ''}</div>`;
-    const setup = ex.length < max ? expSetup(loc) : box('', `${ic('i_lock')} ${G.X.nextSquadLvl() ? t('squadsFull', { l: G.X.nextSquadLvl() }) : t('squadsFullMax')}`, 'muted');
+    const setup = ex.length < max ? expSetup(loc) : box('', `${ic('i_flag')} ${t('squadAway')}`, 'muted');
     if (ex.length) {
-      // идёт поход — отряды и сцена боя в самом верху, шапка и отправка нового отряда — ниже
-      const sq = `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic('b_dungeon:1', 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}</div>`;
+      // идёт поход — сцена боя в самом верху, шапка ниже; новый отряд — когда вернётся этот.
+      // Переключатель отрядов — только для старых сохранений, где в походе ещё несколько отрядов
+      const sq = ex.length < 2 ? '' : `<div class="squads"><span class="sqt">${ic('i_people')} ${t('squadsTitle', { n: ex.length, m: max })}</span>${ex.map((x, i) => `<button class="sqb ${e === x ? 'on' : ''}" data-action="squad" data-arg="${x.id}">${ic('b_dungeon:1', 'ic2')}<span><b>${t('squadN', { n: i + 1 })}</b><span class="small muted">${t('floor')} ${x.phase === 'ret' ? x.cleared : x.floor}</span></span>${bar('hpp:' + x.id, 'hp')}</button>`).join('')}</div>`;
       h = sq + (e ? expActive(e) : '') + h + setup;
     } else {
       h += setup;

@@ -37,7 +37,7 @@
     const j = G.S.forge.q[i];
     if (!j) return;
     G.S.forge.q.splice(i, 1);
-    G.E.addAll(j.cost || F.cost(j.type, j.ti));
+    G.E.refund(j.cost || F.cost(j.type, j.ti));
     G.log('logCraftCancel', { item: F.jobName(j) }, 'info');
     G.UI.dirty();
   };

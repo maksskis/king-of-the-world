@@ -62,7 +62,7 @@
   R.cancel = function (id) {
     const c = id ? R.cur(id) : R.active()[0];
     if (!c) return;
-    G.E.addAll(R.get(c.id).cost);
+    G.E.refund(R.get(c.id).cost);
     G.S.research.act = R.active().filter((x) => x !== c);
     G.UI.dirty();
   };

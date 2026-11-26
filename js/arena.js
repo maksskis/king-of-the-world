@@ -12,23 +12,34 @@
   A.cdTime = () => ((60 / (1 + 0.1 * (A.lvl() - 1))) * Math.max(0.4, 1 - G.bonus('arenaCd'))) / G.K.haste();
   A.CHAMPS = ['goblin', 'wolf', 'skeleton', 'orc', 'spider', 'drowned', 'troll', 'golem', 'lich'];
 
+  // Сила чемпиона по рангу: до 10-го ранга — крутой рост, дальше мягче (как этажи Катакомб после 15-го),
+  // чтобы Арена росла всю эпоху: 20-й ранг берёт отряд с ~65-го этажа, 30-й — отряд конца эпохи (~100-й этаж)
+  A.SOFT = { r: 10, hp: 1.12, atk: 1.09, pay: 0.3 };
+  A.growth = function (rank) {
+    const f = 1 + (Math.min(rank, A.SOFT.r) - 1) * 1.5, x = Math.max(0, rank - A.SOFT.r);
+    return { f, hp: Math.pow(1.26, f - 1) * Math.pow(A.SOFT.hp, x), atk: Math.pow(1.19, f - 1) * Math.pow(A.SOFT.atk, x) };
+  };
+  // «Вес» ранга для наград и опыта Короля: после 10-го ранги идут чаще, каждый весит 0,3 —
+  // за ту же силу Арена платит столько же, сколько до смягчения
+  A.payRank = (rank) => (rank <= A.SOFT.r ? rank : A.SOFT.r + (rank - A.SOFT.r) * A.SOFT.pay);
   // Соперник ранга: один чемпион, сила растёт с рангом и размером команды
   A.opp = function (rank, n) {
     n = Math.max(1, n || 1);
-    const f = 1 + (rank - 1) * 1.5, diff = G.K.epochMul();
+    const g = A.growth(rank), diff = G.K.epochMul();
     const key = A.CHAMPS[Math.min(A.CHAMPS.length - 1, Math.floor((rank - 1) / 3))];
-    const hp = Math.round(60 * Math.pow(1.26, f - 1) * 2.4 * n * diff);
-    const atk = Math.round(9 * Math.pow(1.19, f - 1) * 1.35 * Math.pow(n, 0.9) * Math.pow(diff, 0.8) * 10) / 10;
-    return { key, count: 1, hp, max: hp, atk, boss: true, f, hits: n >= 3 ? 2 : 1 };
+    const hp = Math.round(60 * g.hp * 2.4 * n * diff);
+    const atk = Math.round(9 * g.atk * 1.35 * Math.pow(n, 0.9) * Math.pow(diff, 0.8) * 10) / 10;
+    return { key, count: 1, hp, max: hp, atk, boss: true, f: g.f, hits: n >= 3 ? 2 : 1 };
   };
   // Награда за победу на ранге
   A.reward = function (rank) {
     const m = (1 + 0.15 * (A.lvl() - 1)) * (1 + G.bonus('arenaLoot')) * G.K.epochReward();
-    const o = { gold: 10 * rank, bone: 3 + 2 * rank };
+    const pr = A.payRank(rank);
+    const o = { gold: 10 * pr, bone: 3 + 2 * pr };
     // кристаллы и мифрил — только когда их уже добывают в Катакомбах (25-й и 50-й этаж)
     const cat = G.S.dng.best.catacombs || 0;
-    if (rank >= 2 && cat >= D.CRYSTAL_FLOOR) o.crystal = Math.round(1 + rank * 0.7);
-    if (rank >= 4 && cat >= D.MITHRIL_FLOOR) o.mithril = Math.floor(rank / 2);
+    if (rank >= 2 && cat >= D.CRYSTAL_FLOOR) o.crystal = Math.round(1 + pr * 0.7);
+    if (rank >= 4 && cat >= D.MITHRIL_FLOOR) o.mithril = Math.floor(pr / 2);
     for (const k in o) o[k] = Math.max(1, Math.round(o[k] * m));
     return o;
   };
@@ -76,7 +87,7 @@
     const S = A.S(), L = S.live;
     if (!L) return null;
     S.live = null;
-    const xp = Math.round(10 * Math.pow(1.15, L.rank));
+    const xp = Math.round(10 * Math.pow(1.15, A.payRank(L.rank))); // опыт героев — тоже по «весу» ранга
     let wounded = 0;
     L.ids.forEach((id, i) => {
       const a = G.T.get(id);
@@ -86,7 +97,7 @@
       if (a.hp <= 0) { G.T.wound(a, 30); wounded++; } // на Арене не гибнут
       else G.T.giveXp(a, xp);
     });
-    if (L.win) G.K.xp(D.KXP.arena * L.rank); // опыт Короля за сражение
+    if (L.win) G.K.xp(Math.round(D.KXP.arena * A.payRank(L.rank))); // опыт Короля за сражение
     if (L.win) {
       G.E.addAll(L.loot);
       S.rank = L.rank + 1;
