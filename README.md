@@ -55,7 +55,7 @@
 python3 -m http.server 8000
 ```
 
-Чтобы играть по ссылке, в том числе на телефоне, включи GitHub Pages:
+Чтобы играть по ссылке, включи GitHub Pages:
 Settings → Pages → Deploy from a branch → ветка (`main` или нужная `release/X.Y.Z`), папка `/ (root)`.
 
 ## Сохранения
