@@ -307,11 +307,11 @@
   W.dynasty = function (arg) {
     const { ic, t, esc } = h();
     const asc = arg === 'ascend' && G.S.ascend;
-    const dyn = G.S.dyn, land = G.tn(G.K.land(dyn.epoch));
+    const dyn = G.S.dyn;
     const bon = P.dynEffects().map(([icon, txt]) => `<li>${ic(icon)}<span>${txt}</span></li>`).join('');
     return `<div class="dynwin">
       <div class="dynhead">
-        <div class="grow"><h2>${ic('i_crown', 'ic2')} ${t('dynTree')}</h2><div class="muted small">${asc ? t('ascSub', { n: dyn.epoch + 1, land: esc(land) }) : t('dynSubNow', { n: dyn.epoch + 1, land: esc(land) })}</div></div>
+        <div class="grow"><h2>${ic('i_crown', 'ic2')} ${t('dynTree')}</h2><div class="muted">${t('epoch')} ${dyn.epoch + 1}</div></div>
         <div class="dynpts">${ic('i_crown')} ${t('legacyPts')}: <b>${dyn.pts}</b></div>
         ${asc ? '' : `<button class="xclose" data-action="mclose" title="${t('close')}">✕</button>`}
       </div>
@@ -322,7 +322,7 @@
           <div class="muted small">${t('dynEpochInfo', { n: dyn.epoch + 1, e: G.U.fmt1(G.K.epochMul()), r: G.U.fmt1(G.K.epochReward()) })}</div>
           ${bon ? `<ul class="dbon">${bon}</ul>` : `<div class="muted small">${t('perkNoBonus')}</div>`}</div>
       </div>
-      <div class="dynfoot">${asc ? `<button class="btn primary big" data-action="ascBegin">${ic('i_crown')} ${t('ascBegin', { land: esc(land) })}</button>` : `<button class="btn" data-action="mclose">${t('close')}</button>`}</div>
+      <div class="dynfoot">${asc ? `<button class="btn primary big" data-action="ascBegin">${ic('i_crown')} ${t('ascBegin')}</button>` : `<button class="btn" data-action="mclose">${t('close')}</button>`}</div>
     </div>`;
   };
 
