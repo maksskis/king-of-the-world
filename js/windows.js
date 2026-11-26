@@ -231,6 +231,28 @@
     if (p.id === 'example') return t('bk_clickProd', { n: G.U.fmt1(p.eff.clickProd * r) });
     return Object.keys(p.eff).map((k) => `${BK_NEG[k] ? '−' : '+'}${Math.round(p.eff[k] * r * 100)}% ${t('bk_' + k)}`).join(', ');
   };
+  // «Бонусы рода» — сводка эффектов престижа без названий навыков: одинаковые эффекты складываются в одну строку
+  P.dynEffects = function () {
+    const { t } = h();
+    const sum = {}, icon = {}, order = [];
+    for (const p of D.PERKS) {
+      const r = G.K.perkRank(p.id);
+      if (!r) continue;
+      if (p.id === 'found') { sum.found = r; icon.found = p.icon; order.push('found'); continue; }
+      for (const k in p.eff) {
+        if (sum[k] == null) { sum[k] = 0; icon[k] = p.icon; order.push(k); }
+        sum[k] += p.eff[k] * r;
+      }
+    }
+    return order.map((k) => {
+      const v = sum[k];
+      if (k === 'found') return [icon[k], t('bk_found', { n: Math.min(v, D.FOUND_ORDER.length) })];
+      if (k === 'start') return [icon[k], t('bk_start', { n: 500 * v })];
+      if (k === 'housing') return [icon[k], t('bk_housing', { n: v })];
+      if (k === 'clickProd') return [icon[k], t('bk_clickProd', { n: G.U.fmt1(v) })];
+      return [icon[k], `${BK_NEG[k] ? '−' : '+'}${Math.round(v * 100)}% ${t('bk_' + k)}`];
+    });
+  };
   P.dynTree = function () {
     const { ic } = h();
     const K = G.K, sel = G.UI.dynSel, H = D.DYN_ROWS * TREE_CH, pts = G.S.dyn.pts, NC = D.DYN_COLS, MID = (NC - 1) / 2, asc = !!G.S.ascend;
@@ -286,8 +308,7 @@
     const { ic, t, esc } = h();
     const asc = arg === 'ascend' && G.S.ascend;
     const dyn = G.S.dyn, land = G.tn(G.K.land(dyn.epoch));
-    const own = D.PERKS.filter((p) => G.K.perkRank(p.id) > 0);
-    const bon = own.map((p) => `<li>${ic(p.icon)}<span><b>${t('pk_' + p.id)}</b> <span class="muted">${G.K.perkRank(p.id)}/${D.PERK_MAX}</span><br>${P.perkNow(p, G.K.perkRank(p.id))}</span></li>`).join('');
+    const bon = P.dynEffects().map(([icon, txt]) => `<li>${ic(icon)}<span>${txt}</span></li>`).join('');
     return `<div class="dynwin">
       <div class="dynhead">
         <div class="grow"><h2>${ic('i_crown', 'ic2')} ${t('dynTree')}</h2><div class="muted small">${asc ? t('ascSub', { n: dyn.epoch + 1, land: esc(land) }) : t('dynSubNow', { n: dyn.epoch + 1, land: esc(land) })}</div></div>
