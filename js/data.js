@@ -382,16 +382,22 @@
   // Очки наследия: maxB — сразу за здание 8-го уровня (раз за правление на каждое); в формуле передачи трона
   // лучший ранг Арены ×arena и этапы Путешествия, пройденные в этом правлении, ×jr (вся сумма ÷5)
   D.LEGACY = { maxB: 1, arena: 2, jr: 5 };
-  // Древо династии: ствол из трёх ступеней (открываются по вложенным рангам), от каждой ветки влево и вправо.
-  // c — колонка (0–4, ствол — 2), r — строка, t — ступень, p — навык-родитель (без него — сама ступень)
-  D.DYN_TIERS = [{ need: 0, r: 0 }, { need: 8, r: 3 }, { need: 20, r: 6 }];
+  // Древо династии: ствол из трёх ступеней (открываются по вложенным рангам: 0 / 10 / 25), от каждой — ветки влево и вправо.
+  // Ступень I — клик и пассивный рост, II — средние навыки, III — самые сильные.
+  // c — колонка (0–6, ствол — 3), r — строка, t — ступень, p — навык-родитель (без него — сама ступень)
+  D.DYN_COLS = 7;
+  D.DYN_TIERS = [{ need: 0, r: 0 }, { need: 10, r: 3 }, { need: 25, r: 6 }];
   D.DYN_TREE = {
-    prod: { t: 0, c: 1, r: 0 }, cap: { t: 0, c: 0, r: 0, p: 'prod' }, tax: { t: 0, c: 1, r: 1 }, start: { t: 0, c: 0, r: 1, p: 'tax' },
-    click: { t: 0, c: 3, r: 0 }, crit: { t: 0, c: 4, r: 0, p: 'click' }, xp: { t: 0, c: 3, r: 1 },
-    build: { t: 1, c: 1, r: 3 }, found: { t: 1, c: 0, r: 3, p: 'build' }, research: { t: 1, c: 1, r: 4 },
-    hero: { t: 1, c: 3, r: 3 }, hire: { t: 1, c: 4, r: 3, p: 'hero' }, captain: { t: 1, c: 3, r: 4 }, medic: { t: 1, c: 4, r: 4, p: 'captain' },
-    craft: { t: 2, c: 1, r: 6 }, luck: { t: 2, c: 0, r: 6, p: 'craft' }, trade: { t: 2, c: 1, r: 7 },
-    walls: { t: 2, c: 3, r: 6 }, guards: { t: 2, c: 4, r: 6, p: 'walls' },
+    prod: { t: 0, c: 2, r: 0 }, cap: { t: 0, c: 1, r: 0, p: 'prod' }, housing: { t: 0, c: 0, r: 0, p: 'cap' },
+    tax: { t: 0, c: 2, r: 1 }, start: { t: 0, c: 1, r: 1, p: 'tax' },
+    click: { t: 0, c: 4, r: 0 }, crit: { t: 0, c: 5, r: 0, p: 'click' }, example: { t: 0, c: 6, r: 0, p: 'crit' },
+    build: { t: 1, c: 2, r: 3 }, found: { t: 1, c: 1, r: 3, p: 'build' }, thrift: { t: 1, c: 0, r: 3, p: 'found' },
+    workers: { t: 1, c: 2, r: 4 },
+    hero: { t: 1, c: 4, r: 3 }, hire: { t: 1, c: 5, r: 3, p: 'hero' }, xp: { t: 1, c: 6, r: 3, p: 'hire' },
+    craft: { t: 1, c: 4, r: 4 }, luck: { t: 1, c: 5, r: 4, p: 'craft' },
+    research: { t: 2, c: 2, r: 6 }, golden: { t: 2, c: 1, r: 6, p: 'research' }, trade: { t: 2, c: 2, r: 7 },
+    captain: { t: 2, c: 4, r: 6 }, medic: { t: 2, c: 5, r: 6, p: 'captain' }, blood: { t: 2, c: 6, r: 6, p: 'medic' },
+    walls: { t: 2, c: 4, r: 7 }, guards: { t: 2, c: 5, r: 7, p: 'walls' },
   };
   D.PERKS = [
     { id: 'found', icon: 'i_hammer', eff: {} },
@@ -414,6 +420,13 @@
     { id: 'medic', icon: 'i_heal', eff: { medic: 0.15, save: 0.03 } },
     { id: 'research', icon: 'i_book', eff: { resSpeed: 0.15 } },
     { id: 'crit', icon: 'i_star', eff: { clickCrit: 0.03 } },
+    // новые: пассивный рост, скидки и сила
+    { id: 'housing', icon: 'c_folk', eff: { housing: 2 } },
+    { id: 'example', icon: 'c_king', eff: { clickProd: 0.5 } },
+    { id: 'thrift', icon: 'i_scale', eff: { buildC: 0.02 } },
+    { id: 'workers', icon: 'r_wood', eff: { workerC: 0.05 } },
+    { id: 'golden', icon: 'r_crystal', eff: { rewardAll: 0.05 } },
+    { id: 'blood', icon: 'i_shield2', eff: { heroPow: 0.04 } },
   ];
 
   // ---------- цели (обучение и кампания) ----------

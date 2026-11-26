@@ -112,7 +112,7 @@
 
   // ---------- династия ----------
   K.epochMul = () => 1 + 0.25 * G.S.dyn.epoch;
-  K.epochReward = () => 1 + 0.2 * G.S.dyn.epoch;
+  K.epochReward = () => (1 + 0.2 * G.S.dyn.epoch) * (1 + G.bonus('rewardAll')); // «Золотой век» — ко всем наградам
   // Из чего складываются очки за передачу трона: лучшая волна, этажи подземелий, Замок ×3, Король ×2,
   // лучший ранг Арены ×2, этапы Путешествия, пройденные в этом правлении, ×5 — всё ÷5, и +10 за дракона
   K.legacyParts = function () {
@@ -148,7 +148,8 @@
     return K.tierOpen(n.t) && (!n.p || K.perkRank(n.p) > 0);
   };
   K.buyPerk = function (id) {
-    if (K.perkRank(id) >= D.PERK_MAX || G.S.dyn.pts < K.perkCost(id) || !K.perkOpen(id)) return;
+    // вкладывать очки можно только на экране после передачи трона (G.S.ascend); посреди эпохи древо — только посмотреть
+    if (!G.S.ascend || K.perkRank(id) >= D.PERK_MAX || G.S.dyn.pts < K.perkCost(id) || !K.perkOpen(id)) return;
     G.S.dyn.pts -= K.perkCost(id);
     G.S.dyn.perks[id] = K.perkRank(id) + 1;
     G.invalidateBonus();

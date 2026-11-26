@@ -98,7 +98,7 @@
     for (const it of G.S.items) {
       if (it.eq === a.id) { atk += G.F.stat(it, 'atk'); def += G.F.stat(it, 'def'); hp += G.F.stat(it, 'hp'); }
     }
-    const pm = T.prestMul(a); // звёзды престижа
+    const pm = T.prestMul(a) * (1 + G.bonus('heroPow')); // звёзды престижа и «Кровь героев»
     hp *= pm; atk *= pm; def *= pm;
     hp *= 1 + T.skillSum(a, 'hp');
     atk *= 1 + T.skillSum(a, 'atk');

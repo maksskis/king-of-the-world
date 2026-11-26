@@ -221,38 +221,44 @@
 
   // ---------- Древо династии: после передачи трона (новая эпоха на паузе) и из вкладки «Король» ----------
   const TREE_CH = 84, TREE_ROWS = 8, ROMAN = ['I', 'II', 'III'];
-  const BK_NEG = { hireC: 1, save: 1 }; // эти бонусы уменьшают (цену найма, шанс гибели)
+  const BK_NEG = { hireC: 1, save: 1, buildC: 1, workerC: 1 }; // эти бонусы уменьшают (цены, шанс гибели)
   // что даёт навык рода при текущем ранге — одной строкой
   P.perkNow = function (p, r) {
     const { t } = h();
     if (p.id === 'found') return t('bk_found', { n: Math.min(r, D.FOUND_ORDER.length) });
     if (p.id === 'start') return t('bk_start', { n: 500 * r });
+    if (p.id === 'housing') return t('bk_housing', { n: p.eff.housing * r });
+    if (p.id === 'example') return t('bk_clickProd', { n: G.U.fmt1(p.eff.clickProd * r) });
     return Object.keys(p.eff).map((k) => `${BK_NEG[k] ? '−' : '+'}${Math.round(p.eff[k] * r * 100)}% ${t('bk_' + k)}`).join(', ');
   };
   P.dynTree = function () {
     const { ic } = h();
-    const K = G.K, sel = G.UI.dynSel, H = TREE_ROWS * TREE_CH, pts = G.S.dyn.pts;
+    const K = G.K, sel = G.UI.dynSel, H = TREE_ROWS * TREE_CH, pts = G.S.dyn.pts, NC = D.DYN_COLS, MID = (NC - 1) / 2, asc = !!G.S.ascend;
     const X = (c) => (c + 0.5) * 100, Y = (r) => r * TREE_CH + TREE_CH / 2;
     const lines = [];
     const seg = (pts2, cls) => lines.push(`<polyline class="${cls}" points="${pts2.map(([x, y]) => x + ',' + y).join(' ')}"/>`);
-    for (let i = 1; i < D.DYN_TIERS.length; i++) seg([[X(2), Y(D.DYN_TIERS[i - 1].r)], [X(2), Y(D.DYN_TIERS[i].r)]], K.tierOpen(i) ? 'on' : '');
+    for (let i = 1; i < D.DYN_TIERS.length; i++) seg([[X(MID), Y(D.DYN_TIERS[i - 1].r)], [X(MID), Y(D.DYN_TIERS[i].r)]], K.tierOpen(i) ? 'on' : '');
     for (const [id, n] of Object.entries(D.DYN_TREE)) {
       const cls = K.perkRank(id) > 0 ? 'own' : K.perkOpen(id) ? 'on' : '';
       if (n.p) { const q = D.DYN_TREE[n.p]; seg([[X(q.c), Y(q.r)], [X(n.c), Y(n.r)]], cls); continue; }
-      const hr = D.DYN_TIERS[n.t].r, mx = X(2) + (n.c < 2 ? -50 : 50);
-      seg(n.r === hr ? [[X(2), Y(hr)], [X(n.c), Y(n.r)]] : [[X(2), Y(hr)], [mx, Y(hr)], [mx, Y(n.r)], [X(n.c), Y(n.r)]], cls);
+      const hr = D.DYN_TIERS[n.t].r, mx = X(MID) + (n.c < MID ? -50 : 50);
+      seg(n.r === hr ? [[X(MID), Y(hr)], [X(n.c), Y(n.r)]] : [[X(MID), Y(hr)], [mx, Y(hr)], [mx, Y(n.r)], [X(n.c), Y(n.r)]], cls);
     }
-    const pos = (c, r) => `left:${(c + 0.5) * 20}%;top:${Y(r)}px`;
-    let nodes = D.DYN_TIERS.map((tr, i) => `<button class="dnode hub ${K.tierOpen(i) ? '' : 'locked'} ${sel === 'tier' + i ? 'sel' : ''}" data-action="dynSel" data-arg="tier${i}" style="${pos(2, tr.r)}">${ic('i_scroll', 'ic2')}<b class="tnum">${ROMAN[i]}</b></button>`).join('');
+    const pos = (c, r) => `left:${((c + 0.5) * 100) / NC}%;top:${Y(r)}px`;
+    let nodes = D.DYN_TIERS.map((tr, i) => `<button class="dnode hub ${K.tierOpen(i) ? '' : 'locked'} ${sel === 'tier' + i ? 'sel' : ''}" data-action="dynSel" data-arg="tier${i}" style="${pos(MID, tr.r)}">${ic('i_scroll', 'ic2')}<b class="tnum">${ROMAN[i]}</b></button>`).join('');
     for (const p of D.PERKS) {
       const n = D.DYN_TREE[p.id];
       if (!n) continue;
       const r = K.perkRank(p.id), open = K.perkOpen(p.id), max = r >= D.PERK_MAX;
       const st = !open ? 'locked' : max ? 'max' : r > 0 ? 'own' : '';
-      const can = open && !max && pts >= K.perkCost(p.id);
+      const can = asc && open && !max && pts >= K.perkCost(p.id);
       nodes += `<button class="dnode ${st} ${can ? 'can' : ''} ${sel === p.id ? 'sel' : ''}" data-action="dynSel" data-arg="${p.id}" data-tip="pk:${p.id}" style="${pos(n.c, n.r)}">${ic(p.icon, 'ic2')}${r ? `<em class="drank">${r}</em>` : ''}${open ? '' : `<i class="dlock">${ic('i_lock')}</i>`}</button>`;
     }
-    return `<div class="dtree" data-keep="dtree"><div class="dtree-in" style="height:${H}px"><svg class="dlines" viewBox="0 0 500 ${H}" preserveAspectRatio="none" aria-hidden="true">${lines.join('')}</svg>${nodes}</div></div>`;
+    // звезда стоит у самой высокой открытой ступени и не двигается при выборе навыков
+    let top = 0;
+    D.DYN_TIERS.forEach((tr, i) => { if (K.tierOpen(i)) top = i; });
+    const star = `<div class="dyn-star" aria-hidden="true" style="top:${Y(D.DYN_TIERS[top].r)}px"></div>`;
+    return `${star}<div class="dtree" data-keep="dtree"><div class="dtree-in" style="height:${H}px"><svg class="dlines" viewBox="0 0 ${NC * 100} ${H}" preserveAspectRatio="none" aria-hidden="true">${lines.join('')}</svg>${nodes}</div></div>`;
   };
   // карточка выбранного: ступень или навык рода
   P.dynDetail = function (sel) {
@@ -273,7 +279,8 @@
       <div>${t('pkd_' + p.id)}</div>
       ${r ? `<div class="small good">${t('dynNow')}: ${P.perkNow(p, r)}</div>` : ''}${!max ? `<div class="small">${t('dynNext')}: ${P.perkNow(p, r + 1)}</div>` : ''}${nextB}
       ${need ? `<div class="warn small">${ic('i_lock')} ${need}</div>` : ''}
-      ${max ? `<div class="good small">${t('maxLevel')}</div>` : `<button class="btn primary" data-action="perk" data-arg="${p.id}" ${open && pts >= cost ? '' : 'disabled'}>${t('nodeUp')} · ${cost} ${ic('i_crown')}</button>`}</div>`;
+      ${max ? `<div class="good small">${t('maxLevel')}</div>` : `<button class="btn primary" data-action="perk" data-arg="${p.id}" ${G.S.ascend && open && pts >= cost ? '' : 'disabled'}>${t('nodeUp')} · ${cost} ${ic('i_crown')}</button>`}
+      ${!max && !G.S.ascend ? `<div class="muted small">${ic('i_lock')} ${t('dynOnlyAscend')}</div>` : ''}</div>`;
   };
   W.dynasty = function (arg) {
     const { ic, t, esc } = h();
@@ -282,7 +289,6 @@
     const own = D.PERKS.filter((p) => G.K.perkRank(p.id) > 0);
     const bon = own.map((p) => `<li>${ic(p.icon)}<span><b>${t('pk_' + p.id)}</b> <span class="muted">${G.K.perkRank(p.id)}/${D.PERK_MAX}</span><br>${P.perkNow(p, G.K.perkRank(p.id))}</span></li>`).join('');
     return `<div class="dynwin">
-      <div class="dyn-star" aria-hidden="true"></div>
       <div class="dynhead">
         <div class="grow"><h2>${ic('i_crown', 'ic2')} ${t('dynTree')}</h2><div class="muted small">${asc ? t('ascSub', { n: dyn.epoch + 1, land: esc(land) }) : t('dynSubNow', { n: dyn.epoch + 1, land: esc(land) })}</div></div>
         <div class="dynpts">${ic('i_crown')} ${t('legacyPts')}: <b>${dyn.pts}</b></div>

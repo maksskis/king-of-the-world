@@ -346,7 +346,7 @@
       let h = `<b>${ic(p.icon)} ${t('pk_' + id)}</b> <span class="muted">${t('rankOf', { r, m: D.PERK_MAX })}</span><div>${t('pkd_' + id)}</div>`;
       if (id === 'found' && r < D.FOUND_ORDER.length) h += `<div class="good">${t('foundNext', { b: t('bn_' + D.FOUND_ORDER[r]) })}</div>`;
       h += r >= D.PERK_MAX ? `<div class="good">${t('maxLevel')}</div>` : `<div class="${pts >= cost ? 'good' : 'warn'}">${ic('i_crown')} ${t('perkCostTip', { c: cost, p: pts })}</div>`;
-      return h + `<div class="muted">${t('perkTipHint')}</div>`;
+      return h + (G.S.ascend ? '' : `<div class="warn">${ic('i_lock')} ${t('dynOnlyAscend')}</div>`) + `<div class="muted">${t('perkTipHint')}</div>`;
     }
     if (type === 'tl') {
       const x = D.TALENTS.find((q) => q.id === id);
@@ -1201,9 +1201,8 @@
     const LP = G.K.legacyParts();
     let dh = `<div class="small">${t('epoch')}: <b>${dyn.epoch + 1}</b> · ${esc(G.tn(G.K.land(dyn.epoch)))} · <span class="tipword" data-tip="dyn">${t('legacyPts')}</span>: <b>${dyn.pts}</b> · <span class="muted">${t('legacyGainNow', { n: LP.total })}</span></div>`;
     // навыки рода — на отдельном экране «Древо династии»; здесь — сводка и кнопка, а передача трона — в самом низу
-    const canBuy = D.PERKS.some((p) => G.K.perkOpen(p.id) && G.K.perkRank(p.id) < D.PERK_MAX && dyn.pts >= G.K.perkCost(p.id));
     dh += `<div class="small muted">${t('dynRanks', { n: G.K.perkRanks() })}</div>`;
-    dh += `<div class="row"><button class="btn primary" data-action="dynOpen">${ic('i_crown')} ${t('dynTree')}${canBuy ? ' <em class="dynnew">!</em>' : ''}</button></div>`;
+    dh += `<div class="row"><button class="btn primary" data-action="dynOpen">${ic('i_crown')} ${t('dynTree')}</button></div>`;
     h += box(`<span class="hastip" data-tip="dyn">${ic('i_crown')} ${t('dynasty')}<i class="qh">?</i></span>`, dh, 'dynbox');
     h += box('', G.S.camp.won
       ? `<div class="row"${hint('abdicateHint', t('abdicateHint', { land: G.tn(G.K.land(dyn.epoch + 1)) }))}>${btn(ic('i_crown') + ' ' + t('abdicate', { n: G.K.legacyGain() }), 'abdicate', '', { cls: 'danger' })}<i class="qh">?</i></div>`

@@ -1126,11 +1126,13 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 .dynwin {
   position: relative; min-height: 100%; display: flex; flex-direction: column; gap: 12px;
   padding-block: 16px 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  background: radial-gradient(ellipse at 42% 48%, rgba(255, 214, 120, 0.16), transparent 45%), var(--dyn-stars, none) 0 0 / 192px 192px repeat, #1d1830;
+  background: var(--dyn-stars, none) 0 0 / 192px 192px repeat, #1d1830;
   image-rendering: pixelated; overflow: clip; /* clip, а не hidden: иначе карточка навыка на телефоне не прилипает к низу */
 }
+/* звезда — внутри области древа, у самой высокой открытой ступени (top задаётся в разметке) */
+.dyncenter { position: relative; }
 .dyn-star {
-  position: absolute; left: 38%; top: 50%; width: min(80vw, 520px); aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; z-index: 0;
+  position: absolute; left: 50%; width: min(100%, 430px); aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; z-index: 0;
   background: var(--dyn-bigstar, none) center / 62% no-repeat, radial-gradient(circle, rgba(255, 214, 120, 0.22) 0, rgba(255, 214, 120, 0.06) 38%, transparent 62%);
   image-rendering: pixelated; opacity: 0.55; animation: dynStar 6s ease-in-out infinite;
 }
@@ -1155,8 +1157,8 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 .dynfoot { display: flex; justify-content: center; }
 .dynfoot .btn.big { min-width: min(100%, 360px); }
 /* древо */
-.dtree { overflow-x: auto; }
-.dtree-in { position: relative; width: 100%; min-width: 330px; max-width: 560px; margin: 0 auto; }
+.dtree { position: relative; z-index: 1; overflow-x: auto; }
+.dtree-in { position: relative; width: 100%; min-width: 340px; max-width: 660px; margin: 0 auto; }
 .dlines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .dlines polyline { fill: none; stroke: #463e6e; stroke-width: 5; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
 .dlines polyline.on { stroke: #dcd6ee; stroke-dasharray: 4 2; }
@@ -1187,11 +1189,10 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
   .dyncenter, .dynbody > .dyncard { grid-column: 1; grid-row: auto; }
   /* на узком экране карточка выбранного навыка прилипает к низу экрана, пока смотришь древо */
   .dynbody > .ddetail { position: sticky; bottom: 8px; z-index: 3; background: #1a1424; box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.55); }
-  .dyn-star { left: 50%; top: 36%; }
   .dynhead > .grow { flex: 1 1 100%; order: 2; }
   .dynhead .dynpts { order: 1; }
   .dynhead .xclose { order: 1; margin-left: auto; }
   .dynhead h2 { font-size: 20px; }
 }
-@media (max-width: 420px) { .dnode { width: 48px; height: 48px; } .dnode .ic2 { width: 28px; height: 28px; } .dnode.hub { width: 58px; height: 58px; } }
+@media (max-width: 600px) { .dnode { width: 42px; height: 42px; border-width: 2px; border-radius: 7px; } .dnode .ic2 { width: 24px; height: 24px; } .dnode.hub { width: 52px; height: 52px; } .dnode.hub .ic2 { width: 30px; height: 30px; } .drank, .dnode .tnum { font-size: 11px; } }
 @media (prefers-reduced-motion: reduce) { .dyn-star, .dnode.can { animation: none; } }

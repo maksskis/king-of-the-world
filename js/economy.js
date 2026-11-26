@@ -50,7 +50,7 @@
 
   // ---------- стройка ----------
   // Цена и время перехода с уровня L на L+1 (нужно и для очереди указов)
-  E.costAt = (k, L) => G.U.scaleCost(D.B[k].base, D.LVLMULT[Math.min(L, D.LVLMULT.length - 1)] * Math.max(0.6, 1 - G.bonus('buildC')));
+  E.costAt = (k, L) => G.U.scaleCost(D.B[k].base, D.LVLMULT[Math.min(L, D.LVLMULT.length - 1)] * Math.max(0.5, 1 - G.bonus('buildC'))); // «Бережливость» и «Бережливость рода» — не больше −50%
   // ускорение стройки делит время (а не вычитает проценты) — сколько ни складывай, время не станет нулём
   E.timeAt = (k, L) => D.buildTime(L) / (1 + G.bonus('buildT'));
   E.upCost = (k) => E.costAt(k, E.lvl(k));
@@ -186,7 +186,7 @@
     const L = Math.max(1, E.lvl(k));
     return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * (1 + E.passive()) * E.rush();
   };
-  E.workerCost = (k) => ({ gold: Math.ceil(15 * Math.pow(1.45, G.S.b[k].w)) });
+  E.workerCost = (k) => ({ gold: Math.ceil(15 * Math.pow(1.45, G.S.b[k].w) * Math.max(0.5, 1 - G.bonus('workerC'))) }); // «Рабочие руки»
   E.hireWorker = function (k) {
     const b = G.S.b[k];
     if (b.w >= E.maxWorkers(k) || E.busy(k)) return;
