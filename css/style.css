@@ -135,6 +135,10 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .slot-dec.on { display: flex; }
 .slot-dec .ic { width: 13px; height: 13px; vertical-align: 0; }
 .slot:hover .slot-img { filter: brightness(1.15); }
+/* цель автоклика на телефоне: вращающееся золотое кольцо */
+.slot.autot::before { content: ''; position: absolute; left: 6%; right: 6%; top: 4%; bottom: 10%; border: 2px dashed var(--gold); border-radius: 50%; box-shadow: 0 0 8px rgba(247, 201, 72, 0.55); animation: autoRing 3s linear infinite; pointer-events: none; z-index: 1; }
+@keyframes autoRing { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .slot.autot::before { animation: none; } }
 .slot.sel .slot-img { filter: drop-shadow(0 0 2px var(--gold)) drop-shadow(0 0 3px var(--gold)); }
 .slot.unbuilt .slot-img { opacity: 0.85; }
 .slot.unbuilt .slot-label { color: var(--muted); font-weight: 500; }

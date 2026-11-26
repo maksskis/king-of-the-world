@@ -132,7 +132,17 @@
       UI.auto = sl ? { k: sl.dataset.k, btn: false } : gb ? { k: gb.dataset.arg, btn: true } : null;
       UI.autoPos = { clientX: e.clientX, clientY: e.clientY };
     });
-    document.addEventListener('pointerleave', () => { UI.auto = null; });
+    // телефон: курсора нет — нажатое здание (или кнопка «Добыть») становится целью автоклика и остаётся ею,
+    // пока не нажмёшь на другое здание (цель сменится) или на пустое место карты (автоклик остановится)
+    document.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      const sl = e.target.closest && e.target.closest('#slots .slot');
+      const gb = !sl && e.target.closest && e.target.closest('#bpop [data-action="gather"]');
+      if (sl) { const k = sl.dataset.k; if (G.E.lvl(k) > 0 || G.E.consOf(k) || k === 'dungeon') UI.auto = { k, btn: false, touch: true }; } // недостроенное — не цель
+      else if (gb) UI.auto = { k: gb.dataset.arg, btn: true, touch: true };
+      else if (e.target.closest && e.target.closest('#map') && !e.target.closest('#spellbar, #journey-btn')) UI.auto = null;
+    }, true);
+    document.addEventListener('pointerleave', () => { if (!(UI.auto && UI.auto.touch)) UI.auto = null; });
     window.addEventListener('blur', () => { UI.auto = null; });
     setInterval(autoTick, 50);
     document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') hideGtip(); });
@@ -232,8 +242,17 @@
   }
   // ---------- автоклик (талант «Королевская сноровка») ----------
   UI.autoRate = () => (G.bonus('autoClick') > 0 ? 1 + G.bonus('autoClick') : 0); // кликов в секунду
+  // золотое кольцо вокруг здания — цели автоклика на телефоне (курсора не видно)
+  function markAuto(on) {
+    const want = on && UI.auto && UI.auto.touch ? UI.auto.k : null, cur = $('.slot.autot');
+    if ((cur ? cur.dataset.k : null) === want) return;
+    if (cur) cur.classList.remove('autot');
+    const el = want && $(`.slot[data-k="${want}"]`);
+    if (el) el.classList.add('autot');
+  }
   function autoTick() {
     const rate = UI.autoRate();
+    markAuto(!!rate && G.S.king.auto && !G.W.active());
     if (!rate || !G.S.king.auto || !UI.auto || G.W.active() || document.hidden) { UI.autoAcc = 0; return; }
     UI.autoAcc = (UI.autoAcc || 0) + 0.05 * rate;
     while (UI.autoAcc >= 1) {
@@ -242,7 +261,7 @@
       if (!el) return;
       // с кнопки «Добыть» цифры всплывают над самим зданием на карте
       let pos = UI.autoPos;
-      if (UI.auto.btn) { const r = el.getBoundingClientRect(); pos = { clientX: r.left + r.width / 2, clientY: r.top + r.height * 0.4 }; }
+      if (UI.auto.btn || UI.auto.touch) { const r = el.getBoundingClientRect(); pos = { clientX: r.left + r.width / 2, clientY: r.top + r.height * 0.4 }; }
       UI.autoNow = true;
       try { UI.slotClick(UI.auto.k, Object.assign({ type: 'auto' }, pos), el); } finally { UI.autoNow = false; }
     }
