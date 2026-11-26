@@ -797,11 +797,6 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
   .cats { flex-direction: row; flex-wrap: wrap; }
   .ww { flex-wrap: wrap; white-space: normal; justify-content: center; }
 }
-/* телефон: название — своей строкой, ресурсы — сеткой во всю ширину, а не столбиком у края */
-@media (max-width: 560px) {
-  #brand { flex: 1 1 100%; }
-  #resbar { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
-}
 /* Условия похода: отключённые строки и предупреждение режима «до последнего» */
 .cond.off { opacity: 0.45; }
 .cond .cnote { display: block; margin-left: 20px; }
@@ -1074,3 +1069,49 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 #gcards.alllist .glist { max-height: none; }
 #goal .gtab { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
 @media (max-width: 520px) { #goal .gtab { padding: 6px 8px; font-size: 12.5px; } }
+
+/* ---------- Телефон и узкий экран (одна колонка): шапка, карта, меню вкладок, затем то, куда нажали ---------- */
+@media (max-width: 960px) {
+  /* шапка: название и кнопки (звук, язык, настройки) в одной строке справа; ниже ресурсы; ещё ниже жители и Король */
+  #topbar { flex-wrap: wrap; row-gap: 6px; }
+  #brand { order: 1; flex: 1 1 auto; }
+  #top-actions { order: 2; margin-left: auto; }
+  #resbar { order: 3; flex: 1 1 100%; }
+  #folk { order: 4; }
+  #kbadge { order: 5; }
+  #autobtn { order: 6; }
+  #rush-ind { order: 7; }
+  /* порядок блоков: карта → панель волны → меню вкладок → окно здания или вкладки → цели → лог */
+  #main { display: flex; flex-direction: column; gap: 8px; padding: 8px max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px)); }
+  #world, #side { display: contents; }
+  #stage { order: 1; }
+  #wave-w { order: 2; }
+  #tabs { order: 3; background: #17121e; border: 1px solid var(--line); border-radius: 6px; }
+  #bpop, #panel { order: 4; }
+  #goal { order: 5; }
+  #gcards { order: 6; }
+  #log { order: 7; }
+  #bpop { border: 1px solid var(--line); border-radius: 6px; overflow: visible; }
+  #panel { padding: 0; overflow: visible; }
+  body.mv-pop #panel { display: none; }
+  body.mv-tab #bpop { display: none; }
+  /* пока открыто окно здания, ни одна вкладка не выделена */
+  body.mv-pop .tab.on { color: var(--muted); border-bottom-color: transparent; }
+  /* подписи вкладок видны и на телефоне */
+  .tab span { display: block; font-size: 11px; white-space: nowrap; }
+}
+@media (max-width: 560px) {
+  /* ресурсы мельче: сеткой по 4 в ряд, без «/вместимость» */
+  #resbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .res { gap: 3px; padding: 2px 4px; }
+  .res > .ic { width: 16px; height: 16px; }
+  .res .rcol { min-width: 0; }
+  .res .rv { font-size: 12px; }
+  .res .rc { display: none; }
+  .res .rr { font-size: 9.5px; }
+  .res .rline .rbar { min-width: 12px; }
+  #brand { font-size: 18px; }
+  #brand .ic { width: 22px; height: 22px; }
+  #top-actions .btn.small { padding: 4px 8px; font-size: 12px; }
+  #folk, #kbadge { flex: 1 1 0; min-width: 0; }
+}

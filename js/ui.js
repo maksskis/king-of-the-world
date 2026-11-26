@@ -140,6 +140,7 @@
       if (e.key === 'Escape' && UI.win && UI.win !== 'decision') UI.closeModal();
       if (['1', '2', '3', '4'].includes(e.key) && G.W.battle() && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) G.W.setSpeed(G.W.SPEEDS[+e.key - 1]);
     });
+    UI.setMView(UI.mview || 'pop');
     $('#brand-icon').src = G.SPR.url('i_crown');
     applyLand();
     applyStatic();
@@ -200,8 +201,15 @@
 
   // Окно здания — своя колонка рядом с картой, вкладки справа работают независимо.
   // Катакомбы открывают вкладку «Походы».
+  // Телефон/узкий экран: под меню вкладок показывается то, куда нажали последним — окно здания или вкладка
+  UI.setMView = function (v) {
+    UI.mview = v;
+    document.body.classList.toggle('mv-pop', v === 'pop');
+    document.body.classList.toggle('mv-tab', v === 'tab');
+  };
   UI.openPop = function (k) {
-    if (k === 'dungeon') { if (UI.tab !== 'exp') { UI.tab = 'exp'; UI.dirty(); } return; }
+    if (k === 'dungeon') { UI.setMView('tab'); if (UI.tab !== 'exp') { UI.tab = 'exp'; UI.dirty(); } return; }
+    UI.setMView('pop');
     if (UI.pop === k) return;
     UI.pop = k;
     hideTip();
@@ -580,7 +588,7 @@
     },
     gAccept(id) { if (G.E.acceptGoal(id)) UI.focusGoal = id; },
     gClaim(id) { G.E.claimGoal(id); },
-    tab(a) { UI.tab = a; UI.pick = null; UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
+    tab(a) { UI.tab = a; UI.pick = null; UI.setMView('tab'); UI.slotsDirty = true; UI.dirty(); if (UI.win && UI.win !== 'decision') UI.closeModal(); },
     sel(k) { UI.openPop(k); },
     goto(k) { UI.openPop(k); },
     gather(k, el, e) { UI.slotClick(k, e, $(`.slot[data-k="${k}"]`)); },
