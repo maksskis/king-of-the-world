@@ -52,7 +52,7 @@
   // Цена и время перехода с уровня L на L+1 (нужно и для очереди указов)
   E.costAt = (k, L) => G.U.scaleCost(D.B[k].base, D.LVLMULT[Math.min(L, D.LVLMULT.length - 1)] * Math.max(0.5, 1 - G.bonus('buildC'))); // «Бережливость» и «Бережливость рода» — не больше −50%
   // ускорение стройки делит время (а не вычитает проценты) — сколько ни складывай, время не станет нулём
-  E.timeAt = (k, L) => D.buildTime(L) / (1 + G.bonus('buildT'));
+  E.timeAt = (k, L) => D.buildTime(L) / (1 + G.bonus('buildT')) / G.K.haste();
   E.upCost = (k) => E.costAt(k, E.lvl(k));
   E.upTime = (k) => E.timeAt(k, E.lvl(k));
   E.builders = () => 1 + G.bonus('builders');
@@ -209,7 +209,7 @@
     return Math.floor(E.lvl('castle') * D.FOLK.perCastle + lv / D.FOLK.perLevels + G.bonus('housing'));
   };
   E.folk = () => Math.floor(G.S.folk || 0);
-  E.folkEvery = () => D.FOLK.every / (1 + 0.1 * E.lvl('tavern') + 0.1 * E.lvl('arena'));
+  E.folkEvery = () => D.FOLK.every / (1 + 0.1 * E.lvl('tavern') + 0.1 * E.lvl('arena')) / G.K.haste();
   E.folkTax = () => E.folk() * D.FOLK.tax;
   E.tickFolk = function (dt) {
     const S = G.S, cap = E.homes();

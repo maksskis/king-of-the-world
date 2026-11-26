@@ -386,18 +386,23 @@
   // Ступень I — клик и пассивный рост, II — средние навыки, III — самые сильные.
   // c — колонка (0–6, ствол — 3), r — строка, t — ступень, p — навык-родитель (без него — сама ступень)
   D.DYN_COLS = 7;
-  D.DYN_TIERS = [{ need: 0, r: 0 }, { need: 10, r: 3 }, { need: 25, r: 6 }];
+  D.DYN_TIERS = [{ need: 0, r: 0 }, { need: 10, r: 4 }, { need: 25, r: 8 }];
+  D.DYN_ROWS = 10;
   D.DYN_TREE = {
+    // I — клик, пассивный рост и основа хозяйства
     prod: { t: 0, c: 2, r: 0 }, cap: { t: 0, c: 1, r: 0, p: 'prod' }, housing: { t: 0, c: 0, r: 0, p: 'cap' },
-    tax: { t: 0, c: 2, r: 1 }, start: { t: 0, c: 1, r: 1, p: 'tax' },
-    click: { t: 0, c: 4, r: 0 }, crit: { t: 0, c: 5, r: 0, p: 'click' }, example: { t: 0, c: 6, r: 0, p: 'crit' },
-    build: { t: 1, c: 2, r: 3 }, found: { t: 1, c: 1, r: 3, p: 'build' }, thrift: { t: 1, c: 0, r: 3, p: 'found' },
-    workers: { t: 1, c: 2, r: 4 },
-    hero: { t: 1, c: 4, r: 3 }, hire: { t: 1, c: 5, r: 3, p: 'hero' }, xp: { t: 1, c: 6, r: 3, p: 'hire' },
-    craft: { t: 1, c: 4, r: 4 }, luck: { t: 1, c: 5, r: 4, p: 'craft' },
-    research: { t: 2, c: 2, r: 6 }, golden: { t: 2, c: 1, r: 6, p: 'research' }, trade: { t: 2, c: 2, r: 7 },
-    captain: { t: 2, c: 4, r: 6 }, medic: { t: 2, c: 5, r: 6, p: 'captain' }, blood: { t: 2, c: 6, r: 6, p: 'medic' },
-    walls: { t: 2, c: 4, r: 7 }, guards: { t: 2, c: 5, r: 7, p: 'walls' },
+    tax: { t: 0, c: 2, r: 1 }, start: { t: 0, c: 1, r: 1, p: 'tax' }, build: { t: 0, c: 2, r: 2 },
+    click: { t: 0, c: 4, r: 0 }, crit: { t: 0, c: 5, r: 0, p: 'click' }, hire: { t: 0, c: 4, r: 1 },
+    // II — средние: скидки, герои, кузня, оборона
+    found: { t: 1, c: 2, r: 4 }, thrift: { t: 1, c: 1, r: 4, p: 'found' },
+    workers: { t: 1, c: 2, r: 5 }, example: { t: 1, c: 1, r: 5, p: 'workers' },
+    craft: { t: 1, c: 2, r: 6 }, luck: { t: 1, c: 1, r: 6, p: 'craft' }, trade: { t: 1, c: 0, r: 6, p: 'luck' },
+    hero: { t: 1, c: 4, r: 4 }, xp: { t: 1, c: 5, r: 4, p: 'hero' },
+    captain: { t: 1, c: 4, r: 5 }, medic: { t: 1, c: 5, r: 5, p: 'captain' }, blood: { t: 1, c: 6, r: 5, p: 'medic' },
+    walls: { t: 1, c: 4, r: 6 }, guards: { t: 1, c: 5, r: 6, p: 'walls' },
+    // III — то, что все хотят: всё в королевстве идёт быстрее и богаче
+    research: { t: 2, c: 2, r: 8 }, golden: { t: 2, c: 1, r: 8, p: 'research' }, legacy: { t: 2, c: 2, r: 9 },
+    haste: { t: 2, c: 4, r: 8 }, prosper: { t: 2, c: 4, r: 9 },
   };
   D.PERKS = [
     { id: 'found', icon: 'i_hammer', eff: {} },
@@ -416,17 +421,21 @@
     { id: 'hire', icon: 'i_coin', eff: { hireC: 0.06 } },
     { id: 'guards', icon: 'i_helmet', eff: { guardAtk: 0.15 } },
     { id: 'walls', icon: 'i_def', eff: { gateHp: 0.15 } },
-    { id: 'captain', icon: 'i_map', eff: { captain: 0.06 } },
+    { id: 'captain', icon: 'i_map', eff: { captain: 0.1 } },
     { id: 'medic', icon: 'i_heal', eff: { medic: 0.15, save: 0.03 } },
-    { id: 'research', icon: 'i_book', eff: { resSpeed: 0.15 } },
+    { id: 'research', icon: 'i_book', eff: { resSpeed: 0.2 } },
     { id: 'crit', icon: 'i_star', eff: { clickCrit: 0.03 } },
     // новые: пассивный рост, скидки и сила
     { id: 'housing', icon: 'c_folk', eff: { housing: 2 } },
     { id: 'example', icon: 'c_king', eff: { clickProd: 0.5 } },
-    { id: 'thrift', icon: 'i_scale', eff: { buildC: 0.02 } },
+    { id: 'thrift', icon: 'i_scale', eff: { buildC: 0.05 } },
     { id: 'workers', icon: 'r_wood', eff: { workerC: 0.05 } },
-    { id: 'golden', icon: 'r_crystal', eff: { rewardAll: 0.05 } },
-    { id: 'blood', icon: 'i_shield2', eff: { heroPow: 0.04 } },
+    { id: 'golden', icon: 'r_crystal', eff: { rewardAll: 0.1 } },
+    { id: 'blood', icon: 'i_shield2', eff: { heroPow: 0.05 } },
+    // ступень III: ускоряют всё
+    { id: 'haste', icon: 'i_boot', eff: { haste: 0.08 } }, // «Время королей»: стройка, исследования, ковка, походы, Арена, жители
+    { id: 'prosper', icon: 'i_up', eff: { passive: 0.1 } }, // «Процветание»: вся пассивная добыча
+    { id: 'legacy', icon: 'i_crown', eff: { legacy: 0.1 } }, // «Слава династии»: больше очков наследия
   ];
 
   // ---------- цели (обучение и кампания) ----------

@@ -112,6 +112,8 @@
 
   // ---------- династия ----------
   K.epochMul = () => 1 + 0.25 * G.S.dyn.epoch;
+  // «Время королей»: множитель скорости всего — стройка, исследования, ковка, походы, Арена, приход жителей и героев
+  K.haste = () => 1 + G.bonus('haste');
   K.epochReward = () => (1 + 0.2 * G.S.dyn.epoch) * (1 + G.bonus('rewardAll')); // «Золотой век» — ко всем наградам
   // Из чего складываются очки за передачу трона: лучшая волна, этажи подземелий, Замок ×3, Король ×2,
   // лучший ранг Арены ×2, этапы Путешествия, пройденные в этом правлении, ×5 — всё ÷5, и +10 за дракона
@@ -120,7 +122,8 @@
     const depth = Object.values(S.dng.best).reduce((a, b) => a + b, 0);
     const arena = (S.arena && S.arena.best) || 0, jr = G.J.S().best || 0;
     const sum = S.gate.best + depth + G.E.lvl('castle') * 3 + S.king.lvl * 2 + arena * Lg.arena + jr * Lg.jr;
-    return { wave: S.gate.best, depth, castle: G.E.lvl('castle'), king: S.king.lvl, arena, jr, dragon: !!S.camp.won, total: Math.floor(sum / 5) + (S.camp.won ? 10 : 0) };
+    const base = Math.floor(sum / 5) + (S.camp.won ? 10 : 0);
+    return { wave: S.gate.best, depth, castle: G.E.lvl('castle'), king: S.king.lvl, arena, jr, dragon: !!S.camp.won, total: Math.floor(base * (1 + G.bonus('legacy'))) }; // «Слава династии»
   };
   K.legacyGain = () => K.legacyParts().total;
   // Здания 8-го уровня: +1 очко наследия сразу, один раз за правление на каждое здание

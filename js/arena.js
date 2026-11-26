@@ -9,7 +9,7 @@
   // Размер команды: 1 боец, со 2-го уровня — 2, с 4-го — 3, с 6-го — 4, на 8-м — 5
   A.teamMax = () => (A.lvl() < 1 ? 0 : Math.min(5, 1 + Math.floor(A.lvl() / 2)));
   // Подготовка к следующему бою: 60 с, быстрее с уровнем Арены и «Славой арены»
-  A.cdTime = () => (60 / (1 + 0.1 * (A.lvl() - 1))) * Math.max(0.4, 1 - G.bonus('arenaCd'));
+  A.cdTime = () => ((60 / (1 + 0.1 * (A.lvl() - 1))) * Math.max(0.4, 1 - G.bonus('arenaCd'))) / G.K.haste();
   A.CHAMPS = ['goblin', 'wolf', 'skeleton', 'orc', 'spider', 'drowned', 'troll', 'golem', 'lich'];
 
   // Соперник ранга: один чемпион, сила растёт с рангом и размером команды

@@ -220,7 +220,7 @@
   };
 
   // ---------- Древо династии: после передачи трона (новая эпоха на паузе) и из вкладки «Король» ----------
-  const TREE_CH = 84, TREE_ROWS = 8, ROMAN = ['I', 'II', 'III'];
+  const TREE_CH = 84, ROMAN = ['I', 'II', 'III'];
   const BK_NEG = { hireC: 1, save: 1, buildC: 1, workerC: 1 }; // эти бонусы уменьшают (цены, шанс гибели)
   // что даёт навык рода при текущем ранге — одной строкой
   P.perkNow = function (p, r) {
@@ -233,7 +233,7 @@
   };
   P.dynTree = function () {
     const { ic } = h();
-    const K = G.K, sel = G.UI.dynSel, H = TREE_ROWS * TREE_CH, pts = G.S.dyn.pts, NC = D.DYN_COLS, MID = (NC - 1) / 2, asc = !!G.S.ascend;
+    const K = G.K, sel = G.UI.dynSel, H = D.DYN_ROWS * TREE_CH, pts = G.S.dyn.pts, NC = D.DYN_COLS, MID = (NC - 1) / 2, asc = !!G.S.ascend;
     const X = (c) => (c + 0.5) * 100, Y = (r) => r * TREE_CH + TREE_CH / 2;
     const lines = [];
     const seg = (pts2, cls) => lines.push(`<polyline class="${cls}" points="${pts2.map(([x, y]) => x + ',' + y).join(' ')}"/>`);

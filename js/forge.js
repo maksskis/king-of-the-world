@@ -3,7 +3,7 @@
   const D = G.D;
   const lvl = () => G.E.lvl('forge');
 
-  F.speed = () => (1 + 0.12 * (lvl() - 1)) * (1 + 0.25 * G.S.b.forge.w) * (1 + G.bonus('craft'));
+  F.speed = () => (1 + 0.12 * (lvl() - 1)) * (1 + 0.25 * G.S.b.forge.w) * (1 + G.bonus('craft')) * G.K.haste();
   F.qMax = () => Math.max(1, lvl()) + G.bonus('forgeQ'); // 1 ур. — 1 вещь, 2 ур. — 2 и т. д.
   F.maxSmiths = () => (lvl() > 0 ? lvl() + G.bonus('smiths') : 0); // талант «Переселенцы» даёт кузнецов
   F.smithCost = function () {

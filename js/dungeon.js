@@ -48,7 +48,7 @@
     }
   };
   // «Карты катакомб» сокращают дорогу между этажами и путь домой
-  X.travelTime = (f) => Math.round(Math.min(12, 4 + 0.4 * f) * (1 - G.bonus('expTravel')));
+  X.travelTime = (f) => Math.max(1, Math.round((Math.min(12, 4 + 0.4 * f) * (1 - G.bonus('expTravel'))) / G.K.haste()));
   X.returnTime = (f) => Math.round(Math.min(15, 5 + 0.4 * f) * (1 - G.bonus('expTravel')));
 
   // ---------- локации ----------

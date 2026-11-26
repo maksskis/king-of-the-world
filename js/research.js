@@ -4,7 +4,7 @@
 
   R.get = (id) => D.RESEARCH.find((r) => r.id === id);
   R.done = (id) => !!G.S.research.done[id];
-  R.speed = () => (1 + 0.1 * (G.E.lvl('academy') - 1)) * (1 + G.bonus('resSpeed'));
+  R.speed = () => (1 + 0.1 * (G.E.lvl('academy') - 1)) * (1 + G.bonus('resSpeed')) * G.K.haste();
   R.time = (r) => r.t / Math.max(1, R.speed());
   R.doneCount = () => D.RESEARCH.filter((r) => R.done(r.id)).length;
 
