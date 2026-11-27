@@ -955,10 +955,26 @@
     if (w > wn) h += `<div class="muted small">${ic('i_clock')} ${t('wkRestN', { n: w - wn })}</div>`;
     // ставить и снимать — во вкладке «Рабочие»: все здания на одном экране, карта свободна для кликов
     h += `<div class="row"><button class="btn small" data-action="tab" data-arg="workers">${ic('i_pick')} ${t('wkOpen')}</button><span class="muted small">${t('wkFreeN', { n: free, m: all })}</span></div>`;
-    return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint') + (d.click ? '<br>' + t('clickHint') : '')]);
+    return `<div data-wkbox="${k}">` + box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint') + (d.click ? '<br>' + t('clickHint') : '')]) + '</div>';
   }
   UI.workersBox = workersBox;
-  UI.wkChanged = (k) => { if (UI.tab === 'workers' || UI.pop === k) UI.dirty(); };
+  // Рабочий ушёл отдыхать или вернулся (k) или пришёл новый (без k): меняем только то, что видно и зависит от рабочих —
+  // строки вкладки «Рабочие», её сводку, блок рабочих в окне здания и значок вкладки. Весь интерфейс не перерисовывается.
+  const swap = (el, html) => { if (el && el.outerHTML !== html) el.outerHTML = html; };
+  UI.wkChanged = function (k) {
+    if (G.offlineSim || !document.getElementById('panel')) return; // за время отсутствия — один общий перерисовщик после подсчёта
+    const ks = k ? [k] : D.WORK.b;
+    for (const x of ks) {
+      swap($(`#panel [data-wkrow="${x}"]`), wkRow(x));
+      const bx = $(`#bpop [data-wkbox="${x}"]`);
+      if (bx) swap(bx, workersBox(x));
+    }
+    if (!k) {
+      const sm = $('#panel [data-wksum]');
+      if (sm) sm.innerHTML = wkSummary();
+      renderTabs();
+    }
+  };
 
   // ---------- вкладка «Рабочие»: все здания с местами на одном экране ----------
   // Строка здания: облик, название и уровень, что дают рабочие; справа «−» и три места.
@@ -971,29 +987,32 @@
     return (d.click ? `<span class="good">${ic('r_' + d.click)} +${U.fmt1(w * G.E.workerRate(k))}/${t('sec')}</span>`
       : `<span class="good">${t('wkb_' + k)} ×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}</span>`) + rest;
   }
-  function workersPanel() {
-    const free = G.E.wkFree(), all = G.E.wkTotal(), S = G.S;
-    let h = box(tipTitle(ic('i_pick') + ' ' + t('tabWorkers'), 'wkHint', t('wkHint')) + ` <span class="muted">${G.E.wkUsed()}/${all}</span>`,
-      `<div class="wksum"><span>${t('wkFreeN', { n: `<b class="${free ? 'good' : ''}">${free}</b>`, m: all })}</span>`
+  function wkSummary() {
+    const free = G.E.wkFree(), all = G.E.wkTotal();
+    return `<div class="wksum"><span>${t('wkFreeN', { n: `<b class="${free ? 'good' : ''}">${free}</b>`, m: all })}</span>`
       + `<span class="muted small">${E_folkLine()}</span></div>`
       + `<div class="muted small">${ic('i_clock')} ${t('wkCycle', { w: D.WORK.work, r: U.fmt1(G.E.wkRestTime()) })}</div>`
-      + (all ? '' : `<div class="muted small">${t('wkNone')}</div>`));
-    const rows = D.WORK.b.map((k) => {
-      const w = S.b[k].w || 0, mx = G.E.wkSlots(k), can = G.E.wkCan(k);
-      const url = G.SPR.url('wk:' + k), on = w > 0 && G.E.wkActive(k), st = w ? G.E.wkState(k) : [];
-      const pips = D.WORK.slotLvl.map((lv, i) => {
-        if (i < w) { const r = st[i] && st[i][0]; return `<button class="wkpip on${on ? '' : ' idle'}${r ? ' rest' : ''}" data-action="wkDel" data-arg="${k}" title="${esc(r ? t('wkPipRest', { s: Math.ceil(st[i][1]) }) + ' ' + t('wkPipDel') : t('wkPipDel'))}"><i style="background-image:url(${url})"></i></button>`; }
-        if (i < mx) return `<button class="wkpip open" data-action="wkAdd" data-arg="${k}" title="${esc(t('wkPipAdd'))}" ${free > 0 && can ? '' : 'disabled'}>+</button>`;
-        return `<span class="wkpip lock" title="${esc(t('wkSlotFrom', { l: lv }))}">${ic('i_lock')}<small>${lv}</small></span>`;
-      }).join('');
-      const lvl = k === 'dungeon' ? '' : G.E.lvl(k) ? ` <span class="muted small">${t('lv')} ${G.E.lvl(k)}</span>` : '';
-      const sub = !can ? `<span class="muted">${k === 'dungeon' ? t('wkNeedGuild') : t('notBuilt')}</span>` : wkEffect(k);
-      return `<div class="wkrow ${can ? '' : 'off'}"><span class="wkimg" data-tip="b:${k}">${ic(bSprite(k), 'ic3')}</span><div class="grow"><b>${t('bn_' + k)}</b>${lvl}<div class="small">${sub}</div></div>`
-        + `<div class="wkctl"><button class="btn small" data-action="wkDel" data-arg="${k}" ${w > 0 ? '' : 'disabled'} title="${esc(t('wkPipDel'))}">−</button>`
-        + `<span class="wkpips">${pips}</span></div></div>`;
-    }).join('');
-    h += box('', rows, 'wklist');
+      + (all ? '' : `<div class="muted small">${t('wkNone')}</div>`);
+  }
+  function workersPanel() {
+    let h = box(tipTitle(ic('i_pick') + ' ' + t('tabWorkers'), 'wkHint', t('wkHint')) + ` <span class="muted" data-b="wku"></span>`, `<div data-wksum>${wkSummary()}</div>`);
+    h += box('', D.WORK.b.map(wkRow).join(''), 'wklist');
     return h;
+  }
+  function wkRow(k) {
+    const S = G.S, free = G.E.wkFree();
+    const w = S.b[k].w || 0, mx = G.E.wkSlots(k), can = G.E.wkCan(k);
+    const url = G.SPR.url('wk:' + k), on = w > 0 && G.E.wkActive(k), st = w ? G.E.wkState(k) : [];
+    const pips = D.WORK.slotLvl.map((lv, i) => {
+      if (i < w) { const r = st[i] && st[i][0]; return `<button class="wkpip on${on ? '' : ' idle'}${r ? ' rest' : ''}" data-action="wkDel" data-arg="${k}" title="${esc(r ? t('wkPipRest', { s: Math.ceil(st[i][1]) }) + ' ' + t('wkPipDel') : t('wkPipDel'))}"><i style="background-image:url(${url})"></i></button>`; }
+      if (i < mx) return `<button class="wkpip open" data-action="wkAdd" data-arg="${k}" title="${esc(t('wkPipAdd'))}" ${free > 0 && can ? '' : 'disabled'}>+</button>`;
+      return `<span class="wkpip lock" title="${esc(t('wkSlotFrom', { l: lv }))}">${ic('i_lock')}<small>${lv}</small></span>`;
+    }).join('');
+    const lvl = k === 'dungeon' ? '' : G.E.lvl(k) ? ` <span class="muted small">${t('lv')} ${G.E.lvl(k)}</span>` : '';
+    const sub = !can ? `<span class="muted">${k === 'dungeon' ? t('wkNeedGuild') : t('notBuilt')}</span>` : wkEffect(k);
+    return `<div class="wkrow ${can ? '' : 'off'}" data-wkrow="${k}"><span class="wkimg" data-tip="b:${k}">${ic(bSprite(k), 'ic3')}</span><div class="grow"><b>${t('bn_' + k)}</b>${lvl}<div class="small">${sub}</div></div>`
+      + `<div class="wkctl"><button class="btn small" data-action="wkDel" data-arg="${k}" ${w > 0 ? '' : 'disabled'} title="${esc(t('wkPipDel'))}">−</button>`
+      + `<span class="wkpips">${pips}</span></div></div>`;
   }
   // Строка про жителей: когда придёт следующий рабочий
   function E_folkLine() {
@@ -1552,6 +1571,7 @@
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
     wkc: () => G.E.wkFree() + '/' + G.E.wkTotal(),
+    wku: () => G.E.wkUsed() + '/' + G.E.wkTotal(),
     tavT: () => U.fmtTime(Math.max(0, G.S.tavern.t)),
     gp: (id) => { const p = G.E.goalProg(G.E.goalById(id)); return p ? U.fmt(p.cur) + ' / ' + U.fmt(p.n) : ''; },
     arenaT: () => (G.S.arena.cd > 0 ? U.fmtTime(G.S.arena.cd) + (G.E.busy('arena') ? ' · ' + t('paused') : '') : t('arenaReady')),
