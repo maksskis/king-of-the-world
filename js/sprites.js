@@ -341,6 +341,23 @@
       b.px(o + 9, 5, P.k);
     }
   } };
+  // Что вылетает из здания при ударе рабочего (12×12): wood — щепки, stone — камешки, iron — искры и окалина,
+  // gold — монеты, book — листки и искра, spark — искры кузни, dust — пыль, bone — косточки, star — звёздочки
+  DEF.wkfx = { w: 12, h: 12, draw(b, t) {
+    const C = {
+      wood: [P.wood, P.woodL, P.woodD], stone: [P.stoneL || '#b8b0a8', '#8a8480', '#d8d2cc'], iron: [P.glowL, P.glow, P.ironL],
+      gold: [P.gold, P.goldL, P.goldD], book: [P.white, '#9ad0ff', P.white], spark: [P.glowL, P.glow, '#ff6a2a'],
+      dust: [P.dirtL, P.dirt, P.dirtL], bone: [P.boneL || '#eee4cc', P.white, P.boneL || '#eee4cc'], star: [P.gold, P.goldL, P.white],
+    }[t] || [P.dirtL, P.dirt, P.dirtL];
+    const pts = [[2, 3], [6, 1], [9, 4], [1, 8], [5, 6], [10, 9], [7, 10], [3, 11]];
+    pts.forEach(([x, y], i) => {
+      const c = C[i % 3];
+      if (t === 'gold' && i % 3 === 0) { b.rect(x, y, 2, 2, c); b.px(x, y, P.goldL); }
+      else if (t === 'wood' || t === 'stone' || t === 'bone') { b.rect(x, y, 2, 1, c); if (i % 2) b.px(x + 1, y + 1, C[2]); }
+      else b.px(x, y, c);
+    });
+    if (t === 'star' || t === 'book' || t === 'spark' || t === 'iron') { b.px(5, 5, C[0]); b.px(4, 5, C[1]); b.px(6, 5, C[1]); b.px(5, 4, C[1]); b.px(5, 6, C[1]); }
+  } };
   DEF.guard = { w: 10, h: 13, draw(b) { b.rect(3, 6, 4, 4, P.red); b.disc(5, 3.8, 2, P.skin); b.rect(3, 1, 4, 2, P.iron); b.rect(3, 10, 1, 2, P.woodD); b.rect(6, 10, 1, 2, P.woodD); b.line(8, 2, 8, 10, P.wood); } };
 
   // ---------- советники (16×16) ----------

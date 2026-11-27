@@ -482,24 +482,72 @@
     return ic('i_flag') + (ex[0].phase === 'ret' ? ex[0].cleared : ex[0].floor);
   }
 
-  // Рабочие на карте: до трёх фигурок у здания таранят его — разбег, удар, отскок (темп — скорость рабочих); отдыхающие гуляют рядом;
-  // стоят без дела, пока здание строится или склад его ресурса полон
+  // Рабочие на карте (итерация 61): у здания — один рабочий, который таранит его со стороны дорожки к Замку
+  // (у Замка — со стороны ворот, у Катакомб — с дороги слева); темп ударов — по числу работающих.
+  // При ударе из здания вылетает своё: щепки, камешки, искры, монеты. Отдыхающие гуляют по дорожке к Замку и обратно.
+  const WK_FX = { castle: 'gold', lumber: 'wood', quarry: 'stone', mine: 'iron', academy: 'book', forge: 'spark', arena: 'dust', tavern: 'star', dungeon: 'bone' };
+  function wkGeo(el, k) {
+    const d = D.B[k], s = d.size, M = D.MAP;
+    // направление дорожки от здания к Замку (дорожки подходят к низу зданий)
+    let ux = M.cx - d.x, uy = M.cy - (d.y + 10);
+    if (k === 'castle') { ux = 0; uy = 1; } else if (k === 'dungeon') { ux = -1; uy = 0; }
+    let L = Math.hypot(ux, uy) || 1; ux /= L; uy /= L;
+    // место рабочего: у края здания по направлению дорожки (картинка здания — ~82% слота)
+    const edge = (0.38 * s) / Math.max(Math.abs(ux), Math.abs(uy), 0.35);
+    let ox = ux * (edge + 3), oy = uy * (edge + 3);
+    // если там подпись здания — отходит к углу здания сбоку от неё
+    const lab = el.querySelector('.slot-label'), sb = el.getBoundingClientRect(), lb = lab ? lab.getBoundingClientRect() : null;
+    if (lb && sb.width > 0 && lb.width > 0) {
+      const sc = s / sb.width;
+      const l = { x0: (lb.left - sb.left) * sc - s / 2, x1: (lb.right - sb.left) * sc - s / 2, y0: (lb.top - sb.top) * sc - s / 2, y1: (lb.bottom - sb.top) * sc - s / 2 };
+      const over = (cx, cy) => cx + 7 > l.x0 && cx - 7 < l.x1 && cy + 7 > l.y0 && cy - 7 < l.y1;
+      if (over(ox, oy) || over(ox * 0.7, oy * 0.7)) {
+        const side = ux > 0.15 ? 1 : -1;
+        ox = side > 0 ? l.x1 + 8 : l.x0 - 8;
+        oy = Math.min(oy, l.y0 - 4);
+      }
+    }
+    // удар — к центру здания; лицом к зданию
+    L = Math.hypot(ox, oy) || 1;
+    const rx = -ox / L, ry = -oy / L;
+    // прогулка: по дорожке к Замку и обратно
+    const far = k === 'castle' ? 34 : Math.max(16, Math.min(46, (Math.hypot(M.cx - d.x, M.cy - d.y) - s / 2 - 40) * 0.6));
+    return { s, ox, oy, rx, ry, ux, uy, far };
+  }
+  const pct = (g, cx, cy, size) => `left:${(((g.s / 2 + cx - size / 2) / g.s) * 100).toFixed(1)}%;top:${(((g.s / 2 + cy - size / 2) / g.s) * 100).toFixed(1)}%`;
   function updateWorkers() {
-    const hit = G.E.wkHit().toFixed(2);
     for (const el of $$('.slot')) {
       const k = el.dataset.k, w = G.E.workable(k) ? G.S.b[k].w || 0 : 0;
-      const st = w ? G.E.wkState(k) : [];
-      const on = w > 0 && G.E.wkActive(k), key = `${w}|${on}|${hit}|${st.map((x) => x[0]).join('')}`;
+      const st = w ? G.E.wkState(k) : [], wn = st.filter((x) => !x[0]).length;
+      const on = wn > 0 && G.E.wkActive(k);
+      const per = Math.max(0.6, G.E.wkHit() / Math.max(1, wn)); // больше работающих — чаще удары
+      const key = `${w}|${st.map((x) => x[0]).join('')}|${on}|${per.toFixed(2)}|${G.LANG}`;
       const box = el.querySelector('.slot-wk');
       if (box._k === key) continue;
       box._k = key;
-      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), rest = G.E.wkRestTime();
-      el.style.setProperty('--wkt', hit + 's'); // темп и у фигурок, и у здания: оно вздрагивает в момент удара
-      el.classList.toggle('wkon', on && st[0] && !st[0][0]);
-      // отдыхающий уходит погулять и возвращается: прогулка длится весь отдых, с той же точки, где он сейчас
-      box.innerHTML = st.map((x, i) => x[0]
-        ? `<span class="wkr p${i} rest" style="--rd:${rest.toFixed(1)}s;--rdel:${(-(rest - Math.min(rest, x[1]))).toFixed(1)}s"><i style="background-image:url(${url})"></i></span>`
-        : `<span class="wkr p${i}${on ? '' : ' idle'}"><i style="background-image:url(${url})"></i></span>`).join('');
+      el.style.setProperty('--wkt', per.toFixed(2) + 's');
+      el.classList.toggle('wkon', on);
+      if (!w) { box.innerHTML = ''; continue; }
+      const g = wkGeo(el, k), url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), rest = G.E.wkRestTime();
+      const fa = g.rx >= 0 ? 1 : -1;
+      let h = '';
+      if (wn > 0) {
+        h += `<span class="wks${on ? '' : ' idle'}" style="${pct(g, g.ox, g.oy, 16)};--rx:${g.rx.toFixed(3)};--ry:${g.ry.toFixed(3)};--fa:${fa}"><i style="background-image:url(${url})"></i></span>`;
+        // эффект — у стены, куда приходится удар; летит от здания
+        if (on) {
+          const fx = g.ox + g.rx * 12, fy = g.oy + g.ry * 12;
+          h += `<span class="wkfx" style="${pct(g, fx, fy, 12)};--bx:${(-g.rx).toFixed(3)};--by:${(-g.ry).toFixed(3)}"><i style="background-image:url(${G.SPR.url('wkfx:' + (WK_FX[k] || 'dust'))})"></i></span>`;
+        }
+      }
+      // отдыхающие: идут по дорожке к Замку, стоят, возвращаются (прогулка длится весь отдых, с той же точки)
+      let n = 0;
+      st.forEach((x) => {
+        if (!x[0]) return;
+        const off = (n++ - 0.5) * 6, px = g.ox - g.uy * off, py = g.oy + g.ux * off;
+        const ga = g.ux >= 0 ? 1 : -1, tx = ((g.ux * g.far) / 16) * 100, ty = ((g.uy * g.far) / 16) * 100;
+        h += `<span class="wkw" style="${pct(g, px, py, 16)};--tx:${tx.toFixed(0)}%;--ty:${ty.toFixed(0)}%;--fa:${ga};--fb:${-ga};--rd:${rest.toFixed(1)}s;--rdel:${(-(rest - Math.min(rest, x[1]))).toFixed(1)}s"><i style="background-image:url(${url})"></i></span>`;
+      });
+      box.innerHTML = h;
     }
   }
 

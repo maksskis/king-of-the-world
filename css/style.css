@@ -159,46 +159,51 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 #folk .wkc { display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; font-size: 12px; color: var(--muted, #b8a8c8); }
 #folk .wkc .ic { width: 13px; height: 13px; }
 #folk .wkc b { color: #f0e6d0; }
-/* Рабочие у зданий (итерация 59): спрайт 2 кадра (бег | удар), ширина — 16 пикселей карты.
-   Фигурка отступает, разбегается, врезается в стену (кадр удара, сплющивается) и отскакивает; здание вздрагивает */
+/* Рабочие у зданий (итерации 59–61): спрайт 4 кадра (бег | удар | шаг | шаг), ширина — 16 пикселей карты.
+   У здания один рабочий со стороны дорожки: отступает, разбегается, врезается (кадр удара) и отскакивает — по направлению
+   к центру здания (--rx, --ry), лицом к зданию (--fa). Из здания при ударе вылетает эффект (.wkfx).
+   Отдыхающие (.wkw) идут по дорожке к Замку (--tx, --ty) и возвращаются */
 .slot-wk { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.wkr { position: absolute; width: calc(100% * 16 / var(--s, 48)); aspect-ratio: 1; bottom: 16%; }
-.wkr.p0 { left: calc(-21% * 48 / var(--s, 48)); }
-.wkr.p1 { right: calc(-21% * 48 / var(--s, 48)); transform: scaleX(-1); }
-.wkr.p2 { left: calc(-25% * 48 / var(--s, 48)); bottom: 46%; }
-.wkr i { position: absolute; inset: 0; background-size: 400% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated;
-  transform-origin: 50% 100%; transform: translateX(-30%);
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
-  animation: wkram var(--wkt, 1.5s) infinite, wkframe var(--wkt, 1.5s) steps(1, end) infinite; }
-.wkr.p1 i { animation-delay: calc(var(--wkt, 1.5s) * -0.37); }
-.wkr.p2 i { animation-delay: calc(var(--wkt, 1.5s) * -0.71); }
-.wkr.idle i { animation: none; transform: translateX(-30%) translateY(4%); filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55)) saturate(0.6); }
+.wks, .wkw { position: absolute; width: calc(100% * 16 / var(--s, 48)); aspect-ratio: 1; }
+.wkfx { position: absolute; width: calc(100% * 12 / var(--s, 48)); aspect-ratio: 1; z-index: 2; }
+.wks i, .wkw i, .wkfx i { position: absolute; inset: 0; background-repeat: no-repeat; image-rendering: pixelated; transform-origin: 50% 100%; }
+.wks i, .wkw i { background-size: 400% 100%; background-position: 0 0; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55)); }
+.wks i { transform: scaleX(var(--fa, 1)); animation: wkram var(--wkt, 1.5s) infinite, wkframe var(--wkt, 1.5s) steps(1, end) infinite; }
+.wks.idle i { animation: none; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55)) saturate(0.6); }
 @keyframes wkram {
-  0% { transform: translateX(-30%); animation-timing-function: ease-out; }
-  34% { transform: translateX(-44%) scale(1.04, 0.92); animation-timing-function: ease-in; }
-  54% { transform: translateX(20%) scale(1.02, 0.98); animation-timing-function: linear; }
-  57% { transform: translateX(26%) scale(0.84, 1.08); animation-timing-function: ease-out; }
-  68% { transform: translateX(2%) translateY(-6%); animation-timing-function: ease-in; }
-  76% { transform: translateX(-12%); animation-timing-function: ease-in-out; }
-  100% { transform: translateX(-30%); }
+  0% { transform: translate(0, 0) scaleX(var(--fa, 1)); animation-timing-function: ease-out; }
+  34% { transform: translate(calc(var(--rx, 1) * -22%), calc(var(--ry, 0) * -22%)) scale(calc(var(--fa, 1) * 1.04), 0.92); animation-timing-function: ease-in; }
+  54% { transform: translate(calc(var(--rx, 1) * 40%), calc(var(--ry, 0) * 40%)) scaleX(var(--fa, 1)); animation-timing-function: linear; }
+  57% { transform: translate(calc(var(--rx, 1) * 48%), calc(var(--ry, 0) * 48%)) scale(calc(var(--fa, 1) * 0.84), 1.08); animation-timing-function: ease-out; }
+  68% { transform: translate(calc(var(--rx, 1) * 18%), calc(var(--ry, 0) * 18% - 6%)) scaleX(var(--fa, 1)); animation-timing-function: ease-in-out; }
+  100% { transform: translate(0, 0) scaleX(var(--fa, 1)); }
 }
 @keyframes wkframe {
   0% { background-position: 0 0; }
   55% { background-position: 33.333% 0; }
   70% { background-position: 0 0; }
 }
-/* отдых: уходит погулять от здания (кадры ходьбы), стоит, разворачивается и возвращается к началу работы */
-.wkr.rest i { animation: wkstroll var(--rd, 15s) linear var(--rdel, 0s) 1 both, wkwalk 0.5s steps(1, end) infinite; }
+.wkfx i { background-size: 100% 100%; opacity: 0; animation: wkburst var(--wkt, 1.5s) infinite; }
+@keyframes wkburst {
+  0%, 55% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  58% { opacity: 1; transform: translate(calc(var(--bx, -1) * 20%), -10%) scale(0.8); }
+  74% { opacity: 1; transform: translate(calc(var(--bx, -1) * 70%), calc(var(--by, 0) * 50% - 70%)) scale(1.15); }
+  86%, 100% { opacity: 0; transform: translate(calc(var(--bx, -1) * 90%), calc(var(--by, 0) * 60% - 40%)) scale(1.2); }
+}
+.wkw i { animation: wkstroll var(--rd, 15s) linear var(--rdel, 0s) 1 both, wkwalk 0.5s steps(1, end) infinite; }
 @keyframes wkwalk { 0% { background-position: 66.667% 0; } 50% { background-position: 100% 0; } }
 @keyframes wkstroll {
-  0% { transform: translateX(-30%) scaleX(-1); }
-  42% { transform: translateX(-190%) scaleX(-1); }
-  50% { transform: translateX(-190%) scaleX(1); }
-  92% { transform: translateX(-30%) scaleX(1); }
-  100% { transform: translateX(-30%) scaleX(1); }
+  0% { transform: translate(0, 0) scaleX(var(--fa, 1)); }
+  44% { transform: translate(var(--tx, 0%), var(--ty, 0%)) scaleX(var(--fa, 1)); }
+  52% { transform: translate(var(--tx, 0%), var(--ty, 0%)) scaleX(var(--fb, -1)); }
+  95% { transform: translate(0, 0) scaleX(var(--fb, -1)); }
+  100% { transform: translate(0, 0) scaleX(var(--fb, -1)); }
 }
+/* вкладка «Рабочие»: отдыхающее место — бледная фигурка и «z» */
 .wkpip.rest i { opacity: 0.45; }
 .wkpip.rest::after { content: 'z'; position: absolute; right: 2px; top: 0; font-size: 11px; font-weight: 700; color: #9ad0ff; }
+/* значки и подписи зданий — поверх рабочих, чтобы цифры читались */
+.slot-badge, .slot-dec, .slot-label { z-index: 3; }
 /* здание вздрагивает, когда в него врезается первый рабочий */
 .slot.wkon .slot-img { animation: wkjolt var(--wkt, 1.5s) infinite; }
 @keyframes wkjolt {
@@ -1038,7 +1043,8 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 @keyframes goalOutline { 0%, 100% { outline-color: var(--gold); } 50% { outline-color: rgba(247, 201, 72, 0.2); } }
 @media (prefers-reduced-motion: reduce) {
   .goal-hl:not(.slot), .slot.goal-hl::before, .goal-flash, .slot.goal-ping::after { animation: none; }
-  .scene.fighting .foe img, .scene.fighting .fig img, .float, .slot.bump .slot-img, .wkr i, .slot.wkon .slot-img { animation: none; }
+  .scene.fighting .foe img, .scene.fighting .fig img, .float, .slot.bump .slot-img, .wks i, .wkw i, .slot.wkon .slot-img { animation: none; }
+  .wkfx { display: none; }
 }
 
 /* Облик города в настройках */
