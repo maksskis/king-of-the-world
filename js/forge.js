@@ -176,9 +176,12 @@
     G.SFX.play('coin');
     G.UI.dirty();
   };
-  F.junk = () => G.S.items.filter((i) => !i.eq && i.rar <= 1 && !i.ench);
-  F.sellJunk = function () {
-    const list = F.junk();
+  // Продажа разом по редкости r: свободные (не надетые) и не зачарованные вещи. Легендарные (4) — только поштучно
+  F.SELL_RARS = [0, 1, 2, 3];
+  F.bulkList = (r) => (F.SELL_RARS.includes(r) ? G.S.items.filter((i) => !i.eq && i.rar === r && !i.ench) : []);
+  F.bulkValue = (r) => F.bulkList(r).reduce((v, it) => v + F.sellValue(it), 0);
+  F.sellRarity = function (r) {
+    const list = F.bulkList(r);
     if (!list.length) return;
     let v = 0;
     for (const it of list) v += F.sellValue(it);

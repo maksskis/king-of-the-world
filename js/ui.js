@@ -748,7 +748,14 @@
     eq(a) { const [id, owner] = a.split('|'); G.F.equip(id, owner); UI.pick = null; },
     uneq(id) { G.F.unequip(id); UI.pick = null; },
     sellItem(id) { G.F.sell(id); if (UI.selItem === id) UI.selItem = null; },
-    sellJunk() { G.F.sellJunk(); },
+    // продать разом все свободные вещи редкости: редкие и эпические — после подтверждения
+    sellRar(r) {
+      r = +r;
+      const n = G.F.bulkList(r).length;
+      if (!n) return;
+      if (r >= 2) UI.confirm(t('sellRarAsk', { r: t('irp_' + r), n, g: U.fmt(G.F.bulkValue(r)) }), () => G.F.sellRarity(r));
+      else G.F.sellRarity(r);
+    },
     enchant(id) { G.F.enchant(id); },
     armF(f) { UI.armF = f; UI.dirty(); },
     wave(d) { const s = G.S.gate; s.sel = U.clamp(s.sel + +d, 1, s.best + 1); UI.dirty(); },
@@ -1183,14 +1190,16 @@
     const f = UI.armF;
     if (UI.selItem && !G.F.get(UI.selItem)) UI.selItem = null;
     const items = G.S.items.filter((i) => f === 'all' || i.type === f).sort((a, b) => (b.eq ? 1 : 0) - (a.eq ? 1 : 0) || b.rar - a.rar || b.ti - a.ti || G.F.score(b) - G.F.score(a));
-    const junk = G.F.junk();
     // Кто что носит: король и каждый авантюрист, ячейки нажимаются для замены
     const wearers = [['king', 'c_king', t('king'), `${t('kingDmg')}: ${G.W.kingDmg()}`, ['weapon'], '#f7c948']]
       .concat(G.S.advs.map((a) => { const s = G.T.stats(a); return ['' + a.id, 'c_' + a.cls, nm(a.name), `${t('cl_' + a.cls)} · ${t('lv')} ${a.lvl} · ${t('st_' + a.st)}<br><span class="wst">${ic('i_atk')}${s.atk} ${ic('i_def')}${s.def} ${ic('i_hp')}${s.hp}</span>`, ['weapon', 'armor'], D.ARAR[a.rar].color]; }));
     let h = box(ic('i_people') + ' ' + t('wearersTitle'), wearers.map(([o, icon, name, sub, slots, col]) =>
       `<div class="wearer"><div class="wwho">${ic(icon, 'ic2')}<div><b style="color:${col}">${esc(name)}</b><div class="small muted">${sub}</div></div></div><div class="eqrow">${G.PANE.eqSlots(o, slots)}</div></div>${G.PANE.pickerFor(o, slots)}`).join(''), '', 'wearersHint');
     const cats = ['all', ...Object.keys(D.ITYPES)];
-    h += `<div class="filters">${cats.map((c) => `<button class="fbtn ${f === c ? 'on' : ''}" data-action="armF" data-arg="${c}" title="${esc(c === 'all' ? t('all') : t('it_' + c))}">${c === 'all' ? ic('i_chest', 'ic2') : ic('it_' + c + ':0', 'ic2')}</button>`).join('')}${junk.length ? `<button class="btn small" data-action="sellJunk">${ic('r_gold')} ${t('sellJunk', { n: junk.length })}</button>` : ''}</div>`;
+    h += `<div class="filters">${cats.map((c) => `<button class="fbtn ${f === c ? 'on' : ''}" data-action="armF" data-arg="${c}" title="${esc(c === 'all' ? t('all') : t('it_' + c))}">${c === 'all' ? ic('i_chest', 'ic2') : ic('it_' + c + ':0', 'ic2')}</button>`).join('')}</div>`;
+    // продать разом по редкости (кроме легендарных — их только поштучно, в окне вещи)
+    const sells = G.F.SELL_RARS.map((r) => [r, G.F.bulkList(r).length]).filter(([, n]) => n > 0);
+    if (sells.length) h += `<div class="sellrow"><span class="small muted hastip"${hint('sellRarHint', t('sellRarHint'))}>${ic('r_gold')} ${t('sellRarTitle')}<i class="qh">?</i></span>${sells.map(([r, n]) => `<button class="btn small" data-action="sellRar" data-arg="${r}" style="border-color:${D.IRAR[r].color};color:${D.IRAR[r].color}" title="${esc(t('sellRarTip', { n, g: U.fmt(G.F.bulkValue(r)) }))}">${t('irp_' + r)} <b>${n}</b></button>`).join('')}</div>`;
     h += `<div class="legend small muted"><span class="lg-eq"></span> ${t('equippedLegend')} · ${t('itemTip')}</div>`;
     if (!items.length) h += box('', G.E.lvl('forge') ? t('noItemsForge') : t('needForgeBuild'), 'muted');
     h += `<div class="igrid">${items.map((it) => itemTile(it) + (UI.selItem === it.id ? `<div class="idetail">${G.PANE.item(it.id)}</div>` : '')).join('')}</div>`;
