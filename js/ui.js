@@ -482,9 +482,10 @@
     return ic('i_flag') + (ex[0].phase === 'ret' ? ex[0].cleared : ex[0].floor);
   }
 
-  // Рабочие на карте (итерация 61): у здания — один рабочий, который таранит его со стороны дорожки к Замку
-  // (у Замка — со стороны ворот, у Катакомб — с дороги слева); темп ударов — по числу работающих.
-  // При ударе из здания вылетает своё: щепки, камешки, искры, монеты. Отдыхающие гуляют по дорожке к Замку и обратно.
+  // Рабочие на карте (итерации 61–63): у здания виден один рабочий — таранит его со стороны дорожки к Замку
+  // (у Замка — со стороны ворот, у Катакомб — с дороги слева), а на отдыхе гуляет по дорожке к Замку и обратно.
+  // Остальные рабочие здания на карте не видны (их видно во вкладке «Рабочие»); темп ударов — по числу работающих.
+  // При ударе из здания вылетает своё: щепки, камешки, искры, монеты.
   const WK_FX = { castle: 'gold', lumber: 'wood', quarry: 'stone', mine: 'iron', academy: 'book', forge: 'spark', arena: 'dust', tavern: 'star', dungeon: 'bone' };
   function wkGeo(el, k) {
     const d = D.B[k], s = d.size, M = D.MAP;
@@ -519,34 +520,31 @@
     for (const el of $$('.slot')) {
       const k = el.dataset.k, w = G.E.workable(k) ? G.S.b[k].w || 0 : 0;
       const st = w ? G.E.wkState(k) : [], wn = st.filter((x) => !x[0]).length;
-      const on = wn > 0 && G.E.wkActive(k);
+      // на карте виден один рабочий здания (первый): работает — бьёт, отдыхает — гуляет; остальные не рисуются
+      const me = st[0], resting = !!(me && me[0]);
+      const on = !!me && !resting && G.E.wkActive(k);
       const per = Math.max(0.6, G.E.wkHit() / Math.max(1, wn)); // больше работающих — чаще удары
-      const key = `${w}|${st.map((x) => x[0]).join('')}|${on}|${per.toFixed(2)}|${G.LANG}`;
+      const key = `${w > 0}|${resting}|${on}|${per.toFixed(2)}|${G.LANG}`;
       const box = el.querySelector('.slot-wk');
       if (box._k === key) continue;
       box._k = key;
       el.style.setProperty('--wkt', per.toFixed(2) + 's');
       el.classList.toggle('wkon', on);
-      if (!w) { box.innerHTML = ''; continue; }
+      if (!me) { box.innerHTML = ''; continue; }
       const g = wkGeo(el, k), url = G.SPR.url('wk:' + k), rest = G.E.wkRestTime(); // облик — по зданию
-      const fa = g.rx >= 0 ? 1 : -1;
       let h = '';
-      if (wn > 0) {
-        h += `<span class="wks${on ? '' : ' idle'}" style="${pct(g, g.ox, g.oy, 16)};--rx:${g.rx.toFixed(3)};--ry:${g.ry.toFixed(3)};--fa:${fa}"><i style="background-image:url(${url})"></i></span>`;
+      if (!resting) {
+        h += `<span class="wks${on ? '' : ' idle'}" style="${pct(g, g.ox, g.oy, 16)};--rx:${g.rx.toFixed(3)};--ry:${g.ry.toFixed(3)};--fa:${g.rx >= 0 ? 1 : -1}"><i style="background-image:url(${url})"></i></span>`;
         // эффект — у стены, куда приходится удар; летит от здания
         if (on) {
           const fx = g.ox + g.rx * 12, fy = g.oy + g.ry * 12;
           h += `<span class="wkfx" style="${pct(g, fx, fy, 12)};--bx:${(-g.rx).toFixed(3)};--by:${(-g.ry).toFixed(3)}"><i style="background-image:url(${G.SPR.url('wkfx:' + (WK_FX[k] || 'dust'))})"></i></span>`;
         }
-      }
-      // отдыхающие: идут по дорожке к Замку, стоят, возвращаются (прогулка длится весь отдых, с той же точки)
-      let n = 0;
-      st.forEach((x) => {
-        if (!x[0]) return;
-        const off = (n++ - 0.5) * 6, px = g.ox - g.uy * off, py = g.oy + g.ux * off;
+      } else {
+        // отдых: идёт по дорожке к Замку, стоит, возвращается (прогулка длится весь отдых, с той же точки)
         const ga = g.ux >= 0 ? 1 : -1, tx = ((g.ux * g.far) / 16) * 100, ty = ((g.uy * g.far) / 16) * 100;
-        h += `<span class="wkw" style="${pct(g, px, py, 16)};--tx:${tx.toFixed(0)}%;--ty:${ty.toFixed(0)}%;--fa:${ga};--fb:${-ga};--rd:${rest.toFixed(1)}s;--rdel:${(-(rest - Math.min(rest, x[1]))).toFixed(1)}s"><i style="background-image:url(${url})"></i></span>`;
-      });
+        h += `<span class="wkw" style="${pct(g, g.ox, g.oy, 16)};--tx:${tx.toFixed(0)}%;--ty:${ty.toFixed(0)}%;--fa:${ga};--fb:${-ga};--rd:${rest.toFixed(1)}s;--rdel:${(-(rest - Math.min(rest, me[1]))).toFixed(1)}s"><i style="background-image:url(${url})"></i></span>`;
+      }
       box.innerHTML = h;
     }
   }
