@@ -889,9 +889,11 @@ textarea { width: 100%; margin: 6px 0; padding: 6px; font: 12px ui-monospace, Co
 
 .newlook { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; color: var(--gold); font-weight: 600; }
 
-/* Три колонки: карта, окно здания, вкладки */
-#main { grid-template-columns: minmax(0, 1fr) 360px 420px; }
-@media (min-width: 1600px) { #main { grid-template-columns: minmax(0, 1fr) 400px 480px; } }
+/* Три колонки: карта, окно здания, вкладки. Вкладкам — больше места (было 420 / 480): в Арсенале оружие и броня
+   героя встают в ряд, сетки героев, вещей и указов шире */
+#main { grid-template-columns: minmax(0, 1fr) 330px 500px; }
+@media (min-width: 1500px) { #main { grid-template-columns: minmax(0, 1fr) 360px 600px; } }
+@media (min-width: 1800px) { #main { grid-template-columns: minmax(0, 1fr) 400px 680px; } }
 #bpop {
   min-height: 0;
   overflow: auto;
@@ -1009,9 +1011,9 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 /* Арсенал: кто что носит */
 .wearer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 0; border-top: 1px dashed var(--line); }
 .wearer:first-of-type { border-top: 0; }
-.wwho { display: flex; align-items: center; gap: 8px; min-width: 150px; flex: 1; }
-.wearer .eqrow { margin: 0; flex: 2; }
-.wearer .eq.big { min-width: 170px; }
+.wwho { display: flex; align-items: center; gap: 8px; min-width: 120px; flex: 0 1 150px; }
+.wearer .eqrow { margin: 0; flex: 1 1 290px; }
+.wearer .eq.big { min-width: 140px; flex: 1 1 140px; }
 .eq .avail { color: var(--good, #7ddc6a); font-size: 12px; }
 /* Сравнение вещей: статы надетой и разница с ней */
 .eqst { display: inline-flex; flex-wrap: wrap; gap: 4px; font-size: 12px; font-weight: 600; }
