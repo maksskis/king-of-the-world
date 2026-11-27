@@ -149,8 +149,8 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .wkpip.open:disabled { cursor: default; opacity: 0.5; }
 .wkpip.on { border: 1px solid #8a6a40; background: #2a2016; }
 .wkpip.on:hover { border-color: #d64545; }
-.wkpip.on i { position: absolute; inset: 3px; background-size: 200% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated; animation: wkframe var(--wkt, 1.5s) steps(1, end) infinite; }
-.wkpip.on.idle i { animation: none; filter: saturate(0.6); }
+.wkpip.on i { position: absolute; inset: 3px; background-size: 200% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated; } /* во вкладке — без анимации */
+.wkpip.on.idle i { filter: saturate(0.6); }
 .wkpip.lock { cursor: default; border-style: solid; opacity: 0.6; flex-direction: column; gap: 0; }
 .wkpip.lock .ic { width: 12px; height: 12px; }
 .wkpip.lock small { font-size: 10px; line-height: 1; }
@@ -1026,7 +1026,7 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 @keyframes goalOutline { 0%, 100% { outline-color: var(--gold); } 50% { outline-color: rgba(247, 201, 72, 0.2); } }
 @media (prefers-reduced-motion: reduce) {
   .goal-hl:not(.slot), .slot.goal-hl::before, .goal-flash, .slot.goal-ping::after { animation: none; }
-  .scene.fighting .foe img, .scene.fighting .fig img, .float, .slot.bump .slot-img, .wkr i, .wkpip.on i, .slot.wkon .slot-img { animation: none; }
+  .scene.fighting .foe img, .scene.fighting .fig img, .float, .slot.bump .slot-img, .wkr i, .slot.wkon .slot-img { animation: none; }
 }
 
 /* Облик города в настройках */

@@ -937,7 +937,7 @@
       const sub = !can ? `<span class="muted">${k === 'dungeon' ? t('wkNeedGuild') : t('notBuilt')}</span>` : wkEffect(k);
       return `<div class="wkrow ${can ? '' : 'off'}"><span class="wkimg" data-tip="b:${k}">${ic(bSprite(k), 'ic3')}</span><div class="grow"><b>${t('bn_' + k)}</b>${lvl}<div class="small">${sub}</div></div>`
         + `<div class="wkctl"><button class="btn small" data-action="wkDel" data-arg="${k}" ${w > 0 ? '' : 'disabled'} title="${esc(t('wkPipDel'))}">−</button>`
-        + `<span class="wkpips" style="--wkt:${G.E.wkHit().toFixed(2)}s">${pips}</span></div></div>`;
+        + `<span class="wkpips">${pips}</span></div></div>`;
     }).join('');
     h += box('', rows, 'wklist');
     return h;
