@@ -528,7 +528,7 @@
       el.style.setProperty('--wkt', per.toFixed(2) + 's');
       el.classList.toggle('wkon', on);
       if (!w) { box.innerHTML = ''; continue; }
-      const g = wkGeo(el, k), url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), rest = G.E.wkRestTime();
+      const g = wkGeo(el, k), url = G.SPR.url('wk:' + k), rest = G.E.wkRestTime(); // облик — по зданию
       const fa = g.rx >= 0 ? 1 : -1;
       let h = '';
       if (wn > 0) {
@@ -942,7 +942,6 @@
   }
 
   // Рабочие здания: сколько стоит, что дают, поставить и снять (до 3 мест: с 1, 4 и 7-го уровня)
-  const WK_TOOL = { lumber: 'axe', quarry: 'pick', mine: 'pick' };
   function workersBox(k) {
     const b = G.S.b[k], d = D.B[k], w = b.w || 0, mx = G.E.wkSlots(k), free = G.E.wkFree(), all = G.E.wkTotal(), on = G.E.wkActive(k), wn = G.E.wkWorking(k);
     let h = '';
@@ -983,7 +982,7 @@
       + (all ? '' : `<div class="muted small">${t('wkNone')}</div>`));
     const rows = D.WORK.b.map((k) => {
       const w = S.b[k].w || 0, mx = G.E.wkSlots(k), can = G.E.wkCan(k);
-      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), on = w > 0 && G.E.wkActive(k), st = w ? G.E.wkState(k) : [];
+      const url = G.SPR.url('wk:' + k), on = w > 0 && G.E.wkActive(k), st = w ? G.E.wkState(k) : [];
       const pips = D.WORK.slotLvl.map((lv, i) => {
         if (i < w) { const r = st[i] && st[i][0]; return `<button class="wkpip on${on ? '' : ' idle'}${r ? ' rest' : ''}" data-action="wkDel" data-arg="${k}" title="${esc(r ? t('wkPipRest', { s: Math.ceil(st[i][1]) }) + ' ' + t('wkPipDel') : t('wkPipDel'))}"><i style="background-image:url(${url})"></i></button>`; }
         if (i < mx) return `<button class="wkpip open" data-action="wkAdd" data-arg="${k}" title="${esc(t('wkPipAdd'))}" ${free > 0 && can ? '' : 'disabled'}>+</button>`;

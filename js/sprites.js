@@ -292,54 +292,88 @@
     b.disc(8, 4.8, 2.6, P.skin); b.poly([[6, 6], [10, 6], [8, 9]], P.boneD); b.px(7, 5, P.k); b.px(9, 5, P.k);
     b.rect(5, 1, 6, 2, P.gold); b.px(5, 0, P.gold); b.px(8, 0, P.gold); b.px(10, 0, P.gold); b.px(7, 1, P.red);
   } };
-  // Рабочий у здания: четыре кадра 16×16 — бег в наклоне, удар плечом о стену (CSS: разбег, удар, отскок) и два кадра ходьбы на отдыхе.
-  // Смотрит вправо, на здание; инструмент висит за спиной: axe (Лесопилка), pick (Каменоломня, Шахта), hammer (остальные)
-  DEF.wk = { w: 64, h: 16, draw(b, t) {
-    const tunic = '#8a6a3c', tunicL = '#a8844e';
-    const tool = (o, x, y) => {
-      b.line(o + x, y, o + x - 2, y + 5, P.wood);
-      if (t === 'axe') { b.rect(o + x - 1, y - 1, 2, 2, P.ironL); b.px(o + x + 1, y, P.iron); }
-      else if (t === 'pick') { b.line(o + x - 2, y, o + x + 2, y - 1, P.iron); }
-      else { b.rect(o + x - 1, y - 1, 3, 2, P.iron); }
-    };
-    // кадр 0: бег — корпус и голова подались вперёд, ноги врозь
-    {
-      const o = 0;
-      tool(o, 5, 5);
-      b.rect(o + 3, 13, 2, 2, P.woodD); b.px(o + 2, 14, P.woodD);
-      b.rect(o + 9, 12, 2, 2, P.woodD); b.px(o + 10, 14, P.woodD); b.px(o + 11, 14, P.woodD);
-      b.poly([[5.5, 7], [11.5, 7], [10.5, 12.5], [4.5, 12.5]], tunic); b.rect(o + 6, 7, 5, 1, tunicL); b.rect(o + 5, 10, 6, 1, P.woodD);
-      b.px(o + 11, 8, P.skin); b.px(o + 12, 9, P.skin);
-      b.disc(o + 10, 4.8, 2.3, P.skin); b.rect(o + 8, 2, 5, 1, P.red); b.rect(o + 9, 1, 3, 1, P.red); b.px(o + 7, 3, P.red);
-      b.px(o + 11, 5, P.k);
-      b.px(o + 1, 13, P.dirtL); b.px(o + 0, 12, P.dirtL);
-    }
-    // кадр 1: удар — прижался плечом и головой к стене справа, вспышка и пыль
-    {
-      const o = 16;
-      tool(o, 7, 5);
-      b.rect(o + 5, 12, 2, 3, P.woodD); b.rect(o + 9, 13, 2, 2, P.woodD); b.px(o + 4, 14, P.woodD);
-      b.rect(o + 7, 7, 6, 6, tunic); b.rect(o + 7, 7, 6, 1, tunicL); b.rect(o + 7, 10, 6, 1, P.woodD);
-      b.px(o + 13, 8, P.skin); b.px(o + 13, 9, P.skin);
-      b.disc(o + 11.5, 4.6, 2.2, P.skin); b.rect(o + 9, 2, 5, 1, P.red); b.rect(o + 10, 1, 3, 1, P.red);
-      b.px(o + 12, 4, P.k); b.px(o + 11, 4, P.k);
-      // вспышка удара на стене
-      b.px(o + 15, 3, P.glowL); b.px(o + 14, 2, P.glow); b.px(o + 15, 6, P.white); b.px(o + 14, 7, P.glowL);
-      b.px(o + 15, 9, P.glow); b.px(o + 15, 12, P.glowL); b.px(o + 13, 0, P.glowL);
-      // пыль из-под ног
-      b.px(o + 2, 14, P.dirtL); b.px(o + 3, 13, P.dirtL); b.px(o + 1, 12, P.dirtL); b.px(o + 12, 14, P.dirtL);
-    }
-    // кадры 2 и 3: отдых — идёт прогулочным шагом, прямо, руки вниз (ноги меняются местами)
-    for (let f = 0; f < 2; f++) {
-      const o = 32 + 16 * f;
-      tool(o, 6, 5);
-      if (f === 0) { b.rect(o + 5, 12, 2, 3, P.woodD); b.rect(o + 9, 13, 2, 2, P.woodD); b.px(o + 10, 14, P.woodD); }
-      else { b.rect(o + 6, 13, 2, 2, P.woodD); b.px(o + 5, 14, P.woodD); b.rect(o + 8, 12, 2, 3, P.woodD); }
-      b.rect(o + 5, 7, 6, 6 - f, tunic); b.rect(o + 5, 7, 6, 1, tunicL); b.rect(o + 5, 10, 6, 1, P.woodD);
-      b.px(o + 5, 9 + f, P.skin); b.px(o + 10, 10 - f, P.skin);
-      b.disc(o + 8, 4.6 + f * 0.3, 2.3, P.skin); b.rect(o + 6, 2, 5, 1, P.red); b.rect(o + 7, 1, 3, 1, P.red);
-      b.px(o + 9, 5, P.k);
-    }
+  // Рабочий у здания: облик — по зданию. Добывают: лесоруб (Лесопилка), каменотёс (Каменоломня), шахтёр (Шахта),
+  // сборщик налогов (Замок). Ускоряют: учёный (Академия), кузнец (Кузница), гладиатор (Арена), вербовщик (Гильдия),
+  // воин (Катакомбы). Четыре кадра 16×16: бег в наклоне, удар о стену (вспышка, пыль), два шага прогулки. Смотрит вправо.
+  const WK_LOOK = {
+    lumber: { shirt: '#b0392e', trim: '#c85a48', check: '#7a2620', legs: '#4a3a2a', hat: 'knit', hatC: '#3f7a3a', beard: '#6a3e1e', back: 'axe' },
+    quarry: { shirt: '#8c8c94', trim: '#aeb0b8', apron: '#7a5a3a', legs: '#5a4a3a', hat: 'cap', hatC: '#8a6a40', back: 'pick' },
+    mine: { shirt: '#4a5468', trim: '#5e6a80', legs: '#3a4252', hat: 'miner', hatC: '#c8a040', soot: '#4a3e38', back: 'pick' },
+    castle: { shirt: '#3a5aa8', trim: P.gold, legs: '#2a3a6a', hat: 'beret', hatC: '#7a2a6a', back: 'bag' },
+    academy: { shirt: '#6a4a9a', trim: '#8a6ac0', robe: true, hat: 'hood', hatC: '#5a3a88', back: 'book' },
+    forge: { shirt: '#3a3640', trim: '#4a4650', apron: '#6a4426', bare: true, legs: '#2a2630', hat: 'band', hatC: '#b0392e', beard: '#2a2020', back: 'hammer' },
+    arena: { shirt: '#a83232', trim: '#d8b040', legs: '#6a3a2a', hat: 'crest', hatC: '#c08a3a', back: 'sword' },
+    tavern: { shirt: '#3a7a4a', trim: '#5a9a5a', legs: '#4a3a2a', hat: 'feather', hatC: '#2a4a2a', back: 'flag' },
+    dungeon: { shirt: P.iron, trim: P.ironL, legs: '#4a4a58', hat: 'helm', hatC: P.iron, armor: true, back: 'shield' },
+  };
+  // позы: корпус (bx, by, bw, bh; lean — верх корпуса подан вперёд), голова (hx, hy), ноги, руки, точка предмета за спиной
+  const WK_POSE = [
+    { lean: 1, bx: 4, by: 7, bw: 6, bh: 6, hx: 10, hy: 4.8, legs: [[3, 13, 2, 2], [2, 14, 1, 1], [9, 12, 2, 2], [10, 14, 2, 1]], arms: [[11, 8], [12, 9]], back: [5, 5] },
+    { bx: 7, by: 7, bw: 6, bh: 6, hx: 11.5, hy: 4.6, legs: [[5, 12, 2, 3], [9, 13, 2, 2], [4, 14, 1, 1]], arms: [[13, 8], [13, 9]], back: [7, 5] },
+    { bx: 5, by: 7, bw: 6, bh: 6, hx: 8, hy: 4.6, legs: [[5, 12, 2, 3], [9, 13, 2, 2], [10, 14, 1, 1]], arms: [[5, 9], [10, 10]], back: [6, 5] },
+    { bx: 5, by: 7, bw: 6, bh: 5, hx: 8, hy: 4.9, legs: [[6, 13, 2, 2], [5, 14, 1, 1], [8, 12, 2, 3]], arms: [[5, 10], [10, 9]], back: [6, 5] },
+  ];
+  // предмет за спиной: инструмент или знак ремесла
+  function wkBack(b, kind, x, y) {
+    if (kind === 'axe' || kind === 'pick' || kind === 'hammer') {
+      b.line(x, y, x - 2, y + 5, P.wood);
+      if (kind === 'axe') { b.rect(x - 1, y - 1, 2, 2, P.ironL); b.px(x + 1, y, P.iron); }
+      else if (kind === 'pick') b.line(x - 2, y, x + 2, y - 1, P.iron);
+      else b.rect(x - 1, y - 1, 3, 2, P.iron);
+    } else if (kind === 'bag') { b.disc(x - 1.5, y + 3, 2.1, P.goldD); b.px(x - 2, y + 2, P.gold); b.px(x - 1, y + 1, P.woodD); }
+    else if (kind === 'book') { b.rect(x - 3, y + 1, 3, 4, '#3a5aa8'); b.rect(x - 3, y + 1, 3, 1, '#6a8ad8'); b.px(x - 1, y + 2, P.white); b.px(x - 1, y + 3, P.white); }
+    else if (kind === 'sword') { b.line(x, y - 2, x - 2, y + 4, P.ironL); b.px(x - 2, y + 5, P.woodD); b.px(x - 3, y + 4, P.gold); b.px(x - 1, y + 4, P.gold); }
+    else if (kind === 'flag') { b.line(x - 1, y - 3, x - 1, y + 6, P.wood); b.rect(x - 4, y - 3, 3, 2, '#d8b040'); b.px(x - 4, y - 1, '#d8b040'); }
+    else if (kind === 'shield') { b.rect(x - 4, y + 1, 4, 5, '#3a5aa8'); b.rect(x - 4, y + 1, 4, 1, '#6a8ad8'); b.px(x - 2, y + 3, P.gold); b.px(x, y - 1, P.ironL); b.px(x + 1, y - 2, P.ironL); }
+  }
+  DEF.wk = { w: 64, h: 16, draw(b, k) {
+    const L = WK_LOOK[k] || WK_LOOK.quarry;
+    WK_POSE.forEach((p, f) => {
+      const o = 16 * f, X = (x) => o + x;
+      const hx = Math.round(p.hx), hy = Math.round(p.hy);
+      // пиксель корпуса: в наклоне верхние 3 строки сдвинуты вперёд на 1
+      const bp = (dx, dy, c) => b.px(X(p.bx + dx + (p.lean && dy < 3 ? 1 : 0)), p.by + dy, c);
+      const brow = (dy, c) => { for (let i = 0; i < p.bw; i++) bp(i, dy, c); };
+      wkBack(b, L.back, X(p.back[0]), p.back[1]);
+      // ноги; у учёного — мантия до земли
+      if (!L.robe) for (const [x, y, w, h] of p.legs) b.rect(X(x), y, w, h, L.legs);
+      const bh = L.robe ? 15 - p.by : p.bh;
+      for (let dy = 0; dy < bh; dy++) brow(dy, L.shirt);
+      brow(0, L.trim);
+      if (L.robe) { brow(bh - 1, L.trim); bp(p.bw - 2, 2, L.trim); bp(p.bw - 2, 4, L.trim); }
+      else if (L.armor) { brow(3, P.ironD); bp(p.bw - 1, 0, P.white); bp(2, 1, P.ironD); bp(2, 2, P.ironD); }
+      else brow(3, P.woodD);
+      if (L.check) { bp(1, 1, L.check); bp(3, 1, L.check); bp(5, 1, L.check); bp(2, 4, L.check); bp(4, 4, L.check); }
+      if (L.apron) for (let dy = 1; dy < bh; dy++) { bp(p.bw - 3, dy, L.apron); bp(p.bw - 2, dy, L.apron); bp(p.bw - 1, dy, L.apron); }
+      // руки: голые у кузнеца, в латах у воина
+      const arm = L.armor ? P.ironL : L.bare ? P.skin : P.skin;
+      for (const [x, y] of p.arms) b.px(X(x), y, arm);
+      if (L.bare) for (const [x, y] of p.arms) b.px(X(x - 1), y, P.skin);
+      // голова и головной убор
+      const c = L.hatC;
+      if (L.hat === 'hood') {
+        b.disc(X(p.hx - 0.6), p.hy - 0.3, 2.8, c); b.px(X(hx - 2), hy - 4, c);
+        b.rect(X(hx), hy - 1, 2, 3, P.skin); b.px(X(hx + 1), hy, P.k);
+      } else {
+        b.disc(X(p.hx), p.hy, 2.3, P.skin); b.px(X(hx + 1), hy, P.k);
+      }
+      if (L.hat === 'knit') { b.rect(X(hx - 2), hy - 3, 5, 2, c); b.px(X(hx), hy - 4, P.white); }
+      else if (L.hat === 'cap') { b.rect(X(hx - 2), hy - 3, 5, 1, c); b.rect(X(hx - 1), hy - 4, 3, 1, c); b.px(X(hx + 3), hy - 2, c); }
+      else if (L.hat === 'miner') { b.rect(X(hx - 2), hy - 4, 5, 2, c); b.rect(X(hx - 3), hy - 2, 7, 1, '#9a7a30'); b.px(X(hx + 2), hy - 3, P.glowL); b.px(X(hx + 3), hy - 3, P.glow); }
+      else if (L.hat === 'beret') { b.rect(X(hx - 3), hy - 3, 6, 1, c); b.rect(X(hx - 2), hy - 4, 4, 1, c); b.px(X(hx - 3), hy - 4, P.white); b.px(X(hx - 4), hy - 5, P.white); }
+      else if (L.hat === 'band') { b.rect(X(hx - 2), hy - 2, 5, 1, c); b.px(X(hx - 3), hy - 1, c); }
+      else if (L.hat === 'crest') { b.rect(X(hx - 2), hy - 3, 5, 2, c); b.px(X(hx + 2), hy - 1, c); b.rect(X(hx - 2), hy - 5, 4, 1, '#d83a3a'); b.px(X(hx - 3), hy - 4, '#d83a3a'); }
+      else if (L.hat === 'feather') { b.rect(X(hx - 3), hy - 2, 7, 1, c); b.rect(X(hx - 1), hy - 4, 3, 2, c); b.line(X(hx - 2), hy - 5, X(hx - 4), hy - 3, '#d83a3a'); }
+      else if (L.hat === 'helm') { b.rect(X(hx - 2), hy - 3, 5, 4, c); b.rect(X(hx - 2), hy - 3, 5, 1, P.ironL); b.rect(X(hx), hy, 3, 1, P.k); }
+      if (L.beard) { b.rect(X(hx - 1), hy + 1, 3, 2, L.beard); b.px(X(hx + 1), hy + 1, L.beard); }
+      if (L.soot) { b.px(X(hx), hy + 1, L.soot); b.px(X(hx - 1), hy, L.soot); }
+      // удар: вспышка на стене и пыль; бег — пыль из-под ног
+      if (f === 1) {
+        b.px(X(15), 3, P.glowL); b.px(X(14), 2, P.glow); b.px(X(15), 6, P.white); b.px(X(14), 7, P.glowL);
+        b.px(X(15), 9, P.glow); b.px(X(15), 12, P.glowL); b.px(X(13), 0, P.glowL);
+        b.px(X(2), 14, P.dirtL); b.px(X(3), 13, P.dirtL); b.px(X(1), 12, P.dirtL); b.px(X(12), 14, P.dirtL);
+      } else if (f === 0) { b.px(X(1), 13, P.dirtL); b.px(X(0), 12, P.dirtL); }
+    });
   } };
   // Что вылетает из здания при ударе рабочего (12×12): wood — щепки, stone — камешки, iron — искры и окалина,
   // gold — монеты, book — листки и искра, spark — искры кузни, dust — пыль, bone — косточки, star — звёздочки
