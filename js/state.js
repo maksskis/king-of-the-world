@@ -48,7 +48,7 @@
   }
 
   // Версия игры (SemVer). В main — следующая версия с суффиксом -dev; выпуски — ветки release/X.Y.Z и метки vX.Y.Z
-  G.VERSION = '1.0.2';
+  G.VERSION = '1.1.0-dev';
 
   G.save = function () {
     if (!G.S || G.resetting) return;
