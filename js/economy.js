@@ -223,9 +223,11 @@
   E.wkBoost = (k) => { const w = (G.S.b[k] && G.S.b[k].w) || 0; return w > 0 && E.wkActive(k) ? 1 + D.WORK.boost * w * E.wkSpeed() : 1; };
   // Здание для подсказки целей «В городе работают N рабочих»: построенное, со свободным местом
   E.wkGoalB = () => ['lumber', 'quarry', 'mine', 'castle', 'forge', 'academy', 'arena', 'tavern'].find((k) => E.lvl(k) > 0 && (G.S.b[k].w || 0) < E.wkSlots(k)) || 'castle';
+  // Можно ли работать на здании: построено (Катакомбы — когда есть Гильдия)
+  E.wkCan = (k) => (k === 'dungeon' ? E.lvl('tavern') > 0 : E.lvl(k) > 0);
   E.assignWorker = function (k) {
     const b = G.S.b[k];
-    if (!b || !E.workable(k) || E.wkFree() <= 0 || (b.w || 0) >= E.wkSlots(k)) return false;
+    if (!b || !E.workable(k) || !E.wkCan(k) || E.wkFree() <= 0 || (b.w || 0) >= E.wkSlots(k)) return false;
     b.w = (b.w || 0) + 1;
     G.SFX.play('click');
     G.UI.dirty(); G.UI.slotsDirty = true;

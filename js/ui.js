@@ -605,7 +605,7 @@
 
   function renderKingBadge() {
     const k = G.S.king;
-    $('#folk').innerHTML = `${ic('c_folk', 'ic2')}<div class="rcol"><div><span class="fl">${t('folk')}</span> <b data-b="folk"></b></div><div class="rline"><div class="rbar"><i data-w="folkW"></i></div><span class="wkc" title="${esc(t('wkChipTip'))}">${ic('i_pick')}<b data-b="wkc"></b></span><span class="rr">${ic('r_gold')}<span data-b="folkR"></span></span></div></div>`;
+    $('#folk').innerHTML = `${ic('c_folk', 'ic2')}<div class="rcol"><div><span class="fl">${t('folk')}</span> <b data-b="folk"></b></div><div class="rline"><div class="rbar"><i data-w="folkW"></i></div><span class="wkc" data-action="tab" data-arg="workers" title="${esc(t('wkChipTip'))}">${ic('i_pick')}<b data-b="wkc"></b></span><span class="rr">${ic('r_gold')}<span data-b="folkR"></span></span></div></div>`;
     $('#kbadge').innerHTML = `${ic('c_king', 'ic2')}<span class="kl">${t('lv')} <b data-b="klvl"></b></span>${bar('kxp', 'xp')}${G.K.tp() > 0 ? '<i class="sp">+</i>' : ''}`;
     $('#kbadge').title = t('king') + ' · ' + t('lv') + ' ' + k.lvl;
     const ab = $('#autobtn');
@@ -817,6 +817,7 @@
     const dq = S.decree.build.length + S.decree.research.length;
     const tabs = [
       ['decree', 'tabDecree', 'i_scroll', (S.cons.length ? ic('i_hammer') + S.cons.length : '') + (S.cons.length && dq ? ' · ' : '') + (dq ? String(dq) : '')],
+      ['workers', 'tabWorkers', 'i_pick', G.E.wkFree() > 0 ? '+' + G.E.wkFree() : ''],
       ['guild', 'tabGuild', 'i_people', G.E.lvl('tavern') ? S.advs.length + '/' + G.T.maxAdvs() : ''],
       ['armory', 'tabArmory', 'i_def', S.items.length ? String(S.items.length) : ''],
       ['exp', 'tabExp', 'i_map', squadBadge()],
@@ -901,12 +902,50 @@
       h += kv('i_clock', t('wkb_' + k), `<b>×${U.fmt1(sp)}</b> <span class="muted small">(+${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')})</span>`);
     }
     if (w > 0 && !G.E.wkActive(k)) h += `<div class="warn small">${ic(G.E.busy(k) ? 'i_hammer' : 'i_bag')} ${t(G.E.busy(k) ? 'wkWaitBuild' : d.click && G.E.full(d.click) ? 'storageFull' : 'wkWait')}</div>`;
-    h += `<div class="row">${btn(ic('i_people') + ' ' + t('wkAdd'), 'wkAdd', k, { cls: 'primary', lock: free <= 0 || w >= mx })}${w > 0 ? btn(t('wkDel'), 'wkDel', k) : ''}</div>`;
-    h += `<div class="muted small">${t('wkFreeN', { n: free, m: all })}${w >= mx ? ' · ' + (G.E.wkNextSlot(k) ? t('wkNextSlot', { n: mx + 1, l: G.E.wkNextSlot(k) }) : t('wkSlotsMax')) : ''}</div>`;
-    if (free <= 0 && w < mx) h += `<div class="muted small">${t('wkNoFree')}</div>`;
+    // ставить и снимать — во вкладке «Рабочие»: все здания на одном экране, карта свободна для кликов
+    h += `<div class="row"><button class="btn small" data-action="tab" data-arg="workers">${ic('i_pick')} ${t('wkOpen')}</button><span class="muted small">${t('wkFreeN', { n: free, m: all })}</span></div>`;
     return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint') + (d.click ? '<br>' + t('clickHint') : '')]);
   }
   UI.workersBox = workersBox;
+
+  // ---------- вкладка «Рабочие»: все здания с местами на одном экране ----------
+  // Строка здания: облик, название и уровень, что дают рабочие; справа «−» и три места.
+  // Пустое место — нажать, чтобы поставить; место с рабочим — нажать, чтобы снять; закрытое — уровень, с которого откроется.
+  function wkEffect(k) {
+    const d = D.B[k], w = G.S.b[k].w || 0, on = G.E.wkActive(k);
+    if (!w) return `<span class="muted">${d.click ? `${ic('r_' + d.click)} +${U.fmt1(G.E.workerRate(k))}/${t('sec')} ${t('perWorker')}` : `${t('wkb_' + k)} +${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')}`}</span>`;
+    if (!on) return `<span class="warn">${ic(G.E.busy(k) ? 'i_hammer' : 'i_bag')} ${t('wkIdleLong')}</span>`;
+    return d.click ? `<span class="good">${ic('r_' + d.click)} +${U.fmt1(w * G.E.workerRate(k))}/${t('sec')}</span>`
+      : `<span class="good">${t('wkb_' + k)} ×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}</span>`;
+  }
+  function workersPanel() {
+    const free = G.E.wkFree(), all = G.E.wkTotal(), S = G.S;
+    let h = box(tipTitle(ic('i_pick') + ' ' + t('tabWorkers'), 'wkHint', t('wkHint')) + ` <span class="muted">${G.E.wkUsed()}/${all}</span>`,
+      `<div class="wksum"><span>${t('wkFreeN', { n: `<b class="${free ? 'good' : ''}">${free}</b>`, m: all })}</span>`
+      + `<span class="muted small">${E_folkLine()}</span></div>`
+      + (all ? '' : `<div class="muted small">${t('wkNone')}</div>`));
+    const rows = D.WORK.b.map((k) => {
+      const w = S.b[k].w || 0, mx = G.E.wkSlots(k), can = G.E.wkCan(k);
+      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), on = w > 0 && G.E.wkActive(k);
+      const pips = D.WORK.slotLvl.map((lv, i) => {
+        if (i < w) return `<button class="wkpip on${on ? '' : ' idle'}" data-action="wkDel" data-arg="${k}" title="${esc(t('wkPipDel'))}"><i style="background-image:url(${url})"></i></button>`;
+        if (i < mx) return `<button class="wkpip open" data-action="wkAdd" data-arg="${k}" title="${esc(t('wkPipAdd'))}" ${free > 0 && can ? '' : 'disabled'}>+</button>`;
+        return `<span class="wkpip lock" title="${esc(t('wkSlotFrom', { l: lv }))}">${ic('i_lock')}<small>${lv}</small></span>`;
+      }).join('');
+      const lvl = k === 'dungeon' ? '' : G.E.lvl(k) ? ` <span class="muted small">${t('lv')} ${G.E.lvl(k)}</span>` : '';
+      const sub = !can ? `<span class="muted">${k === 'dungeon' ? t('wkNeedGuild') : t('notBuilt')}</span>` : wkEffect(k);
+      return `<div class="wkrow ${can ? '' : 'off'}"><span class="wkimg" data-tip="b:${k}">${ic(bSprite(k), 'ic3')}</span><div class="grow"><b>${t('bn_' + k)}</b>${lvl}<div class="small">${sub}</div></div>`
+        + `<div class="wkctl"><button class="btn small" data-action="wkDel" data-arg="${k}" ${w > 0 ? '' : 'disabled'} title="${esc(t('wkPipDel'))}">−</button>`
+        + `<span class="wkpips" style="--wkt:${G.E.wkHit().toFixed(2)}s">${pips}</span></div></div>`;
+    }).join('');
+    h += box('', rows, 'wklist');
+    return h;
+  }
+  // Строка про жителей: когда придёт следующий рабочий
+  function E_folkLine() {
+    const n = G.E.folk(), cap = G.E.homes();
+    return `${ic('c_folk')} ${t('folk')} ${n}/${cap}` + (n < cap ? ' · ' + t('wkNextIn', { n: G.S.wkN || 1 }) : ' · ' + t('folkFull'));
+  }
 
   function defenders() {
     const battle = G.W.active();
@@ -1099,7 +1138,7 @@
       <div class="muted small">${t('deepest')}: <b>${best}</b> · ${t('difficulty')}: <b>×${U.fmt1(G.K.epochMul())}</b>${nb ? ` · ${t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) })}` : ''}</div>
       ${G.S.camp.awake && !G.S.camp.won ? `<div class="good small">${ic('i_dragon')} ${t('catDragonAwake')}</div>` : G.S.camp.won ? `<div class="muted small">${ic('i_crown')} ${t('catDragonWon')}</div>` : ''}</div>
       ${nb ? `<span class="nextboss" title="${esc(t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) }))}">${ic(monSpr(D.CAT_BOSS[nb]), 'ic3')}<b>${nb}</b></span>` : ''}</div>`;
-    const setup = (ex.length < max ? expSetup(loc) : box('', `${ic('i_flag')} ${t('squadAway')}`, 'muted')) + workersBox('dungeon');
+    const setup = ex.length < max ? expSetup(loc) : box('', `${ic('i_flag')} ${t('squadAway')}`, 'muted');
     if (ex.length) {
       // идёт поход — сцена боя в самом верху, шапка ниже; новый отряд — когда вернётся этот.
       // Переключатель отрядов — только для старых сохранений, где в походе ещё несколько отрядов
@@ -1246,7 +1285,7 @@
     return h;
   }
 
-  const PANEL = { guild: guildPanel, armory: armoryPanel, exp: expBody, decree: decreePanel, king: kingPanel };
+  const PANEL = { guild: guildPanel, armory: armoryPanel, exp: expBody, decree: decreePanel, king: kingPanel, workers: workersPanel };
 
   // ---------- окна (только цели, решения, настройки, подтверждения) ----------
   UI.open = function (kind, arg) {
@@ -1484,7 +1523,8 @@
   // Куда ведёт цель: здание (b) может вычисляться — например, здание со свободным местом для рабочего
   function goalH(g) {
     const h = (g && g.h) || {};
-    return typeof h.b === 'function' ? Object.assign({}, h, { b: h.b() }) : h;
+    if (typeof h.b !== 'function' && typeof h.arg !== 'function') return h;
+    return Object.assign({}, h, { b: typeof h.b === 'function' ? h.b() : h.b, arg: typeof h.arg === 'function' ? h.arg() : h.arg });
   }
   // Подсказка цели вверху окна здания или вкладки, к которой цель ведёт
   function goalNote(k, tab) {
