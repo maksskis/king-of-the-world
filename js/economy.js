@@ -216,11 +216,13 @@
   // Добыча одного рабочего в секунду: удар силы pow[уровень] × (1 + 0,2 за уровень), раз в hit секунд
   E.workerRate = function (k) {
     const L = Math.max(1, E.lvl(k)), d = D.B[k];
-    const mul = k === 'castle' ? 1 + G.bonus('tax') : 1 + G.bonus('prod') + G.bonus('prod_' + d.prod);
+    const mul = 1 + G.bonus('prod') + (d.prod ? G.bonus('prod_' + d.prod) : 0); // все рабочие, и на Замке
     return (D.WORK.pow[L] * (1 + 0.2 * (L - 1)) / E.wkHit()) * mul * (1 + E.passive()) * E.rush();
   };
   // Ускорение дела здания рабочими: Академия, Кузница, Арена, Гильдия, Катакомбы — +50% за рабочего
   E.wkBoost = (k) => { const w = (G.S.b[k] && G.S.b[k].w) || 0; return w > 0 && E.wkActive(k) ? 1 + D.WORK.boost * w * E.wkSpeed() : 1; };
+  // Здание для подсказки целей «В городе работают N рабочих»: построенное, со свободным местом
+  E.wkGoalB = () => ['lumber', 'quarry', 'mine', 'castle', 'forge', 'academy', 'arena', 'tavern'].find((k) => E.lvl(k) > 0 && (G.S.b[k].w || 0) < E.wkSlots(k)) || 'castle';
   E.assignWorker = function (k) {
     const b = G.S.b[k];
     if (!b || !E.workable(k) || E.wkFree() <= 0 || (b.w || 0) >= E.wkSlots(k)) return false;
@@ -244,6 +246,7 @@
     let over = E.wkUsed() - E.wkTotal();
     for (let i = E.WK.length - 1; i >= 0 && over > 0; i--) { const b = S.b[E.WK[i]]; const n = Math.min(b.w, over); b.w -= n; over -= n; }
     G.UI.slotsDirty = true;
+    G.UI.dirty();
   };
   // Житель пришёл: каждый 2–4-й — рабочий (самый первый житель эпохи — сразу рабочий)
   function folkArrived() {
@@ -252,8 +255,9 @@
     if (S.wkN <= 0) {
       S.wk = (S.wk || 0) + 1;
       S.wkN = G.U.randInt(D.WORK.every[0], D.WORK.every[1]);
-      G.log('logWorker', { n: S.wk }, 'good');
+      if (!G.offlineSim) G.log('logWorker', { n: S.wk }, 'good'); // за время отсутствия — без записи на каждого
       G.UI.slotsDirty = true;
+      G.UI.dirty(); // кнопка «Поставить рабочего» в открытом окне становится доступной
     }
   }
   // Сохранения до итерации 59: нанятые рабочие и кузнецы → рабочие из жителей

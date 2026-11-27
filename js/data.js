@@ -480,7 +480,7 @@
     { id: 'm2', h: { b: 'castle', act: 'gather' }, v: (S) => S.stats.clicks, n: 200, d: true, reward: { stone: 100 } },
     { id: 'g5', h: { b: 'mine', act: 'up' }, test: (S) => S.b.mine.lvl >= 1, reward: { iron: 50 } },
     { id: 'n4', h: { b: 'mine', act: 'wkAdd' }, test: (S) => S.b.mine.w >= 1, reward: { gold: 100 } },
-    { id: 'm3', h: { b: 'castle', act: 'wkAdd' }, v: () => G.E.wkUsed(), n: 5, reward: { gold: 250 } },
+    { id: 'm3', h: { b: () => G.E.wkGoalB(), act: 'wkAdd' }, v: () => G.E.wkUsed(), n: 5, reward: { gold: 250 } },
     { id: 'n5', h: { b: 'castle', act: 'tools' }, test: (S) => S.king.tools >= 1, reward: { iron: 60 } },
     { id: 'g6', h: { b: 'forge', act: 'up' }, test: (S) => S.b.forge.lvl >= 1, reward: { iron: 80 } },
     { id: 'n7', h: { b: 'forge', act: 'wkAdd' }, test: (S) => S.b.forge.w >= 1, reward: { gold: 150 } },
@@ -510,7 +510,7 @@
     { id: 'n20', h: { tab: 'king', act: 'talent' }, test: (S) => Object.values(S.king.tal).some((v) => v > 0), reward: { gold: 400 } },
     { id: 'n21', h: { tab: 'king', act: 'cast' }, test: (S) => (S.stats.spells || 0) >= 1, reward: { gold: 400 } },
     // Склад 3: 800 / 2000
-    { id: 'm9', h: { b: 'academy', act: 'wkAdd' }, v: () => G.E.wkUsed(), n: 9, reward: { gold: 1000 } },
+    { id: 'm9', h: { b: () => G.E.wkGoalB(), act: 'wkAdd' }, v: () => G.E.wkUsed(), n: 9, reward: { gold: 1000 } },
     { id: 'g25', h: { b: 'gate', act: 'fight' }, test: (S) => S.gate.best >= 10, reward: { gold: 800, bone: 60 } },
     { id: 'c20', h: CAT, v: (S) => S.dng.best.catacombs || 0, n: 20, reward: { bone: 150 } },
     { id: 'm10', h: { b: 'tavern', act: 'hire' }, v: (S) => S.stats.hires || 0, n: 2, d: true, reward: { gold: 800 } },

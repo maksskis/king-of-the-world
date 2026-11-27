@@ -418,7 +418,8 @@
       }
       if (L && G.E.workable(k)) {
         const w = G.S.b[k].w || 0;
-        h += `<div class="muted">${ic('i_people')} ${t('workers')}: ${w}/${G.E.wkSlots(k)}${w ? ' · ' + (d.click ? `+${U.fmt1(w * G.E.workerRate(k))} ${ic('r_' + d.click)}/${t('sec')}` : `×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}`) : ''}</div>`;
+        const on = G.E.wkActive(k);
+        h += `<div class="muted">${ic('i_people')} ${t('workers')}: ${w}/${G.E.wkSlots(k)}${w ? ' · ' + (!on ? t('wkIdle') : d.click ? `+${U.fmt1(w * G.E.workerRate(k))} ${ic('r_' + d.click)}/${t('sec')}` : `×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}`) : ''}</div>`;
       }
       // значок указа на карте: какие места в очереди занимает здание и до какого уровня
       let lv = L + (G.E.consOf(k) ? 1 : 0);
@@ -889,21 +890,21 @@
   // Рабочие здания: сколько стоит, что дают, поставить и снять (до 3 мест: с 1, 4 и 7-го уровня)
   const WK_TOOL = { lumber: 'axe', quarry: 'pick', mine: 'pick' };
   function workersBox(k) {
-    const b = G.S.b[k], d = D.B[k], w = b.w || 0, mx = G.E.wkSlots(k), free = G.E.wkFree(), all = G.E.wkTotal();
+    const b = G.S.b[k], d = D.B[k], w = b.w || 0, mx = G.E.wkSlots(k), free = G.E.wkFree(), all = G.E.wkTotal(), on = G.E.wkActive(k);
     let h = '';
     if (d.click) {
       const r = d.click, rate = G.E.workerRate(k);
-      h += kv('r_' + r, t('production'), `<b>+${U.fmt1(w * rate)}</b>/${t('sec')} <span class="muted small">(${U.fmt1(rate)} ${t('perWorker')})</span>`);
+      h += kv('r_' + r, t('production'), `<b>+${U.fmt1(on ? w * rate : 0)}</b>/${t('sec')} <span class="muted small">(${U.fmt1(rate)} ${t('perWorker')})</span>`);
       if (k !== 'castle') h += kv('i_pick', t('clickGives'), `<b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + r)}`);
     } else {
-      const sp = 1 + D.WORK.boost * w * G.E.wkSpeed();
+      const sp = on ? 1 + D.WORK.boost * w * G.E.wkSpeed() : 1;
       h += kv('i_clock', t('wkb_' + k), `<b>×${U.fmt1(sp)}</b> <span class="muted small">(+${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')})</span>`);
     }
     if (w > 0 && !G.E.wkActive(k)) h += `<div class="warn small">${ic(G.E.busy(k) ? 'i_hammer' : 'i_bag')} ${t(G.E.busy(k) ? 'wkWaitBuild' : d.click && G.E.full(d.click) ? 'storageFull' : 'wkWait')}</div>`;
     h += `<div class="row">${btn(ic('i_people') + ' ' + t('wkAdd'), 'wkAdd', k, { cls: 'primary', lock: free <= 0 || w >= mx })}${w > 0 ? btn(t('wkDel'), 'wkDel', k) : ''}</div>`;
     h += `<div class="muted small">${t('wkFreeN', { n: free, m: all })}${w >= mx ? ' · ' + (G.E.wkNextSlot(k) ? t('wkNextSlot', { n: mx + 1, l: G.E.wkNextSlot(k) }) : t('wkSlotsMax')) : ''}</div>`;
     if (free <= 0 && w < mx) h += `<div class="muted small">${t('wkNoFree')}</div>`;
-    return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint')]);
+    return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint') + (d.click ? '<br>' + t('clickHint') : '')]);
   }
   UI.workersBox = workersBox;
 
@@ -1480,10 +1481,15 @@
     gp: (id) => { const p = G.E.goalProg(G.E.goalById(id)); return p ? p.cur / p.n : 0; },
   };
 
+  // Куда ведёт цель: здание (b) может вычисляться — например, здание со свободным местом для рабочего
+  function goalH(g) {
+    const h = (g && g.h) || {};
+    return typeof h.b === 'function' ? Object.assign({}, h, { b: h.b() }) : h;
+  }
   // Подсказка цели вверху окна здания или вкладки, к которой цель ведёт
   function goalNote(k, tab) {
     const g = G.E.goalFocus(UI.focusGoal);
-    const h = (g && g.h) || {};
+    const h = goalH(g);
     if (!g || (tab ? h.tab !== tab : !h.b || h.tab || h.b !== k)) return '';
     return `<div class="goal-note">${ic('i_star')} <span><b>${t('goalLabel')}:</b> ${t(g.t)}${g.v ? ` <b class="gprog" data-b="gp:${g.id}"></b>` : ''} <span class="muted small">${t('goalNoteHint')}</span></span></div>`;
   }
@@ -1493,7 +1499,7 @@
     const g = (id && G.E.goalById(id)) || G.E.goalFocus(UI.focusGoal);
     if (!g) { ACT.goals(); return; }
     UI.focusGoal = g.id;
-    const h = g.h || {};
+    const h = goalH(g);
     if (UI.win && UI.win !== 'decision') UI.closeModal();
     if (h.tab) { UI.tab = h.tab; UI.pick = null; }
     if (h.b && h.b !== 'dungeon') UI.pop = h.b;
@@ -1517,7 +1523,7 @@
   // Подсветка следующей цели: здание на карте, нужная вкладка, кнопка в меню построек и кнопка действия
   function applyGoal() {
     const g = G.E.goalFocus(UI.focusGoal);
-    const h = (g && g.h) || {};
+    const h = goalH(g);
     const want = new Set();
     const add = (sel) => { for (const el of $$(sel)) want.add(el); };
     const tabShown = h.tab && UI.tab === h.tab;
@@ -1527,7 +1533,7 @@
     // кнопки действия ищем там, где они сейчас видны: в окне здания или в панели вкладки
     const scope = h.tab ? '#panel' : '#bpop';
     for (const a of [].concat(h.act || [])) {
-      const arg = h.arg && a !== 'send' && a !== 'pickParty' ? h.arg : a === 'up' || a === 'worker' || a === 'gather' ? h.b : null;
+      const arg = h.arg && a !== 'send' && a !== 'pickParty' ? h.arg : a === 'up' || a === 'wkAdd' || a === 'gather' ? h.b : null;
       add(arg ? `${scope} [data-action="${a}"][data-arg="${arg}"]` : `${scope} [data-action="${a}"], #wave-w [data-action="${a}"]`);
     }
     for (const el of $$('.goal-hl')) if (!want.has(el)) el.classList.toggle('goal-hl', false);
