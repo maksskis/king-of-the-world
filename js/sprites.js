@@ -290,29 +290,42 @@
     b.disc(8, 4.8, 2.6, P.skin); b.poly([[6, 6], [10, 6], [8, 9]], P.boneD); b.px(7, 5, P.k); b.px(9, 5, P.k);
     b.rect(5, 1, 6, 2, P.gold); b.px(5, 0, P.gold); b.px(8, 0, P.gold); b.px(10, 0, P.gold); b.px(7, 1, P.red);
   } };
-  // Рабочий у здания: два кадра 16×16 — замах и удар (CSS переключает их и качает фигурку).
-  // Смотрит вправо, на здание; инструмент — по зданию: axe (Лесопилка), pick (Каменоломня, Шахта), hammer (остальные)
+  // Рабочий у здания: два кадра 16×16 — бег в наклоне и удар плечом о стену (CSS двигает фигурку: разбег, удар, отскок).
+  // Смотрит вправо, на здание; инструмент висит за спиной: axe (Лесопилка), pick (Каменоломня, Шахта), hammer (остальные)
   DEF.wk = { w: 32, h: 16, draw(b, t) {
-    for (let f = 0; f < 2; f++) {
-      const o = 16 * f;
-      b.rect(o + 5, 12, 2, 3, P.woodD); b.rect(o + 8, 12, 2, 3, P.woodD);
-      b.rect(o + 4, 7, 6, 6, '#8a6a3c'); b.rect(o + 4, 7, 6, 1, '#a8844e'); b.rect(o + 4, 10, 6, 1, P.woodD);
-      b.disc(o + 7, 4.6, 2.3, P.skin); b.rect(o + 5, 2, 5, 1, P.red); b.rect(o + 6, 1, 3, 1, P.red); b.px(o + 9, 3, P.red);
-      b.px(o + 8, 5, P.k);
-      if (f === 0) {
-        // замах: инструмент над головой, за спиной
-        b.line(o + 9, 7, o + 5, 1, P.wood); b.px(o + 9, 7, P.skin); b.px(o + 10, 8, P.skin);
-        if (t === 'axe') { b.rect(o + 2, 0, 3, 3, P.ironL); b.px(o + 2, 3, P.iron); b.px(o + 5, 0, P.iron); }
-        else if (t === 'pick') { b.line(o + 2, 3, o + 4, 1, P.iron); b.line(o + 5, 0, o + 7, 0, P.iron); b.px(o + 2, 3, P.ironL); }
-        else { b.rect(o + 3, 0, 4, 2, P.iron); b.rect(o + 3, 0, 4, 1, P.ironL); }
-      } else {
-        // удар: инструмент впереди и внизу, у стены здания — искры
-        b.line(o + 9, 8, o + 13, 10, P.wood); b.px(o + 9, 8, P.skin); b.px(o + 10, 9, P.skin);
-        if (t === 'axe') { b.rect(o + 13, 9, 3, 3, P.ironL); b.px(o + 13, 12, P.iron); }
-        else if (t === 'pick') { b.line(o + 14, 7, o + 14, 13, P.iron); b.px(o + 14, 7, P.ironL); b.px(o + 14, 13, P.ironL); }
-        else { b.rect(o + 13, 8, 2, 4, P.iron); b.rect(o + 13, 8, 1, 4, P.ironL); }
-        b.px(o + 15, 7, P.glowL); b.px(o + 15, 11, P.glow); b.px(o + 12, 6, P.glowL);
-      }
+    const tunic = '#8a6a3c', tunicL = '#a8844e';
+    const tool = (o, x, y) => {
+      b.line(o + x, y, o + x - 2, y + 5, P.wood);
+      if (t === 'axe') { b.rect(o + x - 1, y - 1, 2, 2, P.ironL); b.px(o + x + 1, y, P.iron); }
+      else if (t === 'pick') { b.line(o + x - 2, y, o + x + 2, y - 1, P.iron); }
+      else { b.rect(o + x - 1, y - 1, 3, 2, P.iron); }
+    };
+    // кадр 0: бег — корпус и голова подались вперёд, ноги врозь
+    {
+      const o = 0;
+      tool(o, 5, 5);
+      b.rect(o + 3, 13, 2, 2, P.woodD); b.px(o + 2, 14, P.woodD);
+      b.rect(o + 9, 12, 2, 2, P.woodD); b.px(o + 10, 14, P.woodD); b.px(o + 11, 14, P.woodD);
+      b.poly([[5.5, 7], [11.5, 7], [10.5, 12.5], [4.5, 12.5]], tunic); b.rect(o + 6, 7, 5, 1, tunicL); b.rect(o + 5, 10, 6, 1, P.woodD);
+      b.px(o + 11, 8, P.skin); b.px(o + 12, 9, P.skin);
+      b.disc(o + 10, 4.8, 2.3, P.skin); b.rect(o + 8, 2, 5, 1, P.red); b.rect(o + 9, 1, 3, 1, P.red); b.px(o + 7, 3, P.red);
+      b.px(o + 11, 5, P.k);
+      b.px(o + 1, 13, P.dirtL); b.px(o + 0, 12, P.dirtL);
+    }
+    // кадр 1: удар — прижался плечом и головой к стене справа, вспышка и пыль
+    {
+      const o = 16;
+      tool(o, 7, 5);
+      b.rect(o + 5, 12, 2, 3, P.woodD); b.rect(o + 9, 13, 2, 2, P.woodD); b.px(o + 4, 14, P.woodD);
+      b.rect(o + 7, 7, 6, 6, tunic); b.rect(o + 7, 7, 6, 1, tunicL); b.rect(o + 7, 10, 6, 1, P.woodD);
+      b.px(o + 13, 8, P.skin); b.px(o + 13, 9, P.skin);
+      b.disc(o + 11.5, 4.6, 2.2, P.skin); b.rect(o + 9, 2, 5, 1, P.red); b.rect(o + 10, 1, 3, 1, P.red);
+      b.px(o + 12, 4, P.k); b.px(o + 11, 4, P.k);
+      // вспышка удара на стене
+      b.px(o + 15, 3, P.glowL); b.px(o + 14, 2, P.glow); b.px(o + 15, 6, P.white); b.px(o + 14, 7, P.glowL);
+      b.px(o + 15, 9, P.glow); b.px(o + 15, 12, P.glowL); b.px(o + 13, 0, P.glowL);
+      // пыль из-под ног
+      b.px(o + 2, 14, P.dirtL); b.px(o + 3, 13, P.dirtL); b.px(o + 1, 12, P.dirtL); b.px(o + 12, 14, P.dirtL);
     }
   } };
   DEF.guard = { w: 10, h: 13, draw(b) { b.rect(3, 6, 4, 4, P.red); b.disc(5, 3.8, 2, P.skin); b.rect(3, 1, 4, 2, P.iron); b.rect(3, 10, 1, 2, P.woodD); b.rect(6, 10, 1, 2, P.woodD); b.line(8, 2, 8, 10, P.wood); } };

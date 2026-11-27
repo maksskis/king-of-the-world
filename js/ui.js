@@ -482,7 +482,7 @@
     return ic('i_flag') + (ex[0].phase === 'ret' ? ex[0].cleared : ex[0].floor);
   }
 
-  // Рабочие на карте: до трёх фигурок у здания бьют по нему (кадры замаха и удара, темп — скорость рабочих);
+  // Рабочие на карте: до трёх фигурок у здания таранят его — разбег, удар, отскок (темп — скорость рабочих);
   // стоят без дела, пока здание строится или склад его ресурса полон
   function updateWorkers() {
     const hit = G.E.wkHit().toFixed(2);
@@ -493,7 +493,8 @@
       if (box._k === key) continue;
       box._k = key;
       const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer'));
-      box.style.setProperty('--wkt', hit + 's');
+      el.style.setProperty('--wkt', hit + 's'); // темп и у фигурок, и у здания: оно вздрагивает в момент удара
+      el.classList.toggle('wkon', on);
       box.innerHTML = Array.from({ length: w }, (_, i) => `<span class="wkr p${i}${on ? '' : ' idle'}"><i style="background-image:url(${url})"></i></span>`).join('');
     }
   }
