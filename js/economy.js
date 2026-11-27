@@ -187,7 +187,7 @@
     const sec = G.bonus('clickProd');
     if (sec > 0) {
       const b = G.S.b[k];
-      amount += sec * ((k === 'castle' ? E.tax() : 0) + (b.w || 0) * E.workerRate(k)); // налоги и добыча рабочих этого здания
+      amount += sec * ((k === 'castle' ? E.tax() : 0) + E.wkWorking(k) * E.workerRate(k)); // налоги и добыча работающих рабочих
     }
     const n = E.add(d.click, amount);
     G.S.stats.clicks++;
@@ -219,8 +219,33 @@
     const mul = 1 + G.bonus('prod') + (d.prod ? G.bonus('prod_' + d.prod) : 0); // все рабочие, и на Замке
     return (D.WORK.pow[L] * (1 + 0.2 * (L - 1)) / E.wkHit()) * mul * (1 + E.passive()) * E.rush();
   };
-  // Ускорение дела здания рабочими: Академия, Кузница, Арена, Гильдия, Катакомбы — +50% за рабочего
-  E.wkBoost = (k) => { const w = (G.S.b[k] && G.S.b[k].w) || 0; return w > 0 && E.wkActive(k) ? 1 + D.WORK.boost * w * E.wkSpeed() : 1; };
+  // ---------- отдых: у каждого места свой цикл работа/отдых (G.S.b[k].ws = [[1 — отдыхает, секунд до смены], …]) ----------
+  E.wkRestTime = () => D.WORK.rest * Math.max(D.WORK.restMin, 1 - G.bonus('wRest'));
+  const workLen = () => D.WORK.work + (Math.random() * 2 - 1) * D.WORK.workVar;
+  E.wkState = function (k) {
+    const b = G.S.b[k], w = b.w || 0;
+    if (!Array.isArray(b.ws)) b.ws = [];
+    while (b.ws.length < w) b.ws.push([0, workLen() * (0.3 + 0.7 * Math.random())]); // новый рабочий сначала работает
+    if (b.ws.length > w) b.ws.length = w;
+    return b.ws;
+  };
+  E.wkWorking = (k) => ((G.S.b[k] && G.S.b[k].w) > 0 ? E.wkState(k).filter((s) => !s[0]).length : 0);
+  E.wkResting = (k) => ((G.S.b[k] && G.S.b[k].w) || 0) - E.wkWorking(k);
+  E.tickWorkers = function (dt) {
+    for (const k of E.WK) {
+      const b = G.S.b[k];
+      if (!b) continue;
+      if (!(b.w > 0)) { if (b.ws && b.ws.length) b.ws.length = 0; continue; }
+      let ch = false;
+      for (const s of E.wkState(k)) {
+        s[1] -= dt;
+        while (s[1] <= 0) { s[0] = s[0] ? 0 : 1; s[1] += s[0] ? E.wkRestTime() : workLen(); ch = true; }
+      }
+      if (ch) G.UI.wkChanged(k);
+    }
+  };
+  // Ускорение дела здания рабочими: Академия, Кузница, Арена, Гильдия, Катакомбы — +65% за работающего (не отдыхающего)
+  E.wkBoost = (k) => { const w = E.wkWorking(k); return w > 0 && E.wkActive(k) ? 1 + D.WORK.boost * w * E.wkSpeed() : 1; };
   // Здание для подсказки целей «В городе работают N рабочих»: построенное, со свободным местом
   E.wkGoalB = () => ['lumber', 'quarry', 'mine', 'castle', 'forge', 'academy', 'arena', 'tavern'].find((k) => E.lvl(k) > 0 && (G.S.b[k].w || 0) < E.wkSlots(k)) || 'castle';
   // Можно ли работать на здании: построено (Катакомбы — когда есть Гильдия)
@@ -307,7 +332,7 @@
       const b = G.S.b[k];
       if (b.lvl > 0 && b.w > 0 && !E.busy(k)) {
         const res = D.B[k].click;
-        r[res] = (r[res] || 0) + b.w * E.workerRate(k);
+        r[res] = (r[res] || 0) + E.wkWorking(k) * E.workerRate(k); // отдыхающие не добывают
       }
     }
     return r;
@@ -328,6 +353,7 @@
   };
 
   E.tick = function (dt) {
+    E.tickWorkers(dt);
     const r = E.rates();
     for (const k in r) E.add(k, r[k] * dt);
     E.tickFolk(dt);

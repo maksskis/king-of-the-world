@@ -149,7 +149,7 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .wkpip.open:disabled { cursor: default; opacity: 0.5; }
 .wkpip.on { border: 1px solid #8a6a40; background: #2a2016; }
 .wkpip.on:hover { border-color: #d64545; }
-.wkpip.on i { position: absolute; inset: 3px; background-size: 200% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated; } /* во вкладке — без анимации */
+.wkpip.on i { position: absolute; inset: 3px; background-size: 400% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated; } /* во вкладке — без анимации */
 .wkpip.on.idle i { filter: saturate(0.6); }
 .wkpip.lock { cursor: default; border-style: solid; opacity: 0.6; flex-direction: column; gap: 0; }
 .wkpip.lock .ic { width: 12px; height: 12px; }
@@ -166,7 +166,7 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 .wkr.p0 { left: calc(-21% * 48 / var(--s, 48)); }
 .wkr.p1 { right: calc(-21% * 48 / var(--s, 48)); transform: scaleX(-1); }
 .wkr.p2 { left: calc(-25% * 48 / var(--s, 48)); bottom: 46%; }
-.wkr i { position: absolute; inset: 0; background-size: 200% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated;
+.wkr i { position: absolute; inset: 0; background-size: 400% 100%; background-repeat: no-repeat; background-position: 0 0; image-rendering: pixelated;
   transform-origin: 50% 100%; transform: translateX(-30%);
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
   animation: wkram var(--wkt, 1.5s) infinite, wkframe var(--wkt, 1.5s) steps(1, end) infinite; }
@@ -184,9 +184,21 @@ img { image-rendering: pixelated; image-rendering: crisp-edges; }
 }
 @keyframes wkframe {
   0% { background-position: 0 0; }
-  55% { background-position: 100% 0; }
+  55% { background-position: 33.333% 0; }
   70% { background-position: 0 0; }
 }
+/* отдых: уходит погулять от здания (кадры ходьбы), стоит, разворачивается и возвращается к началу работы */
+.wkr.rest i { animation: wkstroll var(--rd, 15s) linear var(--rdel, 0s) 1 both, wkwalk 0.5s steps(1, end) infinite; }
+@keyframes wkwalk { 0% { background-position: 66.667% 0; } 50% { background-position: 100% 0; } }
+@keyframes wkstroll {
+  0% { transform: translateX(-30%) scaleX(-1); }
+  42% { transform: translateX(-190%) scaleX(-1); }
+  50% { transform: translateX(-190%) scaleX(1); }
+  92% { transform: translateX(-30%) scaleX(1); }
+  100% { transform: translateX(-30%) scaleX(1); }
+}
+.wkpip.rest i { opacity: 0.45; }
+.wkpip.rest::after { content: 'z'; position: absolute; right: 2px; top: 0; font-size: 11px; font-weight: 700; color: #9ad0ff; }
 /* здание вздрагивает, когда в него врезается первый рабочий */
 .slot.wkon .slot-img { animation: wkjolt var(--wkt, 1.5s) infinite; }
 @keyframes wkjolt {

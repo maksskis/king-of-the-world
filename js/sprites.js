@@ -192,6 +192,8 @@
   DEF.i_crown = { w: 12, h: 12, draw(b) { b.rect(2, 6, 8, 4, P.gold); b.poly([[2, 6.5], [2, 2], [4.5, 6.5]], P.gold); b.poly([[4.5, 6.5], [6, 1.5], [7.5, 6.5]], P.gold); b.poly([[7.5, 6.5], [10, 2], [10, 6.5]], P.gold); b.rect(2, 9, 8, 1, P.goldD); b.px(6, 7, P.red); b.px(3, 7, P.cry); b.px(8, 7, P.cry); } };
   DEF.i_skull = { w: 12, h: 12, draw(b) { b.disc(6, 5, 4.2, P.bone); b.rect(4, 8, 4, 3, P.bone); b.rect(3, 4, 2, 2, P.k); b.rect(7, 4, 2, 2, P.k); b.px(5, 7, P.boneD); b.px(6, 7, P.boneD); b.px(5, 10, P.boneD); } };
   DEF.i_pick = { w: 12, h: 12, draw(b) { b.line(2, 10, 7, 5, P.wood); b.line(3, 10, 8, 5, P.woodD); b.poly([[3.5, 2], [7, 2.5], [10, 5], [10.5, 8.5], [9, 8], [8, 5.5], [6, 4], [3.5, 3.5]], P.stoneL); } };
+  // кружка с пеной — отдых рабочих («Сытный обед», «Выносливость рода»)
+  DEF.i_mug = { w: 12, h: 12, draw(b) { b.rect(2, 3, 6, 8, P.wood); b.rect(2, 3, 1, 8, P.woodL); b.rect(2, 6, 6, 1, P.woodD); b.rect(2, 9, 6, 1, P.woodD); b.rect(8, 5, 2, 1, P.woodD); b.rect(9, 5, 1, 4, P.woodD); b.rect(8, 8, 2, 1, P.woodD); b.rect(1, 1, 8, 2, P.white); b.px(2, 0, P.white); b.px(5, 0, P.white); b.px(7, 3, P.white); } };
   DEF.i_clock = { w: 12, h: 12, draw(b) { b.disc(6, 6, 5, P.stoneL); b.disc(6, 6, 4, P.white); b.line(6, 6, 6, 3, P.k); b.line(6, 6, 8, 7, P.k); } };
   DEF.i_helmet = { w: 12, h: 12, draw(b) { b.ellipse(6, 6, 4.5, 4.5, P.iron); b.rect(2, 6, 8, 4, P.iron); b.rect(3, 6, 6, 1, P.k); b.rect(5, 7, 2, 3, P.ironD); b.px(4, 3, P.ironL); b.px(5, 2, P.ironL); } };
   DEF.i_star = { w: 12, h: 12, draw(b) { const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 2.2 : 5; pts.push([6 + Math.cos(a) * r, 6.3 + Math.sin(a) * r]); } b.poly(pts, P.gold); b.px(5, 4, P.goldL); } };
@@ -290,9 +292,9 @@
     b.disc(8, 4.8, 2.6, P.skin); b.poly([[6, 6], [10, 6], [8, 9]], P.boneD); b.px(7, 5, P.k); b.px(9, 5, P.k);
     b.rect(5, 1, 6, 2, P.gold); b.px(5, 0, P.gold); b.px(8, 0, P.gold); b.px(10, 0, P.gold); b.px(7, 1, P.red);
   } };
-  // Рабочий у здания: два кадра 16×16 — бег в наклоне и удар плечом о стену (CSS двигает фигурку: разбег, удар, отскок).
+  // Рабочий у здания: четыре кадра 16×16 — бег в наклоне, удар плечом о стену (CSS: разбег, удар, отскок) и два кадра ходьбы на отдыхе.
   // Смотрит вправо, на здание; инструмент висит за спиной: axe (Лесопилка), pick (Каменоломня, Шахта), hammer (остальные)
-  DEF.wk = { w: 32, h: 16, draw(b, t) {
+  DEF.wk = { w: 64, h: 16, draw(b, t) {
     const tunic = '#8a6a3c', tunicL = '#a8844e';
     const tool = (o, x, y) => {
       b.line(o + x, y, o + x - 2, y + 5, P.wood);
@@ -326,6 +328,17 @@
       b.px(o + 15, 9, P.glow); b.px(o + 15, 12, P.glowL); b.px(o + 13, 0, P.glowL);
       // пыль из-под ног
       b.px(o + 2, 14, P.dirtL); b.px(o + 3, 13, P.dirtL); b.px(o + 1, 12, P.dirtL); b.px(o + 12, 14, P.dirtL);
+    }
+    // кадры 2 и 3: отдых — идёт прогулочным шагом, прямо, руки вниз (ноги меняются местами)
+    for (let f = 0; f < 2; f++) {
+      const o = 32 + 16 * f;
+      tool(o, 6, 5);
+      if (f === 0) { b.rect(o + 5, 12, 2, 3, P.woodD); b.rect(o + 9, 13, 2, 2, P.woodD); b.px(o + 10, 14, P.woodD); }
+      else { b.rect(o + 6, 13, 2, 2, P.woodD); b.px(o + 5, 14, P.woodD); b.rect(o + 8, 12, 2, 3, P.woodD); }
+      b.rect(o + 5, 7, 6, 6 - f, tunic); b.rect(o + 5, 7, 6, 1, tunicL); b.rect(o + 5, 10, 6, 1, P.woodD);
+      b.px(o + 5, 9 + f, P.skin); b.px(o + 10, 10 - f, P.skin);
+      b.disc(o + 8, 4.6 + f * 0.3, 2.3, P.skin); b.rect(o + 6, 2, 5, 1, P.red); b.rect(o + 7, 1, 3, 1, P.red);
+      b.px(o + 9, 5, P.k);
     }
   } };
   DEF.guard = { w: 10, h: 13, draw(b) { b.rect(3, 6, 4, 4, P.red); b.disc(5, 3.8, 2, P.skin); b.rect(3, 1, 4, 2, P.iron); b.rect(3, 10, 1, 2, P.woodD); b.rect(6, 10, 1, 2, P.woodD); b.line(8, 2, 8, 10, P.wood); } };

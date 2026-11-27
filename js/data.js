@@ -25,7 +25,10 @@
   // на Академии, Кузнице, Арене, Гильдии и в Катакомбах — +boost к скорости их дела.
   // pow подобран так, что 2 рабочих 8-го уровня добывают как прежние 15, а 3 — больше прежнего предела (19)
   D.WORK = {
-    hit: 1.5, pow: [0, 0.6, 0.9, 1.2, 1.5, 1.9, 2.2, 2.5, 2.85], boost: 0.5, every: [2, 4], slotLvl: [1, 4, 7],
+    // отдых (итерация 60): место работает ~45 с (±10), потом отдыхает 15 с; таланты и навыки рода сокращают отдых до 20%.
+    // Сила и ускорение подняты на треть: в среднем (75% времени в работе) рабочий даёт столько же, сколько до отдыха
+    hit: 1.5, pow: [0, 0.8, 1.2, 1.6, 2.0, 2.55, 2.95, 3.35, 3.8], boost: 0.65, every: [2, 4], slotLvl: [1, 4, 7],
+    work: 45, workVar: 10, rest: 15, restMin: 0.2,
     b: ['castle', 'lumber', 'quarry', 'mine', 'academy', 'forge', 'arena', 'tavern', 'dungeon'],
   };
 
@@ -254,6 +257,7 @@
     { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.1 } },
     { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { wSpeed: 0.1 } }, // «Бригадиры»: рабочие бьют быстрее
     { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.15 } },
+    { id: 'rest', br: 'eco', icon: 'i_mug', eff: { wRest: 0.1 } }, // «Сытный обед»: рабочие отдыхают меньше
     // Строительство: «Прораб» — все ускорения кликом (стройка, Кузница, Академия, Арена, Гильдия, Катакомбы)
     { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.1 } },
     { id: 'foreman', br: 'build', icon: 'i_hammer', eff: { boost: 1, boostAll: 0.5 } },
@@ -403,7 +407,7 @@
     click: { t: 0, c: 4, r: 0 }, crit: { t: 0, c: 5, r: 0, p: 'click' }, hire: { t: 0, c: 4, r: 1 },
     // II — средние: скидки, герои, кузня, оборона
     found: { t: 1, c: 2, r: 4 }, thrift: { t: 1, c: 1, r: 4, p: 'found' },
-    workers: { t: 1, c: 2, r: 5 }, example: { t: 1, c: 1, r: 5, p: 'workers' },
+    workers: { t: 1, c: 2, r: 5 }, example: { t: 1, c: 1, r: 5, p: 'workers' }, rest: { t: 1, c: 0, r: 5, p: 'example' },
     craft: { t: 1, c: 2, r: 6 }, luck: { t: 1, c: 1, r: 6, p: 'craft' }, trade: { t: 1, c: 0, r: 6, p: 'luck' },
     hero: { t: 1, c: 4, r: 4 }, xp: { t: 1, c: 5, r: 4, p: 'hero' },
     captain: { t: 1, c: 4, r: 5 }, medic: { t: 1, c: 5, r: 5, p: 'captain' }, blood: { t: 1, c: 6, r: 5, p: 'medic' },
@@ -438,6 +442,7 @@
     { id: 'example', icon: 'c_king', eff: { clickProd: 0.5 } },
     { id: 'thrift', icon: 'i_scale', eff: { buildC: 0.05 } },
     { id: 'workers', icon: 'r_wood', eff: { wSpeed: 0.05 } }, // «Рабочие руки»: +5% к скорости рабочих
+    { id: 'rest', icon: 'i_mug', eff: { wRest: 0.05 } }, // «Выносливость рода»: рабочие отдыхают меньше
     { id: 'golden', icon: 'r_crystal', eff: { rewardAll: 0.1 } },
     { id: 'blood', icon: 'i_shield2', eff: { heroPow: 0.05 } },
     // ступень III: ускоряют всё

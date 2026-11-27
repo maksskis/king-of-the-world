@@ -418,8 +418,8 @@
       }
       if (L && G.E.workable(k)) {
         const w = G.S.b[k].w || 0;
-        const on = G.E.wkActive(k);
-        h += `<div class="muted">${ic('i_people')} ${t('workers')}: ${w}/${G.E.wkSlots(k)}${w ? ' · ' + (!on ? t('wkIdle') : d.click ? `+${U.fmt1(w * G.E.workerRate(k))} ${ic('r_' + d.click)}/${t('sec')}` : `×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}`) : ''}</div>`;
+        const on = G.E.wkActive(k), wn = G.E.wkWorking(k);
+        h += `<div class="muted">${ic('i_people')} ${t('workers')}: ${w}/${G.E.wkSlots(k)}${w ? ' · ' + (!on ? t('wkIdle') : d.click ? `+${U.fmt1(wn * G.E.workerRate(k))} ${ic('r_' + d.click)}/${t('sec')}` : `×${U.fmt1(1 + D.WORK.boost * wn * G.E.wkSpeed())}`) : ''}${w > wn ? ' · ' + t('wkRestN', { n: w - wn }) : ''}</div>`;
       }
       // значок указа на карте: какие места в очереди занимает здание и до какого уровня
       let lv = L + (G.E.consOf(k) ? 1 : 0);
@@ -482,20 +482,24 @@
     return ic('i_flag') + (ex[0].phase === 'ret' ? ex[0].cleared : ex[0].floor);
   }
 
-  // Рабочие на карте: до трёх фигурок у здания таранят его — разбег, удар, отскок (темп — скорость рабочих);
+  // Рабочие на карте: до трёх фигурок у здания таранят его — разбег, удар, отскок (темп — скорость рабочих); отдыхающие гуляют рядом;
   // стоят без дела, пока здание строится или склад его ресурса полон
   function updateWorkers() {
     const hit = G.E.wkHit().toFixed(2);
     for (const el of $$('.slot')) {
       const k = el.dataset.k, w = G.E.workable(k) ? G.S.b[k].w || 0 : 0;
-      const on = w > 0 && G.E.wkActive(k), key = `${w}|${on}|${hit}`;
+      const st = w ? G.E.wkState(k) : [];
+      const on = w > 0 && G.E.wkActive(k), key = `${w}|${on}|${hit}|${st.map((x) => x[0]).join('')}`;
       const box = el.querySelector('.slot-wk');
       if (box._k === key) continue;
       box._k = key;
-      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer'));
+      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), rest = G.E.wkRestTime();
       el.style.setProperty('--wkt', hit + 's'); // темп и у фигурок, и у здания: оно вздрагивает в момент удара
-      el.classList.toggle('wkon', on);
-      box.innerHTML = Array.from({ length: w }, (_, i) => `<span class="wkr p${i}${on ? '' : ' idle'}"><i style="background-image:url(${url})"></i></span>`).join('');
+      el.classList.toggle('wkon', on && st[0] && !st[0][0]);
+      // отдыхающий уходит погулять и возвращается: прогулка длится весь отдых, с той же точки, где он сейчас
+      box.innerHTML = st.map((x, i) => x[0]
+        ? `<span class="wkr p${i} rest" style="--rd:${rest.toFixed(1)}s;--rdel:${(-(rest - Math.min(rest, x[1]))).toFixed(1)}s"><i style="background-image:url(${url})"></i></span>`
+        : `<span class="wkr p${i}${on ? '' : ' idle'}"><i style="background-image:url(${url})"></i></span>`).join('');
     }
   }
 
@@ -892,44 +896,48 @@
   // Рабочие здания: сколько стоит, что дают, поставить и снять (до 3 мест: с 1, 4 и 7-го уровня)
   const WK_TOOL = { lumber: 'axe', quarry: 'pick', mine: 'pick' };
   function workersBox(k) {
-    const b = G.S.b[k], d = D.B[k], w = b.w || 0, mx = G.E.wkSlots(k), free = G.E.wkFree(), all = G.E.wkTotal(), on = G.E.wkActive(k);
+    const b = G.S.b[k], d = D.B[k], w = b.w || 0, mx = G.E.wkSlots(k), free = G.E.wkFree(), all = G.E.wkTotal(), on = G.E.wkActive(k), wn = G.E.wkWorking(k);
     let h = '';
     if (d.click) {
       const r = d.click, rate = G.E.workerRate(k);
-      h += kv('r_' + r, t('production'), `<b>+${U.fmt1(on ? w * rate : 0)}</b>/${t('sec')} <span class="muted small">(${U.fmt1(rate)} ${t('perWorker')})</span>`);
+      h += kv('r_' + r, t('production'), `<b>+${U.fmt1(on ? wn * rate : 0)}</b>/${t('sec')} <span class="muted small">(${U.fmt1(rate)} ${t('perWorker')})</span>`);
       if (k !== 'castle') h += kv('i_pick', t('clickGives'), `<b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + r)}`);
     } else {
-      const sp = on ? 1 + D.WORK.boost * w * G.E.wkSpeed() : 1;
+      const sp = on ? 1 + D.WORK.boost * wn * G.E.wkSpeed() : 1;
       h += kv('i_clock', t('wkb_' + k), `<b>×${U.fmt1(sp)}</b> <span class="muted small">(+${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')})</span>`);
     }
     if (w > 0 && !G.E.wkActive(k)) h += `<div class="warn small">${ic(G.E.busy(k) ? 'i_hammer' : 'i_bag')} ${t(G.E.busy(k) ? 'wkWaitBuild' : d.click && G.E.full(d.click) ? 'storageFull' : 'wkWait')}</div>`;
+    if (w > wn) h += `<div class="muted small">${ic('i_clock')} ${t('wkRestN', { n: w - wn })}</div>`;
     // ставить и снимать — во вкладке «Рабочие»: все здания на одном экране, карта свободна для кликов
     h += `<div class="row"><button class="btn small" data-action="tab" data-arg="workers">${ic('i_pick')} ${t('wkOpen')}</button><span class="muted small">${t('wkFreeN', { n: free, m: all })}</span></div>`;
     return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint') + (d.click ? '<br>' + t('clickHint') : '')]);
   }
   UI.workersBox = workersBox;
+  UI.wkChanged = (k) => { if (UI.tab === 'workers' || UI.pop === k) UI.dirty(); };
 
   // ---------- вкладка «Рабочие»: все здания с местами на одном экране ----------
   // Строка здания: облик, название и уровень, что дают рабочие; справа «−» и три места.
   // Пустое место — нажать, чтобы поставить; место с рабочим — нажать, чтобы снять; закрытое — уровень, с которого откроется.
   function wkEffect(k) {
-    const d = D.B[k], w = G.S.b[k].w || 0, on = G.E.wkActive(k);
-    if (!w) return `<span class="muted">${d.click ? `${ic('r_' + d.click)} +${U.fmt1(G.E.workerRate(k))}/${t('sec')} ${t('perWorker')}` : `${t('wkb_' + k)} +${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')}`}</span>`;
+    const d = D.B[k], all = G.S.b[k].w || 0, w = G.E.wkWorking(k), on = G.E.wkActive(k);
+    const rest = all > w ? ` <span class="muted">· ${t('wkRestN', { n: all - w })}</span>` : '';
+    if (!all) return `<span class="muted">${d.click ? `${ic('r_' + d.click)} +${U.fmt1(G.E.workerRate(k))}/${t('sec')} ${t('perWorker')}` : `${t('wkb_' + k)} +${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')}`}</span>`;
     if (!on) return `<span class="warn">${ic(G.E.busy(k) ? 'i_hammer' : 'i_bag')} ${t('wkIdleLong')}</span>`;
-    return d.click ? `<span class="good">${ic('r_' + d.click)} +${U.fmt1(w * G.E.workerRate(k))}/${t('sec')}</span>`
-      : `<span class="good">${t('wkb_' + k)} ×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}</span>`;
+    return (d.click ? `<span class="good">${ic('r_' + d.click)} +${U.fmt1(w * G.E.workerRate(k))}/${t('sec')}</span>`
+      : `<span class="good">${t('wkb_' + k)} ×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}</span>`) + rest;
   }
   function workersPanel() {
     const free = G.E.wkFree(), all = G.E.wkTotal(), S = G.S;
     let h = box(tipTitle(ic('i_pick') + ' ' + t('tabWorkers'), 'wkHint', t('wkHint')) + ` <span class="muted">${G.E.wkUsed()}/${all}</span>`,
       `<div class="wksum"><span>${t('wkFreeN', { n: `<b class="${free ? 'good' : ''}">${free}</b>`, m: all })}</span>`
       + `<span class="muted small">${E_folkLine()}</span></div>`
+      + `<div class="muted small">${ic('i_clock')} ${t('wkCycle', { w: D.WORK.work, r: U.fmt1(G.E.wkRestTime()) })}</div>`
       + (all ? '' : `<div class="muted small">${t('wkNone')}</div>`));
     const rows = D.WORK.b.map((k) => {
       const w = S.b[k].w || 0, mx = G.E.wkSlots(k), can = G.E.wkCan(k);
-      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), on = w > 0 && G.E.wkActive(k);
+      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer')), on = w > 0 && G.E.wkActive(k), st = w ? G.E.wkState(k) : [];
       const pips = D.WORK.slotLvl.map((lv, i) => {
-        if (i < w) return `<button class="wkpip on${on ? '' : ' idle'}" data-action="wkDel" data-arg="${k}" title="${esc(t('wkPipDel'))}"><i style="background-image:url(${url})"></i></button>`;
+        if (i < w) { const r = st[i] && st[i][0]; return `<button class="wkpip on${on ? '' : ' idle'}${r ? ' rest' : ''}" data-action="wkDel" data-arg="${k}" title="${esc(r ? t('wkPipRest', { s: Math.ceil(st[i][1]) }) + ' ' + t('wkPipDel') : t('wkPipDel'))}"><i style="background-image:url(${url})"></i></button>`; }
         if (i < mx) return `<button class="wkpip open" data-action="wkAdd" data-arg="${k}" title="${esc(t('wkPipAdd'))}" ${free > 0 && can ? '' : 'disabled'}>+</button>`;
         return `<span class="wkpip lock" title="${esc(t('wkSlotFrom', { l: lv }))}">${ic('i_lock')}<small>${lv}</small></span>`;
       }).join('');
