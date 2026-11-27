@@ -49,6 +49,7 @@
       G.S.decree.build = G.S.decree.build.map((k) => (k === 'market' ? 'arena' : k));
     }
     G.E.migrateGoals();
+    G.E.migrateWorkers(); // нанятые рабочие и кузнецы → рабочие из жителей
     G.K.sanitizeTalents();
     G.K.checkMaxBuildings(); // здания, уже стоящие на 8-м уровне, тоже дают очко (раз за правление)
     G.LANG = G.S.lang || 'ru';

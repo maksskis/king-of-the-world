@@ -3,20 +3,9 @@
   const D = G.D;
   const lvl = () => G.E.lvl('forge');
 
-  F.speed = () => (1 + 0.12 * (lvl() - 1)) * (1 + 0.25 * G.S.b.forge.w) * (1 + G.bonus('craft')) * G.K.haste();
+  // Скорость ковки: уровень Кузницы (+12% и +25% за уровень — бывшие кузнецы встроены в уровень), «Ковка рода», «Время королей»
+  F.speed = () => (1 + 0.12 * (lvl() - 1)) * (1 + 0.25 * lvl()) * (1 + G.bonus('craft')) * G.K.haste();
   F.qMax = () => Math.max(1, lvl()) + G.bonus('forgeQ'); // 1 ур. — 1 вещь, 2 ур. — 2 и т. д.
-  F.maxSmiths = () => (lvl() > 0 ? lvl() + G.bonus('smiths') : 0); // талант «Переселенцы» даёт кузнецов
-  F.smithCost = function () {
-    const n = G.S.b.forge.w;
-    return { gold: Math.ceil(80 * Math.pow(1.6, n)), iron: Math.ceil(20 * Math.pow(1.5, n)) };
-  };
-  F.hireSmith = function () {
-    if (G.S.b.forge.w >= F.maxSmiths() || G.E.busy('forge')) return;
-    if (!G.E.pay(F.smithCost())) return;
-    G.S.b.forge.w++;
-    G.SFX.play('coin');
-    G.UI.dirty();
-  };
 
   F.cost = (type, ti) => G.U.scaleCost(type === 'armor' ? D.TIERS[ti].acost : D.TIERS[ti].wcost, Math.max(0.4, 1 - G.bonus('forgeC')));
   F.unlocked = (ti) => lvl() >= D.TIERS[ti].req;
@@ -51,7 +40,7 @@
     w[4] = legP > 0 ? (s * legP) / (1 - legP) : 0;
     return w;
   };
-  F.luckK = () => 0.12 * (lvl() - 1) + 0.04 * G.S.b.forge.w + G.bonus('luck') + G.bonus('forgeLuck'); // Придворный маг — удача кузницы
+  F.luckK = () => 0.12 * (lvl() - 1) + 0.04 * lvl() + G.bonus('luck') + G.bonus('forgeLuck'); // Придворный маг — удача кузницы
   F.legChance = () => (F.rarOpen(4) ? D.LEG.p : 0);
   F.rarWeights = () => F.weightsFor(F.luckK(), F.legChance(), F.rarOpen);
   F.rarChances = function () {
@@ -63,7 +52,7 @@
   F.tick = function (dt) {
     const q = G.S.forge.q;
     if (!q.length || !G.E.usable('forge')) return;
-    q[0].t -= dt * F.speed();
+    q[0].t -= dt * F.speed() * G.E.wkBoost('forge'); // рабочие на Кузнице
     while (q.length && q[0].t <= 0) {
       const over = -q[0].t;
       const job = q.shift();

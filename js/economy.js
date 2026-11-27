@@ -187,7 +187,7 @@
     const sec = G.bonus('clickProd');
     if (sec > 0) {
       const b = G.S.b[k];
-      amount += sec * (k === 'castle' ? E.tax() : b.w * E.workerRate(k));
+      amount += sec * ((k === 'castle' ? E.tax() : 0) + (b.w || 0) * E.workerRate(k)); // налоги и добыча рабочих этого здания
     }
     const n = E.add(d.click, amount);
     G.S.stats.clicks++;
@@ -197,29 +197,86 @@
     return n;
   };
 
-  // «Бригады» дают места, но не больше штата самого здания (полные +6 — с 5-го уровня); навыки зданий — сверх того
-  E.maxWorkers = (k) => { const L = E.lvl(k); if (L <= 0) return 0; const base = D.WORKERS[L]; return base + Math.min(base, G.bonus('crews')) + G.bonus('crews_' + k); };
+  // ---------- рабочие (итерация 59) ----------
+  // Рабочие — часть жителей: каждый 2–4-й пришедший житель становится рабочим (G.S.wk — всего, G.S.b[k].w — на здании).
+  // Ставятся бесплатно, до 3 на здание; места открываются с 1, 4 и 7-го уровня (Катакомбы — по уровню Замка).
+  E.WK = D.WORK.b;
+  E.workable = (k) => E.WK.includes(k);
+  E.wkLvl = (k) => (k === 'dungeon' ? E.lvl('castle') : E.lvl(k));
+  E.wkSlots = (k) => (E.workable(k) ? D.WORK.slotLvl.filter((l) => E.wkLvl(k) >= l).length : 0);
+  E.wkNextSlot = (k) => D.WORK.slotLvl.find((l) => E.wkLvl(k) < l) || 0;
+  E.wkTotal = () => G.S.wk || 0;
+  E.wkUsed = () => E.WK.reduce((s, k) => s + (G.S.b[k] ? G.S.b[k].w || 0 : 0), 0);
+  E.wkFree = () => Math.max(0, E.wkTotal() - E.wkUsed());
+  // Скорость рабочих: таланты, исследования, навыки рода и «Время королей»
+  E.wkSpeed = () => (1 + G.bonus('wSpeed')) * G.K.haste();
+  E.wkHit = () => D.WORK.hit / E.wkSpeed(); // секунд между ударами
+  // Работает ли рабочий сейчас: здание построено, не на перестройке; на добыче — склад не полон
+  E.wkActive = (k) => (k === 'dungeon' ? G.E.lvl('tavern') > 0 : E.usable(k)) && !(D.B[k].click && E.full(D.B[k].click));
+  // Добыча одного рабочего в секунду: удар силы pow[уровень] × (1 + 0,2 за уровень), раз в hit секунд
   E.workerRate = function (k) {
-    const L = Math.max(1, E.lvl(k));
-    return 0.25 * (1 + 0.2 * (L - 1)) * (1 + G.bonus('prod') + G.bonus('prod_' + D.B[k].prod)) * (1 + E.passive()) * E.rush();
+    const L = Math.max(1, E.lvl(k)), d = D.B[k];
+    const mul = k === 'castle' ? 1 + G.bonus('tax') : 1 + G.bonus('prod') + G.bonus('prod_' + d.prod);
+    return (D.WORK.pow[L] * (1 + 0.2 * (L - 1)) / E.wkHit()) * mul * (1 + E.passive()) * E.rush();
   };
-  E.workerCost = (k) => ({ gold: Math.ceil(15 * Math.pow(1.45, G.S.b[k].w) * Math.max(0.5, 1 - G.bonus('workerC'))) }); // «Рабочие руки»
-  E.hireWorker = function (k) {
+  // Ускорение дела здания рабочими: Академия, Кузница, Арена, Гильдия, Катакомбы — +50% за рабочего
+  E.wkBoost = (k) => { const w = (G.S.b[k] && G.S.b[k].w) || 0; return w > 0 && E.wkActive(k) ? 1 + D.WORK.boost * w * E.wkSpeed() : 1; };
+  E.assignWorker = function (k) {
     const b = G.S.b[k];
-    if (b.w >= E.maxWorkers(k) || E.busy(k)) return;
-    if (!E.pay(E.workerCost(k))) return;
-    b.w++;
-    G.SFX.play('coin');
-    G.UI.dirty();
+    if (!b || !E.workable(k) || E.wkFree() <= 0 || (b.w || 0) >= E.wkSlots(k)) return false;
+    b.w = (b.w || 0) + 1;
+    G.SFX.play('click');
+    G.UI.dirty(); G.UI.slotsDirty = true;
+    return true;
   };
+  E.unassignWorker = function (k) {
+    const b = G.S.b[k];
+    if (!b || !(b.w > 0)) return false;
+    b.w--;
+    G.UI.dirty(); G.UI.slotsDirty = true;
+    return true;
+  };
+  // Места и число рабочих после потерь (прорыв ворот, разрушенное здание): лишние снимаются с конца списка
   E.clampWorkers = function () {
-    for (const k of D.PROD) G.S.b[k].w = Math.min(G.S.b[k].w, E.maxWorkers(k));
-    G.S.b.forge.w = Math.min(G.S.b.forge.w, E.lvl('forge'));
+    const S = G.S;
+    for (const k in S.b) if (!E.workable(k)) S.b[k].w = 0; else S.b[k].w = Math.max(0, Math.min(S.b[k].w || 0, E.wkSlots(k)));
+    S.wk = Math.min(S.wk || 0, E.folk());
+    let over = E.wkUsed() - E.wkTotal();
+    for (let i = E.WK.length - 1; i >= 0 && over > 0; i--) { const b = S.b[E.WK[i]]; const n = Math.min(b.w, over); b.w -= n; over -= n; }
+    G.UI.slotsDirty = true;
+  };
+  // Житель пришёл: каждый 2–4-й — рабочий (самый первый житель эпохи — сразу рабочий)
+  function folkArrived() {
+    const S = G.S;
+    S.wkN = (S.wkN == null ? 1 : S.wkN) - 1;
+    if (S.wkN <= 0) {
+      S.wk = (S.wk || 0) + 1;
+      S.wkN = G.U.randInt(D.WORK.every[0], D.WORK.every[1]);
+      G.log('logWorker', { n: S.wk }, 'good');
+      G.UI.slotsDirty = true;
+    }
+  }
+  // Сохранения до итерации 59: нанятые рабочие и кузнецы → рабочие из жителей
+  E.migrateWorkers = function () {
+    const S = G.S;
+    if (S.wkV >= 1) return;
+    S.wkV = 1;
+    const f = E.folk();
+    S.wk = f > 0 ? 1 + Math.floor((f - 1) / 3) : 0;
+    S.wkN = f > 0 ? G.U.randInt(D.WORK.every[0], D.WORK.every[1]) : 1;
+    const old = {};
+    for (const k in S.b) { old[k] = S.b[k].w || 0; S.b[k].w = 0; }
+    // больше всего прежних рабочих — первыми получают новых
+    const order = ['lumber', 'quarry', 'mine', 'forge'].filter((k) => old[k] > 0).sort((a, b) => old[b] - old[a]);
+    let left = S.wk;
+    for (let round = 0; round < 3 && left > 0; round++) {
+      for (const k of order) if (left > 0 && S.b[k].w < Math.min(E.wkSlots(k), old[k])) { S.b[k].w++; left--; }
+    }
   };
 
-  E.pop = () => D.PROD.reduce((s, k) => s + G.S.b[k].w, 0) + G.S.b.forge.w + G.S.guards + G.S.advs.length;
-  // Жители: жильё — 3 дома за уровень Замка и 1 дом за каждые 2 уровня остальных зданий.
-  // Приходят по одному раз в 15 с (Гильдия и Рынок ускоряют), каждый платит налог.
+  E.pop = () => E.wkUsed() + G.S.guards + G.S.advs.length; // население для налога: рабочие на местах, стража, герои
+  // Жители: жильё — 5 домов за уровень Замка и 1 дом за каждые 2 уровня остальных зданий.
+  // Приходят по одному раз в 15 с (Гильдия и Арена ускоряют), каждый платит налог; каждый 2–4-й — рабочий.
   E.homes = () => {
     let lv = 0;
     for (const k of D.ORDER) if (k !== 'castle' && !D.B[k].noLevel) lv += E.lvl(k);
@@ -230,20 +287,20 @@
   E.folkTax = () => E.folk() * D.FOLK.tax;
   E.tickFolk = function (dt) {
     const S = G.S, cap = E.homes();
-    if (S.folk > cap) S.folk = cap;
+    if (S.folk > cap) { S.folk = cap; if ((S.wk || 0) > S.folk) E.clampWorkers(); }
     if (S.folk >= cap) { S.folkT = 0; return; }
     S.folkT = (S.folkT || 0) + dt;
     const every = E.folkEvery();
-    while (S.folkT >= every && S.folk < cap) { S.folkT -= every; S.folk++; }
+    while (S.folkT >= every && S.folk < cap) { S.folkT -= every; S.folk++; folkArrived(); }
   };
   E.tax = () => (E.lvl('castle') * 0.3 + 0.04 * E.pop() + E.folkTax()) * (1 + G.bonus('tax')) * (1 + E.passive() + E.convTax());
 
   E.rates = function () {
     const r = { gold: E.tax() };
-    for (const k of D.PROD) {
+    for (const k of ['castle', ...D.PROD]) {
       const b = G.S.b[k];
       if (b.lvl > 0 && b.w > 0 && !E.busy(k)) {
-        const res = D.B[k].prod;
+        const res = D.B[k].click;
         r[res] = (r[res] || 0) + b.w * E.workerRate(k);
       }
     }

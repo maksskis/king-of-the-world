@@ -216,7 +216,8 @@
       el.style.height = (s / D.MAP.h) * 100 + '%';
       el.innerHTML = `<img class="slot-img" alt="" draggable="false"><img class="slot-scaf hidden" alt="" draggable="false" src="${G.SPR.url('b_scaffold')}">
         <span class="slot-hammer hidden">${ic('i_hammer')}</span><div class="slot-label"></div>
-        <div class="slot-prog hidden"><i data-w="cons:${k}"></i></div><div class="slot-badge"></div><div class="slot-dec"></div>`;
+        <div class="slot-prog hidden"><i data-w="cons:${k}"></i></div><div class="slot-wk"></div><div class="slot-badge"></div><div class="slot-dec"></div>`;
+      el.style.setProperty('--s', s); // размер здания в пикселях карты: рабочие рисуются в масштабе карты
       box.appendChild(el);
     }
     box.addEventListener('pointerdown', (e) => {
@@ -342,7 +343,8 @@
     if (key === 'folk') {
       const n = G.E.folk(), cap = G.E.homes();
       return `<b>${ic('c_folk')} ${t('folk')}: ${n} / ${cap}</b><div>${t('folkTax')}: <span class="good">+${U.fmt1(G.E.folkTax() * (1 + G.bonus('tax')))}/${t('sec')}</span></div>`
-        + `<div>${n < cap ? t('folkNext', { s: Math.ceil(G.E.folkEvery() - (G.S.folkT || 0)) }) : t('folkFull')}</div><div class="muted">${t('folkHint', { e: U.fmt1(G.E.folkEvery()) })}</div>`;
+        + `<div>${ic('i_people')} ${t('wkTip', { n: G.E.wkTotal(), u: G.E.wkUsed(), f: G.E.wkFree() })}</div>`
+        + `<div>${n < cap ? t('folkNext', { s: Math.ceil(G.E.folkEvery() - (G.S.folkT || 0)) }) + ' ' + t('wkNextIn', { n: G.S.wkN || 1 }) : t('folkFull')}</div><div class="muted">${t('folkHint', { e: U.fmt1(G.E.folkEvery()) })}</div>`;
     }
     if (type === 'pk') {
       const p = D.PERKS.find((x) => x.id === id);
@@ -414,7 +416,10 @@
           else if (why === 'builders') h += `<div class="warn">${t('needBuildersShort')}</div>`;
         }
       }
-      if (d.prod && L) h += `<div class="muted">${ic('i_people')} ${G.S.b[k].w}/${G.E.maxWorkers(k)} · +${U.fmt1(G.S.b[k].w * G.E.workerRate(k))}/${t('sec')}</div>`;
+      if (L && G.E.workable(k)) {
+        const w = G.S.b[k].w || 0;
+        h += `<div class="muted">${ic('i_people')} ${t('workers')}: ${w}/${G.E.wkSlots(k)}${w ? ' · ' + (d.click ? `+${U.fmt1(w * G.E.workerRate(k))} ${ic('r_' + d.click)}/${t('sec')}` : `×${U.fmt1(1 + D.WORK.boost * w * G.E.wkSpeed())}`) : ''}</div>`;
+      }
       // значок указа на карте: какие места в очереди занимает здание и до какого уровня
       let lv = L + (G.E.consOf(k) ? 1 : 0);
       const pos = [];
@@ -474,6 +479,22 @@
     if (!ex.length) return '';
     if (ex.length > 1) return ic('i_flag') + '×' + ex.length;
     return ic('i_flag') + (ex[0].phase === 'ret' ? ex[0].cleared : ex[0].floor);
+  }
+
+  // Рабочие на карте: до трёх фигурок у здания бьют по нему (кадры замаха и удара, темп — скорость рабочих);
+  // стоят без дела, пока здание строится или склад его ресурса полон
+  function updateWorkers() {
+    const hit = G.E.wkHit().toFixed(2);
+    for (const el of $$('.slot')) {
+      const k = el.dataset.k, w = G.E.workable(k) ? G.S.b[k].w || 0 : 0;
+      const on = w > 0 && G.E.wkActive(k), key = `${w}|${on}|${hit}`;
+      const box = el.querySelector('.slot-wk');
+      if (box._k === key) continue;
+      box._k = key;
+      const url = G.SPR.url('wk:' + (WK_TOOL[k] || 'hammer'));
+      box.style.setProperty('--wkt', hit + 's');
+      box.innerHTML = Array.from({ length: w }, (_, i) => `<span class="wkr p${i}${on ? '' : ' idle'}"><i style="background-image:url(${url})"></i></span>`).join('');
+    }
   }
 
   function updateBadges() {
@@ -583,7 +604,7 @@
 
   function renderKingBadge() {
     const k = G.S.king;
-    $('#folk').innerHTML = `${ic('c_folk', 'ic2')}<div class="rcol"><div><span class="fl">${t('folk')}</span> <b data-b="folk"></b></div><div class="rline"><div class="rbar"><i data-w="folkW"></i></div><span class="rr">${ic('r_gold')}<span data-b="folkR"></span></span></div></div>`;
+    $('#folk').innerHTML = `${ic('c_folk', 'ic2')}<div class="rcol"><div><span class="fl">${t('folk')}</span> <b data-b="folk"></b></div><div class="rline"><div class="rbar"><i data-w="folkW"></i></div><span class="wkc" title="${esc(t('wkChipTip'))}">${ic('i_pick')}<b data-b="wkc"></b></span><span class="rr">${ic('r_gold')}<span data-b="folkR"></span></span></div></div>`;
     $('#kbadge').innerHTML = `${ic('c_king', 'ic2')}<span class="kl">${t('lv')} <b data-b="klvl"></b></span>${bar('kxp', 'xp')}${G.K.tp() > 0 ? '<i class="sp">+</i>' : ''}`;
     $('#kbadge').title = t('king') + ' · ' + t('lv') + ' ' + k.lvl;
     const ab = $('#autobtn');
@@ -651,9 +672,9 @@
       const arr = G.S.decree[q], j = +i;
       if (j < arr.length - 1) { [arr[j + 1], arr[j]] = [arr[j], arr[j + 1]]; UI.slotsDirty = true; UI.dirty(); }
     },
-    worker(k) { G.E.hireWorker(k); },
+    wkAdd(k) { G.E.assignWorker(k); },
+    wkDel(k) { G.E.unassignWorker(k); },
     tools() { G.E.upgradeTools(); },
-    smith() { G.F.hireSmith(); },
     craftType(ty) { UI.craft.type = ty; UI.dirty(); },
     craftTier(ti) { UI.craft.ti = +ti; UI.dirty(); },
     craft() { G.F.craft(UI.craft.type, UI.craft.ti); },
@@ -865,16 +886,26 @@
     return box(ic('i_up') + ' ' + (L ? t('upgradeTo', { l: L + 1 }) : t('build')), h);
   }
 
-  function prodPanel(k) {
-    const b = G.S.b[k], r = D.B[k].prod, mx = G.E.maxWorkers(k), L = G.E.lvl(k);
-    const next = L < D.MAXLVL ? `<div class="muted small">${t('workersNext', { n: D.WORKERS[L + 1] })}</div>` : '';
-    return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${b.w}/${mx}</span>`, `
-      ${kv('r_' + r, t('production'), `<b>${U.fmt1(b.w * G.E.workerRate(k))}</b>/${t('sec')} <span class="muted small">(${U.fmt1(G.E.workerRate(k))} ${t('perWorker')})</span>`)}
-      ${kv('i_pick', t('clickGives'), `<b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + r)}`)}
-      ${G.E.full(r) ? `<div class="warn small">${ic('i_bag')} ${t('storageFull')}</div>` : ''}
-      ${b.w < mx ? btn(ic('i_people') + ' ' + t('hireWorker'), 'worker', k, { cost: G.E.workerCost(k) }) : `<div class="muted small">${t('workersFull')}</div>`}${next}
-      ${mx > D.WORKERS[L] ? `<div class="good small">${t('workersBonus', { n: mx - D.WORKERS[L] })}</div>` : ''}`, '', ['workersMore', t('workersMore') + '<br>' + t('clickHint')]);
+  // Рабочие здания: сколько стоит, что дают, поставить и снять (до 3 мест: с 1, 4 и 7-го уровня)
+  const WK_TOOL = { lumber: 'axe', quarry: 'pick', mine: 'pick' };
+  function workersBox(k) {
+    const b = G.S.b[k], d = D.B[k], w = b.w || 0, mx = G.E.wkSlots(k), free = G.E.wkFree(), all = G.E.wkTotal();
+    let h = '';
+    if (d.click) {
+      const r = d.click, rate = G.E.workerRate(k);
+      h += kv('r_' + r, t('production'), `<b>+${U.fmt1(w * rate)}</b>/${t('sec')} <span class="muted small">(${U.fmt1(rate)} ${t('perWorker')})</span>`);
+      if (k !== 'castle') h += kv('i_pick', t('clickGives'), `<b>+${U.fmt1(G.E.clickAmount(k))}</b> ${ic('r_' + r)}`);
+    } else {
+      const sp = 1 + D.WORK.boost * w * G.E.wkSpeed();
+      h += kv('i_clock', t('wkb_' + k), `<b>×${U.fmt1(sp)}</b> <span class="muted small">(+${Math.round(D.WORK.boost * G.E.wkSpeed() * 100)}% ${t('perWorker')})</span>`);
+    }
+    if (w > 0 && !G.E.wkActive(k)) h += `<div class="warn small">${ic(G.E.busy(k) ? 'i_hammer' : 'i_bag')} ${t(G.E.busy(k) ? 'wkWaitBuild' : d.click && G.E.full(d.click) ? 'storageFull' : 'wkWait')}</div>`;
+    h += `<div class="row">${btn(ic('i_people') + ' ' + t('wkAdd'), 'wkAdd', k, { cls: 'primary', lock: free <= 0 || w >= mx })}${w > 0 ? btn(t('wkDel'), 'wkDel', k) : ''}</div>`;
+    h += `<div class="muted small">${t('wkFreeN', { n: free, m: all })}${w >= mx ? ' · ' + (G.E.wkNextSlot(k) ? t('wkNextSlot', { n: mx + 1, l: G.E.wkNextSlot(k) }) : t('wkSlotsMax')) : ''}</div>`;
+    if (free <= 0 && w < mx) h += `<div class="muted small">${t('wkNoFree')}</div>`;
+    return box(ic('i_people') + ' ' + t('workers') + ` <span class="muted">${w}/${mx}</span>`, h, '', ['wkHint', t('wkHint')]);
   }
+  UI.workersBox = workersBox;
 
   function defenders() {
     const battle = G.W.active();
@@ -900,9 +931,6 @@
           <div class="eqrow">${G.PANE.eqSlots('king', ['weapon'])}</div>${G.PANE.pickerFor('king', ['weapon'])}
           <button class="btn small" data-action="tab" data-arg="king">${ic('i_crown')} ${t('openKing')}</button>`);
     },
-    lumber: () => prodPanel('lumber'),
-    quarry: () => prodPanel('quarry'),
-    mine: () => prodPanel('mine'),
     warehouse() {
       const L = G.E.lvl('warehouse');
       const rows = ['gold', ...D.MAT].filter((r) => G.S.seen[r]).map((r) => `<div class="srow">${ic('r_' + r)}<span class="grow">${t('res_' + r)}</span><span class="small" data-b="store:${r}"></span>${bar('store:' + r, 'store')}</div>`).join('');
@@ -936,7 +964,7 @@
     },
     forge() {
       return G.PANE.craft() +
-        box(ic('i_people') + ' ' + t('smiths') + ` <span class="muted">${G.S.b.forge.w}/${G.F.maxSmiths()}</span>`, `${kv('i_clock', t('craftSpeed'), `<b>×${G.F.speed().toFixed(2)}</b>`)}${G.S.b.forge.w < G.F.maxSmiths() ? btn(ic('i_people') + ' ' + t('hireSmith'), 'smith', '', { cost: G.F.smithCost() }) : ''}`, '', ['smithHint', t('smithHint') + ' ' + t('forgeClickHint')]);
+        box(ic('i_anvil') + ' ' + t('craftSpeed'), `${kv('i_clock', t('craftSpeed'), `<b>×${G.F.speed().toFixed(2)}</b>${G.E.wkBoost('forge') > 1 ? ` <span class="good small">× ${U.fmt1(G.E.wkBoost('forge'))} ${t('wkShort')}</span>` : ''}`)}`, '', ['smithHint', t('smithHint') + ' ' + t('forgeClickHint')]);
     },
     tavern: () => G.PANE.hire(),
     barracks() {
@@ -979,6 +1007,7 @@
     h += popAction(k);
     h += upgradeBox(k);
     // здание на перестройке недоступно; замок и склад показывают справку
+    if (L > 0 && G.E.workable(k)) h += workersBox(k); // рабочие — и на перестройке (ждут конца стройки)
     if (L > 0 && BP[k] && (!G.E.busy(k) || k === 'castle' || k === 'warehouse')) h += BP[k]();
     if (k !== 'academy') h += skillsBox(k);
     return h;
@@ -1069,7 +1098,7 @@
       <div class="muted small">${t('deepest')}: <b>${best}</b> · ${t('difficulty')}: <b>×${U.fmt1(G.K.epochMul())}</b>${nb ? ` · ${t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) })}` : ''}</div>
       ${G.S.camp.awake && !G.S.camp.won ? `<div class="good small">${ic('i_dragon')} ${t('catDragonAwake')}</div>` : G.S.camp.won ? `<div class="muted small">${ic('i_crown')} ${t('catDragonWon')}</div>` : ''}</div>
       ${nb ? `<span class="nextboss" title="${esc(t('catNextBoss', { f: nb, m: t('mn_' + D.CAT_BOSS[nb]) }))}">${ic(monSpr(D.CAT_BOSS[nb]), 'ic3')}<b>${nb}</b></span>` : ''}</div>`;
-    const setup = ex.length < max ? expSetup(loc) : box('', `${ic('i_flag')} ${t('squadAway')}`, 'muted');
+    const setup = (ex.length < max ? expSetup(loc) : box('', `${ic('i_flag')} ${t('squadAway')}`, 'muted')) + workersBox('dungeon');
     if (ex.length) {
       // идёт поход — сцена боя в самом верху, шапка ниже; новый отряд — когда вернётся этот.
       // Переключатель отрядов — только для старых сохранений, где в походе ещё несколько отрядов
@@ -1428,6 +1457,7 @@
     ehp: (id) => { const e = G.X.get(id); return e && e.enemy ? U.fmt(Math.max(0, e.phase === 'fight' ? e.ehp : e.enemy.hp)) + '/' + U.fmt(e.enemy.max) : ''; },
     rschT: (id) => { const c = id ? G.R.cur(id) : G.R.active()[0]; return c ? U.fmtTime(c.t) + (G.E.busy('academy') ? ' · ' + t('paused') : '') : ''; },
     folk: () => G.E.folk() + '/' + G.E.homes(),
+    wkc: () => G.E.wkFree() + '/' + G.E.wkTotal(),
     tavT: () => U.fmtTime(Math.max(0, G.S.tavern.t)),
     gp: (id) => { const p = G.E.goalProg(G.E.goalById(id)); return p ? U.fmt(p.cur) + ' / ' + U.fmt(p.n) : ''; },
     arenaT: () => (G.S.arena.cd > 0 ? U.fmtTime(G.S.arena.cd) + (G.E.busy('arena') ? ' · ' + t('paused') : '') : t('arenaReady')),
@@ -1543,6 +1573,7 @@
     }
     $('#rush-ind').classList.toggle('hidden', !(G.S.king.buff.rush > 0));
     updateBadges();
+    updateWorkers();
     refreshDuelButtons();
     applyGoal();
     renderTip();

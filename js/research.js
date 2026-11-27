@@ -82,7 +82,8 @@
     const S = G.S.research;
     if (!Array.isArray(S.act) || S.cur) R.sanitize();
     if (S.act.length && G.E.usable('academy')) {
-      for (const c of S.act) c.t -= dt;
+      const wb = G.E.wkBoost('academy'); // рабочие на Академии
+      for (const c of S.act) c.t -= dt * wb;
       const ready = S.act.filter((c) => c.t <= 0);
       if (ready.length) {
         S.act = S.act.filter((c) => c.t > 0);

@@ -114,7 +114,7 @@
 
   A.tick = function (dt) {
     const S = A.S();
-    if (S.cd > 0 && G.E.usable('arena')) S.cd = Math.max(0, S.cd - dt);
+    if (S.cd > 0 && G.E.usable('arena')) S.cd = Math.max(0, S.cd - dt * G.E.wkBoost('arena')); // рабочие на Арене
   };
   // Клик по Арене ускоряет подготовку к бою
   A.boostSec = () => 1 * G.K.foreman();

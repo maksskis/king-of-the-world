@@ -20,7 +20,14 @@
   D.goldCap = (L) => 250 * Math.pow(2, L); // 1 ур. — 500, 2 ур. — 1000 и т. д.
   D.LVLMULT = [1, 2, 4, 8, 16, 32, 64, 128]; // множитель цены перехода L -> L+1
   D.buildTime = (L) => 20 * Math.pow(2, L); // секунды на переход L -> L+1
-  D.WORKERS = [0, 1, 2, 3, 4, 6, 8, 10, 12]; // мест для рабочих по уровню
+  // Рабочие (итерация 59): каждый 2–4-й житель — рабочий; на здание до 3 рабочих (места с 1, 4 и 7-го уровня).
+  // Рабочий бьёт по зданию раз в hit секунд: на Замке и добыче — как клик Короля силы pow[уровень] (без кирки и талантов Короля),
+  // на Академии, Кузнице, Арене, Гильдии и в Катакомбах — +boost к скорости их дела.
+  // pow подобран так, что 2 рабочих 8-го уровня добывают как прежние 15, а 3 — больше прежнего предела (19)
+  D.WORK = {
+    hit: 1.5, pow: [0, 0.6, 0.9, 1.2, 1.5, 1.9, 2.2, 2.5, 2.85], boost: 0.5, every: [2, 4], slotLvl: [1, 4, 7],
+    b: ['castle', 'lumber', 'quarry', 'mine', 'academy', 'forge', 'arena', 'tavern', 'dungeon'],
+  };
 
   // ---------- карта города 384×300: замок в центре, постройки по кругу ----------
   D.MAP = { w: 384, h: 320, cx: 192, cy: 136, rx: 132, ry: 84, wrx: 182, wry: 124, wcy: 138 };
@@ -54,7 +61,7 @@
   D.ORDER = ['castle', 'lumber', 'quarry', 'mine', 'warehouse', 'arena', 'forge', 'tavern', 'barracks', 'academy', 'gate', 'dungeon'];
   D.PROD = ['lumber', 'quarry', 'mine'];
   // Жители: платят налог; приходят, пока есть свободное жильё
-  D.FOLK = { tax: 0.03, perCastle: 3, perLevels: 2, every: 15 };
+  D.FOLK = { tax: 0.03, perCastle: 5, perLevels: 2, every: 15 }; // 5 домов за уровень Замка: к концу эпохи ~80 жителей, ~27 рабочих
 
   // ---------- авантюристы ----------
   D.CLS = {
@@ -245,7 +252,7 @@
     { id: 'pick', br: 'hand', icon: 'i_pick', eff: { gather: 0.2 } },
     // Хозяйство
     { id: 'steward', br: 'eco', icon: 'i_pick', eff: { prod: 0.1 } },
-    { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { crews: 2 } },
+    { id: 'crews', br: 'eco', icon: 'i_people', max: 3, eff: { wSpeed: 0.1 } }, // «Бригадиры»: рабочие бьют быстрее
     { id: 'tax', br: 'eco', icon: 'r_gold', eff: { tax: 0.15 } },
     // Строительство: «Прораб» — все ускорения кликом (стройка, Кузница, Академия, Арена, Гильдия, Катакомбы)
     { id: 'arch', br: 'build', icon: 'i_clock', eff: { buildT: 0.1 } },
@@ -297,7 +304,7 @@
     // 5
     { id: 'medicine', b: 'tavern', acad: 5, icon: 'i_heal', cost: { gold: 1200, bone: 80 }, t: 800, eff: { recover: 1, save: 0.1 } },
     { id: 'gladiators', b: 'arena', acad: 5, icon: 'i_atk', cost: { gold: 1300, wood: 800, stone: 800 }, t: 800, eff: { arenaLoot: 0.25 } },
-    { id: 'workcamps', b: ['lumber', 'quarry', 'mine'], acad: 5, icon: 'i_people', cost: { gold: 1500, wood: 1000, stone: 1000, iron: 300 }, t: 900, eff: { crews: 1 } },
+    { id: 'workcamps', b: ['lumber', 'quarry', 'mine'], acad: 5, icon: 'i_people', cost: { gold: 1500, wood: 1000, stone: 1000, iron: 300 }, t: 900, eff: { wSpeed: 0.2 } }, // «Рабочие посёлки»: рабочие на 20% быстрее
     { id: 'library', b: 'academy', acad: 5, icon: 'i_book', cost: { gold: 1400, wood: 800, stone: 600 }, t: 800, eff: { resSpeed: 0.25 } },
     // 6
     { id: 'guard', b: 'barracks', acad: 6, req: 'bows', icon: 'i_helmet', cost: { gold: 2500, iron: 1200 }, t: 1200, eff: { guards: 3, guardSpd: 0.25 } },
@@ -430,7 +437,7 @@
     { id: 'housing', icon: 'c_folk', eff: { housing: 2 } },
     { id: 'example', icon: 'c_king', eff: { clickProd: 0.5 } },
     { id: 'thrift', icon: 'i_scale', eff: { buildC: 0.05 } },
-    { id: 'workers', icon: 'r_wood', eff: { workerC: 0.05 } },
+    { id: 'workers', icon: 'r_wood', eff: { wSpeed: 0.05 } }, // «Рабочие руки»: +5% к скорости рабочих
     { id: 'golden', icon: 'r_crystal', eff: { rewardAll: 0.1 } },
     { id: 'blood', icon: 'i_shield2', eff: { heroPow: 0.05 } },
     // ступень III: ускоряют всё
@@ -463,20 +470,20 @@
     // Склад 0: город с нуля
     { id: 'g0', h: { b: 'castle', act: 'gather' }, test: (S) => (S.stats.c_castle || 0) >= 10 || S.b.lumber.lvl >= 1, reward: { gold: 30 } },
     { id: 'g1', h: { b: 'lumber', act: 'up' }, test: (S) => S.b.lumber.lvl >= 1, reward: { wood: 30 } },
-    { id: 'g2', h: { b: 'lumber', act: 'worker' }, test: (S) => S.b.lumber.w >= 1, reward: { gold: 40 } },
+    { id: 'g2', h: { b: 'lumber', act: 'wkAdd' }, test: (S) => S.b.lumber.w >= 1, reward: { gold: 40 } },
     { id: 'q1', h: { b: 'lumber', act: 'gather' }, v: (S) => S.stats.c_lumber || 0, n: 30, d: true, reward: { gold: 50 } },
     { id: 'g3', h: { b: 'quarry', act: 'up' }, test: (S) => S.b.quarry.lvl >= 1, reward: { stone: 40 } },
-    { id: 'n2', h: { b: 'quarry', act: 'worker' }, test: (S) => S.b.quarry.w >= 1, reward: { wood: 40 } },
+    { id: 'n2', h: { b: 'quarry', act: 'wkAdd' }, test: (S) => S.b.quarry.w >= 1, reward: { wood: 40 } },
     { id: 'g4', h: { b: 'warehouse', act: 'up' }, test: (S) => S.b.warehouse.lvl >= 1, reward: { gold: 100 } },
     // Склад 1: 200 ресурсов, 500 золота
     { id: 'q2', h: { b: 'lumber', act: 'gather' }, test: (S) => S.res.wood >= 200, reward: { gold: 150 } },
     { id: 'm2', h: { b: 'castle', act: 'gather' }, v: (S) => S.stats.clicks, n: 200, d: true, reward: { stone: 100 } },
     { id: 'g5', h: { b: 'mine', act: 'up' }, test: (S) => S.b.mine.lvl >= 1, reward: { iron: 50 } },
-    { id: 'n4', h: { b: 'mine', act: 'worker' }, test: (S) => S.b.mine.w >= 1, reward: { gold: 100 } },
-    { id: 'm3', h: { b: 'quarry', act: 'worker' }, v: (S) => S.b.lumber.w + S.b.quarry.w + S.b.mine.w, n: 5, reward: { gold: 250 } },
+    { id: 'n4', h: { b: 'mine', act: 'wkAdd' }, test: (S) => S.b.mine.w >= 1, reward: { gold: 100 } },
+    { id: 'm3', h: { b: 'castle', act: 'wkAdd' }, v: () => G.E.wkUsed(), n: 5, reward: { gold: 250 } },
     { id: 'n5', h: { b: 'castle', act: 'tools' }, test: (S) => S.king.tools >= 1, reward: { iron: 60 } },
     { id: 'g6', h: { b: 'forge', act: 'up' }, test: (S) => S.b.forge.lvl >= 1, reward: { iron: 80 } },
-    { id: 'n7', h: { b: 'forge', act: 'smith' }, test: (S) => S.b.forge.w >= 1, reward: { gold: 150 } },
+    { id: 'n7', h: { b: 'forge', act: 'wkAdd' }, test: (S) => S.b.forge.w >= 1, reward: { gold: 150 } },
     { id: 'g7', h: { b: 'forge', act: 'craft' }, test: (S) => S.stats.crafted >= 1, reward: { iron: 80 } },
     { id: 'n6', h: { b: 'castle', act: 'pick' }, test: (S) => S.items.some((i) => i.eq === 'king'), reward: { gold: 150 } },
     { id: 'g8', h: { b: 'tavern', act: 'up' }, test: (S) => S.b.tavern.lvl >= 1, reward: { gold: 200 } },
@@ -503,7 +510,7 @@
     { id: 'n20', h: { tab: 'king', act: 'talent' }, test: (S) => Object.values(S.king.tal).some((v) => v > 0), reward: { gold: 400 } },
     { id: 'n21', h: { tab: 'king', act: 'cast' }, test: (S) => (S.stats.spells || 0) >= 1, reward: { gold: 400 } },
     // Склад 3: 800 / 2000
-    { id: 'm9', h: { b: 'mine', act: 'worker' }, v: (S) => S.b.lumber.w + S.b.quarry.w + S.b.mine.w, n: 9, reward: { gold: 1000 } },
+    { id: 'm9', h: { b: 'academy', act: 'wkAdd' }, v: () => G.E.wkUsed(), n: 9, reward: { gold: 1000 } },
     { id: 'g25', h: { b: 'gate', act: 'fight' }, test: (S) => S.gate.best >= 10, reward: { gold: 800, bone: 60 } },
     { id: 'c20', h: CAT, v: (S) => S.dng.best.catacombs || 0, n: 20, reward: { bone: 150 } },
     { id: 'm10', h: { b: 'tavern', act: 'hire' }, v: (S) => S.stats.hires || 0, n: 2, d: true, reward: { gold: 800 } },

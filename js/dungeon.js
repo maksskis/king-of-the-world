@@ -277,13 +277,13 @@
       for (const a of X.members(e)) {
         if (a.hp > 0) { const mx = G.T.stats(a).hp; a.hp = Math.min(mx, a.hp + mx * 0.01 * dt); }
       }
-      e.t -= dt;
+      e.t -= dt * G.E.wkBoost('dungeon'); // рабочие в Катакомбах торопят отряд
       if (e.t <= 0) X.engage(e);
     } else if (e.phase === 'fight') {
       e.rt += dt;
       while (X.get(e.id) && e.phase === 'fight' && e.rt >= ROUND) { e.rt -= ROUND; X.round(e); }
     } else if (e.phase === 'ret') {
-      e.t -= dt;
+      e.t -= dt * G.E.wkBoost('dungeon');
       if (e.t <= 0) X.finish(e, true);
     } else if (e.phase === 'enc') X.engage(e);
     else if (e.phase === 'after') X.afterFloor(e);

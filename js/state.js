@@ -16,6 +16,7 @@
       decree: { build: [], research: [] }, // указы — очереди приоритетов
       research: { done: {}, act: [] }, // act: идущие исследования [{id, t, total}]
       folk: 0, folkT: 0, // жители и таймер прихода следующего
+      wk: 0, wkN: 1, wkV: 1, // рабочие из жителей: всего, сколько жителей до следующего рабочего (первый житель — рабочий), версия
       king: { lvl: 1, xp: 0, tools: 0, tal: {}, cd: {}, buff: {}, auto: true }, // auto — автоклик включён
       advisors: {},
       items: [],
@@ -63,11 +64,19 @@
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return null;
-      return merge(G.newState(), JSON.parse(raw));
+      return withWorkers(JSON.parse(raw));
     } catch (e) {
       return null;
     }
   };
+
+  // Сохранение без рабочих из жителей (до итерации 59) — помечаем для переноса (E.migrateWorkers)
+  function withWorkers(s) {
+    const old = s.wk === undefined;
+    const st = merge(G.newState(), s);
+    if (old) st.wkV = 0;
+    return st;
+  }
 
   G.wipe = function () {
     try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
@@ -77,7 +86,7 @@
   G.importSave = function (str) {
     const s = JSON.parse(decodeURIComponent(escape(atob(str.trim()))));
     if (!s || !s.res || !s.b || s.v !== 3) throw new Error('bad save');
-    return merge(G.newState(), s);
+    return withWorkers(s);
   };
 
   // Записи журнала: ключ + параметры, чтобы перерисовываться при смене языка

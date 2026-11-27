@@ -166,7 +166,7 @@
 
   T.tick = function (dt) {
     if (tl() > 0) {
-      G.S.tavern.t -= dt * G.K.haste(); // «Время королей»
+      G.S.tavern.t -= dt * G.K.haste() * G.E.wkBoost('tavern'); // «Время королей» и рабочие на Гильдии
       if (G.S.tavern.t <= 0) T.refresh(true);
     }
     const inBattle = G.W.active();
