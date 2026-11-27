@@ -1009,11 +1009,17 @@ button[data-tip], .btn[data-tip] { cursor: pointer; }
 #tip .row { margin-top: 2px; }
 #tip .tiphint { margin-top: 4px; font-size: 11.5px; }
 /* Арсенал: кто что носит */
-.wearer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 0; border-top: 1px dashed var(--line); }
+/* «Кто что носит»: сверху одной строкой — кто (имя, класс, уровень, статы), под ней сразу вещи в два столбца */
+.wearer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; padding: 8px 0; border-top: 1px dashed var(--line); }
 .wearer:first-of-type { border-top: 0; }
-.wwho { display: flex; align-items: center; gap: 8px; min-width: 120px; flex: 0 1 150px; }
-.wearer .eqrow { margin: 0; flex: 1 1 290px; }
-.wearer .eq.big { min-width: 140px; flex: 1 1 140px; }
+.wwho { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.wwho .ic2 { width: 22px; height: 22px; flex: none; }
+.wwho > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.wwho > div .small { display: inline; }
+.wwho br { display: none; }
+.wwho .wst { margin-left: 6px; }
+.wearer .eqrow { display: contents; }
+.wearer .eq.big { min-width: 0; }
 .eq .avail { color: var(--good, #7ddc6a); font-size: 12px; }
 /* Сравнение вещей: статы надетой и разница с ней */
 .eqst { display: inline-flex; flex-wrap: wrap; gap: 4px; font-size: 12px; font-weight: 600; }
